@@ -1,11 +1,31 @@
 # Agent Memory Knowledge Base
 
+[![kb-lint](https://github.com/jvanheerikhuize/knowledge-base/actions/workflows/kb-lint.yml/badge.svg)](https://github.com/jvanheerikhuize/knowledge-base/actions/workflows/kb-lint.yml)
+
 A file-based, infrastructure-free knowledge base built around the [7 types
 of agent memory](https://www.marktechpost.com/2026/06/21/the-7-types-of-agent-memory-a-technical-guide-for-ai-engineers/)
 (CoALA-derived), following the ingest/wiki/lint maintenance pattern from
 [Karpathy's "LLM Wiki" gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
+Plain markdown + a stdlib-only Python CLI — no database, no server, no
+dependencies.
 
-See [`goal.md`](goal.md) for the original requirements this repo was built from.
+## The 7 memory types
+
+| Type | Holds | Example |
+|------|-------|---------|
+| `semantic` | Facts about the world/project | "the KB is file-based, no infra" |
+| `episodic` | Records of specific past events | "on 2026-07-22 we migrated X" |
+| `procedural` | How-to knowledge, workflows | "how to distill a session into memory" |
+| `working` | Short-lived scratch state | current task context |
+| `retrieval` | Pointers to external sources | URLs, docs, dashboards |
+| `parametric` | Notes on model-internal knowledge | what the agent knows without lookup |
+| `prospective` | Future intentions with a `due` date | "rotate the token before 2026-09-01" |
+
+Every entry is one markdown file with YAML frontmatter (name, type,
+description, confidence, dates, links). The current contents are always
+visible in the auto-generated
+[memory graph](memory/_generated/graph.md) and
+[index](memory/_generated/index.md).
 
 ## Start here
 
@@ -22,6 +42,7 @@ See [`goal.md`](goal.md) for the original requirements this repo was built from.
 ```
 memory/       the knowledge base itself, one folder per memory type
 scripts/      kb.py (CLI), visualize.py (mermaid graph generator), scaffold.sh
+tests/        stdlib unittest suites for kb.py and visualize.py
 .github/      CI workflow that lints and re-visualizes the KB on every change
 docs/         plan, solution overview, roadmap
 ```
@@ -32,8 +53,19 @@ docs/         plan, solution overview, roadmap
 python3 scripts/kb.py list
 python3 scripts/kb.py search "<keyword>"
 python3 scripts/kb.py new --type semantic "<name>"
+python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
 python3 scripts/kb.py lint
 python3 scripts/visualize.py
+```
+
+`kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
+dangling links, and warns on stale, unverified, orphaned, or overdue
+entries (`--strict` turns warnings fatal; CI runs that weekly).
+
+## Tests
+
+```
+python3 -m unittest discover tests
 ```
 
 ## Scaffolding into another repo
@@ -88,3 +120,37 @@ taxonomy above. A project-governance system and this KB can and should
 coexist — see [dotfiles](https://github.com/jvanheerikhuize/dotfiles)'s
 `.ai/` (governance) alongside its scaffolded `memory/` (this KB) for an
 example of the split.
+
+## Original goal
+
+<details>
+<summary>The requirements this repo was built from</summary>
+
+**Goal:** create a persistent file-based knowledge base around the 7 types
+of agent memory.
+
+**Requirements:**
+
+- readable and editable by humans
+- scaffolds into a system readable by any agent; the scaffolder can be
+  triggered via a pipeline/action
+- file based, no infra needed
+- closest to current industry standards
+- lives in a subfolder of a repository
+- has a single point of entry for an agent
+- solution & agent agnostic
+- needs an ingestion layer
+- needs a visualisation layer
+- needs an interface to interact with the knowledge base
+- fact checking and confidence scoring
+
+**Sources:**
+
+- <https://www.marktechpost.com/2026/06/21/the-7-types-of-agent-memory-a-technical-guide-for-ai-engineers/>
+- <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>
+
+</details>
+
+## License
+
+[MIT](LICENSE)
