@@ -52,7 +52,7 @@ def main():
         name = fm.get("name", path.stem)
         names.add(name)
         conf = fm.get("confidence", "unverified")
-        label = f"{name}\\n({conf})"
+        label = f"{name}<br/>({conf})"
         node_lines.append(f'    {node_id(name)}["{label}"]:::{TYPE_CLASS[t]}')
 
     for t, path in entries:
