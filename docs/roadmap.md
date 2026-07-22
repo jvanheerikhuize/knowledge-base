@@ -35,8 +35,8 @@ gantt
     Lint orphan entries (no inbound links)          :p7c, after p7a, 1d
     Lint overdue prospective + type/folder mismatch :p7d, after p7c, 1d
     section Phase 8 — Tests & CI Hygiene
-    stdlib unittest suite for kb.py/visualize.py    :p8a, after p7d, 2d
-    CI trigger parity + workflow_dispatch           :p8b, after p8a, 1d
+    stdlib unittest suite for kb.py/visualize.py    :done, p8a, after p7d, 2d
+    CI trigger parity + workflow_dispatch           :done, p8b, after p8a, 1d
     section Phase 9 — Adoption & Iteration
     Dogfood on a real project repo                  :done, p9a, after p8b, 5d
     Iterate on schema based on real usage           :active, p9b, after p9a, 5d
@@ -135,7 +135,7 @@ Close the gaps against the Karpathy gist the design is based on:
   `type:` frontmatter doesn't match the folder they live in. Add `due:`
   to the entry template.
 
-**Phase 8 — Tests & CI Hygiene**
+**Phase 8 — Tests & CI Hygiene (done)**
 - A stdlib `unittest` suite exercising `kb.py` and `visualize.py` against
   a temp KB (new/list/search/lint/graph generation), wired into CI.
 - CI trigger parity: the `push` trigger should watch the scripts like the
