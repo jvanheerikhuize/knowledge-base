@@ -39,7 +39,7 @@ gantt
     CI trigger parity + workflow_dispatch           :done, p8b, after p8a, 1d
     section Phase 9 — Adoption & Iteration
     Dogfood on a real project repo                  :done, p9a, after p8b, 5d
-    Iterate on schema based on real usage           :active, p9b, after p9a, 5d
+    Iterate on schema based on real usage           :done, p9b, after p9a, 5d
     section Phase 10 — Robustness Hardening
     kb.py: guard unreadable files, validate links    :done, p10a, after p9b, 1d
     visualize.py: same hardening for consistency     :done, p10b, after p10a, 1d
@@ -161,32 +161,33 @@ schema/CLI.
   entries exist (`memory/semantic/kb-is-file-based.md`,
   `memory/procedural/distill-session-into-memory.md`), both authored
   2026-07-22, not placeholder scaffold content.
-- p9b (in progress): friction found from that real usage so far —
+- p9b (done): friction found from that real usage —
   1. The `entry.schema.json` vs. `kb.py lint` enforcement gap (see p6c)
      was only *discovered* because dotfiles' two real entries passed lint
      cleanly despite the hole — a good example of why dogfooding surfaces
-     bugs that synthetic testing doesn't.
+     bugs that synthetic testing doesn't. Fixed in p6c.
   2. dotfiles already has a separate, mature AI-context system under
      `.ai/` (ADRs, an authorization/"Decision Protocol" framework, a
      traceability doc, architecture docs) that conceptually overlaps with
      this KB's taxonomy — e.g. ADRs vs. `memory/semantic|procedural`
      entries, `.ai/memory/AUTHORIZATIONS.md` vs. no "authorization" memory
-     type here. dotfiles' own README lists both systems side by side in
+     type here. dotfiles' own README listed both systems side by side in
      its Repository Structure tree with zero cross-reference between them.
-     Unscoped for now; p9b should either add a short cross-reference note
-     in both READMEs pointing at each other, or explicitly decide the two
-     systems serve different concerns and document *why* they stay
-     separate.
-  3. Scaffolded copies of `kb.py`/`visualize.py` (dotfiles' included) have
+     Resolved by adding a "Relationship to other AI-context systems" section
+     to this repo's README explaining the split (agent memory vs. project
+     governance) and pointing at dotfiles as a worked example, plus a
+     reciprocal cross-reference in dotfiles' own README and `.ai/CONTEXT.md`.
+  3. Scaffolded copies of `kb.py`/`visualize.py` (dotfiles' included) had
      no update mechanism when the source repo's scripts improve. Confirmed:
      after p6c merged here, the fix had to be manually diffed and re-copied
      into dotfiles (dotfiles PR #14, merged) to take effect there — the
-     friction is real, not hypothetical. That PR fixed dotfiles' copy once;
-     it did not add any lasting or automated mechanism, so the same gap will
-     recur on the next `kb.py`/`visualize.py` change. Still worth a
-     documented "how to pick up upstream fixes" note, at minimum, or an
-     automated check (e.g. a scheduled workflow diffing scaffolded copies
-     against upstream).
+     friction was real, not hypothetical. Resolved by adding a "Keeping a
+     scaffolded copy in sync" section to this repo's README (remote +
+     selective checkout, one-off curl copy, or an automated sync workflow
+     like `actions-template-sync`), reusing the pattern dotfiles' own
+     `docs/runbooks/template-sync.md` already established for its `.ai/`
+     template — and by pointing `scaffold.sh`'s closing output at that
+     section.
 
 **Phase 10 — Robustness Hardening**
 Neither `kb.py` nor `visualize.py` handled a file that couldn't be read

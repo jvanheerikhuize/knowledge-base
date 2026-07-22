@@ -45,3 +45,46 @@ scripts/scaffold.sh /path/to/target-repo [subfolder-name]
 Copies `memory/`, `scripts/kb.py`, `scripts/visualize.py`, and the CI workflow
 into the target repo. Solution- and agent-agnostic — no dependency on this repo
 at runtime.
+
+### Keeping a scaffolded copy in sync
+
+`scaffold.sh` copies files once; it does not link the target repo back to this
+one, so fixes made here (e.g. a `kb.py` lint bug) don't propagate
+automatically. Pick whichever of these fits the target repo:
+
+- **Add this repo as a remote, then selectively check out updated files:**
+
+  ```bash
+  git remote add kb-upstream <this-repo-url>
+  git fetch kb-upstream
+  git diff HEAD kb-upstream/main -- scripts/kb.py scripts/visualize.py
+  git checkout kb-upstream/main -- scripts/kb.py scripts/visualize.py
+  ```
+
+- **One-off file copy**, if you don't want a permanent remote:
+
+  ```bash
+  curl -fsSL <raw-url>/scripts/kb.py -o scripts/kb.py
+  curl -fsSL <raw-url>/scripts/visualize.py -o scripts/visualize.py
+  ```
+
+- **Automate it** with a scheduled workflow (e.g.
+  [`actions-template-sync`](https://github.com/AndreasAugustin/actions-template-sync))
+  that opens a PR whenever `scripts/kb.py` or `scripts/visualize.py` changes
+  upstream, if the target repo wants sync without a manual check-in.
+
+Only `scripts/kb.py` and `scripts/visualize.py` are meant to be pulled
+verbatim — the `memory/` contents and `.kb-config` are the target repo's own
+data and shouldn't be overwritten by a sync.
+
+### Relationship to other AI-context systems
+
+Some repos already have a broader AI-assistant context system (ADRs,
+authorization policies, request-to-code traceability, architecture docs —
+often under something like `.ai/`). This knowledge base is not a replacement
+for that: it covers one narrower concern, an agent's own cross-session
+*memory* (facts, procedures, past episodes), organized by the 7-type
+taxonomy above. A project-governance system and this KB can and should
+coexist — see [dotfiles](https://github.com/jvanheerikhuize/dotfiles)'s
+`.ai/` (governance) alongside its scaffolded `memory/` (this KB) for an
+example of the split.
