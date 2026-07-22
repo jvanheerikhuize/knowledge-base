@@ -12,7 +12,19 @@ flowchart LR
     classDef parametric fill:#455a64,color:#fff
     classDef prospective fill:#ef6c00,color:#fff
     n_kb_is_file_based["kb-is-file-based<br/>(verified)"]:::semantic
+    n_lint_checks_schema_and_staleness_not_contradictions["lint-checks-schema-and-staleness-not-contradictions<br/>(verified)"]:::semantic
+    n_self_knowledge_vs_scaffolded_consumer_knowledge["self-knowledge-vs-scaffolded-consumer-knowledge<br/>(verified)"]:::semantic
+    n_schema_enforcement_gap_found_via_dotfiles_dogfooding["schema-enforcement-gap-found-via-dotfiles-dogfooding<br/>(verified)"]:::episodic
     n_distill_session_into_memory["distill-session-into-memory<br/>(high)"]:::procedural
+    n_sync_fix_back_to_scaffolded_copies["sync-fix-back-to-scaffolded-copies<br/>(verified)"]:::procedural
+    n_phase11_v1_kickoff_remaining_work["phase11-v1-kickoff-remaining-work<br/>(verified)"]:::prospective
     n_kb_is_file_based --> n_distill_session_into_memory
+    n_lint_checks_schema_and_staleness_not_contradictions --> n_schema_enforcement_gap_found_via_dotfiles_dogfooding
+    n_self_knowledge_vs_scaffolded_consumer_knowledge --> n_schema_enforcement_gap_found_via_dotfiles_dogfooding
+    n_self_knowledge_vs_scaffolded_consumer_knowledge --> n_kb_is_file_based
+    n_schema_enforcement_gap_found_via_dotfiles_dogfooding --> n_lint_checks_schema_and_staleness_not_contradictions
+    n_schema_enforcement_gap_found_via_dotfiles_dogfooding --> n_self_knowledge_vs_scaffolded_consumer_knowledge
     n_distill_session_into_memory --> n_kb_is_file_based
+    n_sync_fix_back_to_scaffolded_copies --> n_self_knowledge_vs_scaffolded_consumer_knowledge
+    n_phase11_v1_kickoff_remaining_work --> n_sync_fix_back_to_scaffolded_copies
 ```
