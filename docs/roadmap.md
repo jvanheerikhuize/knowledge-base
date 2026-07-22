@@ -169,10 +169,15 @@ schema/CLI.
      systems serve different concerns and document *why* they stay
      separate.
   3. Scaffolded copies of `kb.py`/`visualize.py` (dotfiles' included) have
-     no update mechanism when the source repo's scripts improve — e.g. this
-     PR's `cmd_lint` fix needs to be manually re-copied into dotfiles via
-     `scaffold.sh` to take effect there. Worth a documented "how to pick up
-     upstream fixes" note, at minimum.
+     no update mechanism when the source repo's scripts improve. Confirmed:
+     after p6c merged here, the fix had to be manually diffed and re-copied
+     into dotfiles (dotfiles PR #14, merged) to take effect there — the
+     friction is real, not hypothetical. That PR fixed dotfiles' copy once;
+     it did not add any lasting or automated mechanism, so the same gap will
+     recur on the next `kb.py`/`visualize.py` change. Still worth a
+     documented "how to pick up upstream fixes" note, at minimum, or an
+     automated check (e.g. a scheduled workflow diffing scaffolded copies
+     against upstream).
 
 Candidate upgrades (deliberately deferred, not required for v1):
 - Optional embedding-based retrieval as a pluggable backend behind the same
