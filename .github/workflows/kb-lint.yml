@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Run test suite
+        run: python3 -m unittest discover tests
+
       - name: Fact-check / contradiction lint (warnings for staleness)
         run: python3 scripts/kb.py lint
 
