@@ -88,7 +88,7 @@ def cmd_search(args):
     hits = 0
     for t, path in iter_entries():
         fm, body = parse_frontmatter(path)
-        haystack = (path.read_text()).lower()
+        haystack = body.lower() + "\n" + "\n".join(str(v) for v in fm.values()).lower()
         if query in haystack:
             hits += 1
             print(f"[{t}] {fm.get('name', path.stem)} — {fm.get('description', '')}\n  {path.relative_to(ROOT)}")
