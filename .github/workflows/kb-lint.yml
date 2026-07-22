@@ -10,9 +10,13 @@ on:
     branches: [main]
     paths:
       - "memory/**"
+  schedule:
+    - cron: "0 6 * * 1"  # weekly, Mondays 06:00 UTC
+  workflow_dispatch:
 
 jobs:
   lint-and-visualize:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +26,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Fact-check / staleness / contradiction lint
+      - name: Fact-check / contradiction lint (warnings for staleness)
         run: python3 scripts/kb.py lint
 
       - name: Regenerate memory graph
@@ -32,3 +36,17 @@ jobs:
         run: |
           git diff --exit-code -- memory/_generated/graph.mmd memory/_generated/graph.md || \
           (echo "memory/_generated graph files are stale — run scripts/visualize.py and commit them" && exit 1)
+
+  strict-lint:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Strict lint (staleness/unverified-age are fatal)
+        run: python3 scripts/kb.py lint --strict
