@@ -42,9 +42,12 @@ Two sources anchor the design:
      compounds instead of being re-derived per query.
    - A schema/config document (this repo's `memory/AGENT.md`) defines
      structure and conventions, analogous to a `CLAUDE.md`/`AGENTS.md`.
-   - Periodic "lint" passes catch contradictions, orphaned pages, and
-     stale claims — this maps directly onto the fact-checking/confidence
-     requirement.
+   - Periodic "lint" passes catch orphaned pages and stale claims — this
+     maps directly onto the fact-checking/confidence requirement. (This
+     repo's `kb.py lint` currently catches stale/unverified claims,
+     duplicate slugs, dangling links, and schema violations; orphan-page
+     detection and content-level contradiction detection are not yet
+     implemented — see the roadmap.)
 
 ## Design decisions
 
@@ -57,7 +60,7 @@ Two sources anchor the design:
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the agent (not a bespoke model call) does the classification/extraction, keeping the system model-agnostic |
 | Visualization layer | `scripts/visualize.py` walks frontmatter `links:` fields and emits a Mermaid graph, colored by memory type and confidence |
 | Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `lint` |
-| Fact-checking / confidence | Every entry has `confidence` (verified / high / medium / low / unverified) + `last_verified` date; `kb.py lint` flags stale or contradicting entries |
+| Fact-checking / confidence | Every entry has `confidence` (verified / high / medium / low / unverified) + `last_verified` date; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies the `memory/` + `scripts/` layout into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
 
 ## Non-goals (v1)

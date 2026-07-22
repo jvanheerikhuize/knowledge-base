@@ -43,7 +43,10 @@ in `../scripts/` to search, audit, and visualize them.
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
-`links:`, and duplicate slugs with conflicting content.
+`links:`, duplicate slugs, and violations of `memory/schema/entry.schema.json`
+(missing required fields, malformed `name`, invalid `type`). It does not
+detect content-level contradictions between entries — no such checker
+exists yet.
 
 ## Interacting with the knowledge base
 
@@ -52,7 +55,7 @@ scripts/kb.py list [--type TYPE]         # list entries, optionally filtered
 scripts/kb.py search "<query>"           # keyword search across all entries
 scripts/kb.py show <name>                # print one entry
 scripts/kb.py new --type TYPE "<name>"   # scaffold a new entry
-scripts/kb.py lint                       # fact-check / staleness / contradiction pass
+scripts/kb.py lint                       # schema, duplicate-slug, dangling-link, and staleness checks
 ```
 
 ## Visualizing the knowledge base

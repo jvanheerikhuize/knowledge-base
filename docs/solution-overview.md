@@ -92,7 +92,7 @@ sequenceDiagram
     Note over KB: writes frontmatter:<br/>confidence, source, last_verified, links
     Agent->>KB: fills in content, sets confidence
     Agent->>Lint: kb.py lint
-    Lint-->>Agent: flags stale (>90d unverified),<br/>contradicting entries, orphan links
+    Lint-->>Agent: flags stale (>90d unverified),<br/>duplicate slugs, dangling links, schema violations
     Agent->>KB: resolves flags, updates last_verified
     Agent->>Viz: scripts/visualize.py
     Viz->>KB: reads all frontmatter
@@ -104,7 +104,7 @@ sequenceDiagram
 ```yaml
 ---
 name: kebab-case-slug
-type: semantic|episodic|procedural|working|retrieval|prospective
+type: semantic|episodic|procedural|working|retrieval|parametric|prospective
 description: one-line summary
 confidence: verified|high|medium|low|unverified
 source: where this came from (URL, session, person)

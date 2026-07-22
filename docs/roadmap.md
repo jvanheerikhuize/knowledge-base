@@ -26,9 +26,9 @@ gantt
     Emit graph.md so GitHub renders the diagram     :p5c, after p5a, 1d
     Staleness as warning; --strict via cron CI      :p5d, after p5b, 1d
     section Phase 6 — Docs & Schema Alignment
-    Add parametric to solution-overview enum        :p6a, after p5d, 1d
-    Align lint claims with actual behavior          :p6b, after p6a, 1d
-    Enforce schema-required fields in lint          :p6c, after p6b, 1d
+    Add parametric to solution-overview enum        :done, p6a, after p5d, 1d
+    Align lint claims with actual behavior          :done, p6b, after p6a, 1d
+    Enforce schema-required fields in lint          :done, p6c, after p6b, 1d
     section Phase 7 — Source Alignment (LLM-wiki)
     Generate index.md catalog                       :p7a, after p6c, 1d
     Add log.md chronological ingest log             :p7b, after p7a, 1d
@@ -38,8 +38,8 @@ gantt
     stdlib unittest suite for kb.py/visualize.py    :p8a, after p7d, 2d
     CI trigger parity + workflow_dispatch           :p8b, after p8a, 1d
     section Phase 9 — Adoption & Iteration
-    Dogfood on a real project repo                  :p9a, after p8b, 5d
-    Iterate on schema based on real usage           :p9b, after p9a, 5d
+    Dogfood on a real project repo                  :done, p9a, after p8b, 5d
+    Iterate on schema based on real usage           :active, p9b, after p9a, 5d
 ```
 
 ## Phase details
@@ -97,17 +97,29 @@ The four findings that cause real breakage:
   passing. Demote staleness to a warning in PR CI and add a `--strict`
   flag exercised by a scheduled (cron) workflow instead.
 
-**Phase 6 — Docs & Schema Alignment**
+**Phase 6 — Docs & Schema Alignment (done)**
 Make the docs and schema tell the truth about the code:
-- `docs/solution-overview.md`'s entry-format `type:` enum omits
-  `parametric`; the schema and `kb.py` include it.
-- AGENT.md and the docs claim lint catches "contradicting entries" /
-  "duplicate slugs with conflicting content" — the code only detects
-  duplicate slugs. Either soften the claim or implement a minimal
-  content-conflict check (same name, differing confidence/description).
-- `memory/schema/entry.schema.json` is referenced by nothing. Enforce its
-  required fields and enums inside `kb.py lint` (stdlib-only), or document
-  the schema as reference-only.
+- p6a: `docs/solution-overview.md`'s entry-format `type:` enum (line 107)
+  was in fact still missing `parametric` — the earlier claim that this was
+  already done turned out to be wrong on direct inspection during this
+  reevaluation. Fixed both there and in the lint sequence-diagram line that
+  separately overstated lint's checks (see p6b).
+- p6b: AGENT.md and the docs claimed lint catches "contradicting entries" /
+  "duplicate slugs with conflicting content" when the code only ever
+  detected duplicate slugs. Overstated language was found and softened at
+  `memory/AGENT.md:46,55`, `docs/plan.md:45,60`, and
+  `docs/solution-overview.md:95` (the last of these was in this file
+  itself), plus the `kb.py lint` `--help` string, which literally said
+  "fact-check / staleness / contradiction pass". All now describe
+  duplicate-slug detection only — no content-level contradiction checker
+  exists.
+- p6c: `memory/schema/entry.schema.json` was referenced by nothing —
+  `kb.py lint` never read it. This was invisible in the wild: dotfiles'
+  scaffolded copy reported "lint clean" solely because its two real entries
+  happened to already satisfy the narrower checks that existed. Fixed by
+  loading the schema in `cmd_lint` and enforcing its `required` fields,
+  the `name` kebab-case pattern, and the `type` enum (stdlib `json`, no new
+  dependency).
 
 **Phase 7 — Source Alignment (LLM-wiki pattern)**
 Close the gaps against the Karpathy gist the design is based on:
@@ -133,7 +145,36 @@ Close the gaps against the Karpathy gist the design is based on:
 
 **Phase 9 — Adoption & Iteration**
 Use the scaffold on a real working repo, capture friction, and adjust the
-schema/CLI. Candidate upgrades (deliberately deferred, not required for v1):
+schema/CLI.
+
+- p9a (done): scaffolded into `dotfiles` via `scripts/scaffold.sh`, wired
+  into its README and `kb-lint.yml` CI, and genuinely dogfooded — two real
+  entries exist (`memory/semantic/kb-is-file-based.md`,
+  `memory/procedural/distill-session-into-memory.md`), both authored
+  2026-07-22, not placeholder scaffold content.
+- p9b (in progress): friction found from that real usage so far —
+  1. The `entry.schema.json` vs. `kb.py lint` enforcement gap (see p6c)
+     was only *discovered* because dotfiles' two real entries passed lint
+     cleanly despite the hole — a good example of why dogfooding surfaces
+     bugs that synthetic testing doesn't.
+  2. dotfiles already has a separate, mature AI-context system under
+     `.ai/` (ADRs, an authorization/"Decision Protocol" framework, a
+     traceability doc, architecture docs) that conceptually overlaps with
+     this KB's taxonomy — e.g. ADRs vs. `memory/semantic|procedural`
+     entries, `.ai/memory/AUTHORIZATIONS.md` vs. no "authorization" memory
+     type here. dotfiles' own README lists both systems side by side in
+     its Repository Structure tree with zero cross-reference between them.
+     Unscoped for now; p9b should either add a short cross-reference note
+     in both READMEs pointing at each other, or explicitly decide the two
+     systems serve different concerns and document *why* they stay
+     separate.
+  3. Scaffolded copies of `kb.py`/`visualize.py` (dotfiles' included) have
+     no update mechanism when the source repo's scripts improve — e.g. this
+     PR's `cmd_lint` fix needs to be manually re-copied into dotfiles via
+     `scaffold.sh` to take effect there. Worth a documented "how to pick up
+     upstream fixes" note, at minimum.
+
+Candidate upgrades (deliberately deferred, not required for v1):
 - Optional embedding-based retrieval as a pluggable backend behind the same
   `kb.py search` interface, for repos that *do* want infra.
 - A lightweight read-only HTML viewer for the Mermaid graph (still no
