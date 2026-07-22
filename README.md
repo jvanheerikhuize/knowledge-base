@@ -109,6 +109,21 @@ Only `scripts/kb.py` and `scripts/visualize.py` are meant to be pulled
 verbatim — the `memory/` contents and `.kb-config` are the target repo's own
 data and shouldn't be overwritten by a sync.
 
+**After syncing `scripts/visualize.py`, regenerate and commit the graph.**
+CI's staleness check (`kb-lint.yml`) diffs the committed
+`memory/_generated/graph.md`/`graph.mmd` against freshly generated output
+and fails if they don't match. A `visualize.py` sync can change what the
+generator emits (e.g. a mermaid label format tweak) without changing the
+target repo's `memory/` content, so the committed graph can go stale even
+though nothing in `memory/` changed. Always follow a `visualize.py` sync
+with:
+
+```bash
+python3 scripts/visualize.py
+git add memory/_generated/graph.md memory/_generated/graph.mmd
+git commit -m "chore: regenerate kb graph after visualize.py sync"
+```
+
 ### Relationship to other AI-context systems
 
 Some repos already have a broader AI-assistant context system (ADRs,
