@@ -40,6 +40,15 @@ gantt
     section Phase 9 — Adoption & Iteration
     Dogfood on a real project repo                  :done, p9a, after p8b, 5d
     Iterate on schema based on real usage           :done, p9b, after p9a, 5d
+    section Phase 10 — Robustness Hardening
+    kb.py: guard unreadable files, validate links    :done, p10a, after p9b, 1d
+    visualize.py: same hardening for consistency     :done, p10b, after p10a, 1d
+    section Phase 11 — End-User Kickoff (v1)
+    Merge prerequisite PRs (KB 8+9, dotfiles 16)     :active, p11a, after p10b, 1d
+    Purge last contradiction-lint overstatement      :active, p11b, after p10b, 1d
+    ADOPTING.md end-user onboarding walkthrough      :p11c, after p11a, 2d
+    Version stamp, CHANGELOG, tag v1.0.0             :p11d, after p11c, 1d
+    Stamp scaffolded copies for sync detection       :p11e, after p11d, 1d
 ```
 
 ## Phase details
@@ -180,7 +189,74 @@ schema/CLI.
      template — and by pointing `scaffold.sh`'s closing output at that
      section.
 
-Candidate upgrades (deliberately deferred, not required for v1):
+**Phase 10 — Robustness Hardening**
+Neither `kb.py` nor `visualize.py` handled a file that couldn't be read
+(permission error, non-UTF-8 bytes) or frontmatter that didn't match its
+expected shape — both would crash instead of reporting the bad entry.
+
+- p10a (done): `kb.py`'s `list`/`search`/`show`/`lint` commands now catch
+  `OSError` around every `parse_frontmatter` call (including non-UTF-8
+  files, which `parse_frontmatter` now re-raises as `OSError`) and
+  skip/report the offending file instead of crashing. `cmd_lint`'s second
+  pass (dangling-link / inbound-link tracking) previously re-parsed
+  frontmatter unguarded, so an unreadable file crashed lint even after
+  being reported in the first pass — now guarded consistently. A
+  malformed `links:` value (e.g. a plain string instead of a list) is now
+  reported as a lint problem instead of being silently iterated character
+  by character. Also hardened: `.kb-config` is validated as a plain
+  directory name (no path traversal), template/schema reads are guarded,
+  and `kb new` rejects slugs that reduce to empty.
+- p10b (done): `scripts/visualize.py`'s `main()` now guards every
+  `parse_frontmatter` call with a helper that catches `OSError` and skips
+  the offending file with a warning instead of crashing; `write_index()`
+  reuses the already-parsed frontmatter instead of re-parsing (and
+  re-crashing on) each file. A non-list `links:` value is now reported as
+  a warning and skipped instead of being iterated character by character.
+  `graph.mmd`, `graph.md`, and `index.md` are now written with an explicit
+  `encoding="utf-8"`.
+
+**Phase 11 — End-User Kickoff (v1)**
+Everything before this phase was built and validated by/for the agent
+building it. Phase 11 turns the repo into something an *end user* can
+adopt cold: merge the outstanding work, polish the human-facing docs,
+and cut a versioned v1.0.0 release.
+
+Discovery / sanity audit (run 2026-07-22, all on this branch):
+- Tests: 36/36 pass (`tests/test_kb.py` 26, `tests/test_visualize.py` 10).
+- `kb.py lint` clean; `memory/_generated/` artifacts fresh (regeneration
+  produces no diff).
+- `entry.schema.json` complete: required fields, kebab-case name pattern,
+  7-type enum, `due` property.
+- CI complete: PR/push job (tests + lint + visualize + generated-file
+  freshness) plus weekly `lint --strict` cron and `workflow_dispatch`.
+- `.gitignore` covers `__pycache__/`; no compiled artifacts tracked.
+- One overstatement found: the CI lint step was still named "Fact-check /
+  contradiction lint" — the tool does schema/staleness linting, not
+  fact-checking (fixed in p11b).
+
+Granular plan:
+- p11a (entry gate, user action): merge the three open draft PRs —
+  knowledge-base #8 (p9b close-out: README sync instructions,
+  cross-reference to dotfiles' `.ai/` system), knowledge-base #9 (the
+  p10a/p10b hardening plus this roadmap update), and dotfiles #16
+  (scaffolded-copy sync of the hardened scripts). #8 and this branch both
+  touch `docs/roadmap.md`, so merge #8 first and resolve the small
+  conflict here. Nothing else in Phase 11 starts before these land on
+  main.
+- p11b (done in this branch): rename the CI lint step to match what it
+  actually does.
+- p11c: write `docs/ADOPTING.md` — a 10-minute end-user walkthrough:
+  run `scaffold.sh` into your repo, create your first entry, run lint,
+  wire up CI. Written for a human who has never seen this repo, and
+  linked prominently from the README.
+- p11d: add a `CHANGELOG.md` (summarizing phases 0–10 as the pre-1.0
+  history), stamp a `VERSION` file, and tag `v1.0.0` on main.
+- p11e: close p9b friction item 3 for good — embed the version stamp in
+  scaffolded copies so a scheduled workflow (or `scaffold.sh --check`)
+  can detect drift between a scaffolded repo and upstream.
+
+Candidate upgrades (deliberately deferred to post-v1 / Phase 12, not
+required for v1):
 - Optional embedding-based retrieval as a pluggable backend behind the same
   `kb.py search` interface, for repos that *do* want infra.
 - A lightweight read-only HTML viewer for the Mermaid graph (still no

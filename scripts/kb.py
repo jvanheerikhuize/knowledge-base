@@ -17,8 +17,18 @@ CONFIG_FILE = pathlib.Path(__file__).resolve().parent / ".kb-config"
 
 def _memory_dir_name() -> str:
     if CONFIG_FILE.is_file():
-        name = CONFIG_FILE.read_text().strip()
+        try:
+            name = CONFIG_FILE.read_text(encoding="utf-8").strip()
+        except OSError as e:
+            print(f"error: could not read {CONFIG_FILE}: {e}", file=sys.stderr)
+            sys.exit(2)
         if name:
+            if "/" in name or "\\" in name or name in (".", "..") or pathlib.Path(name).is_absolute():
+                print(
+                    f"error: .kb-config must be a plain directory name, not a path: {name!r}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
             return name
     return "memory"
 
@@ -33,9 +43,13 @@ UNVERIFIED_DAYS = 30
 
 
 def _load_schema():
-    if SCHEMA_FILE.is_file():
-        return json.loads(SCHEMA_FILE.read_text())
-    return None
+    if not SCHEMA_FILE.is_file():
+        return None
+    try:
+        return json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"error: could not load schema {SCHEMA_FILE}: {e}", file=sys.stderr)
+        sys.exit(2)
 
 
 def iter_entries():
@@ -50,7 +64,10 @@ def iter_entries():
 
 
 def parse_frontmatter(path: pathlib.Path):
-    text = path.read_text()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise OSError(f"not valid UTF-8: {e}") from e
     m = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.DOTALL)
     if not m:
         return {}, text
@@ -77,7 +94,11 @@ def cmd_list(args):
     for t, path in iter_entries():
         if args.type and t != args.type:
             continue
-        fm, _ = parse_frontmatter(path)
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError as e:
+            print(f"warning: skipping {path.relative_to(ROOT)}: {e}", file=sys.stderr)
+            continue
         found = True
         print(f"[{t:11}] {fm.get('name', path.stem):30} conf={fm.get('confidence', '?'):10} {fm.get('description', '')}")
     if not found:
@@ -88,7 +109,11 @@ def cmd_search(args):
     query = args.query.lower()
     hits = 0
     for t, path in iter_entries():
-        fm, body = parse_frontmatter(path)
+        try:
+            fm, body = parse_frontmatter(path)
+        except OSError as e:
+            print(f"warning: skipping {path.relative_to(ROOT)}: {e}", file=sys.stderr)
+            continue
         haystack = body.lower() + "\n" + "\n".join(str(v) for v in fm.values()).lower()
         if query in haystack:
             hits += 1
@@ -99,9 +124,13 @@ def cmd_search(args):
 
 def cmd_show(args):
     for t, path in iter_entries():
-        fm, _ = parse_frontmatter(path)
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError as e:
+            print(f"warning: skipping {path.relative_to(ROOT)}: {e}", file=sys.stderr)
+            continue
         if fm.get("name") == args.name or path.stem == args.name:
-            print(path.read_text())
+            print(path.read_text(encoding="utf-8"))
             return
     print(f"no entry named '{args.name}'", file=sys.stderr)
     sys.exit(1)
@@ -121,6 +150,9 @@ def cmd_new(args):
             print(f"--due is not a valid date: {args.due!r}", file=sys.stderr)
             sys.exit(1)
     slug = re.sub(r"[^a-z0-9]+", "-", args.name.lower()).strip("-")
+    if not slug:
+        print(f"name must contain at least one letter or digit: {args.name!r}", file=sys.stderr)
+        sys.exit(1)
     folder = MEMORY / args.type
     folder.mkdir(parents=True, exist_ok=True)
     dest = folder / f"{slug}.md"
@@ -128,7 +160,11 @@ def cmd_new(args):
         print(f"entry already exists: {dest.relative_to(ROOT)}", file=sys.stderr)
         sys.exit(1)
     today = datetime.date.today().isoformat()
-    text = TEMPLATE.read_text()
+    try:
+        text = TEMPLATE.read_text(encoding="utf-8")
+    except OSError as e:
+        print(f"error: could not read template {TEMPLATE}: {e}", file=sys.stderr)
+        sys.exit(2)
     text = text.replace("REPLACE-ME-kebab-case-slug", slug)
     text = text.replace("type: semantic", f"type: {args.type}")
     text = text.replace("created: 1970-01-01", f"created: {today}")
@@ -140,7 +176,7 @@ def cmd_new(args):
             line for line in text.splitlines(keepends=True)
             if not line.startswith("due:")
         )
-    dest.write_text(text)
+    dest.write_text(text, encoding="utf-8")
     print(f"created {dest.relative_to(ROOT)}")
     _append_log(args.type, slug, today)
 
@@ -149,9 +185,10 @@ def _append_log(entry_type, slug, today):
     if not LOG_FILE.is_file():
         LOG_FILE.write_text(
             "# Ingest log\n\n"
-            "Chronological record of entries added to the knowledge base.\n\n"
+            "Chronological record of entries added to the knowledge base.\n\n",
+            encoding="utf-8",
         )
-    with LOG_FILE.open("a") as f:
+    with LOG_FILE.open("a", encoding="utf-8") as f:
         f.write(f"- {today} — created `{entry_type}/{slug}.md`\n")
 
 
@@ -170,9 +207,13 @@ def cmd_lint(args):
         type_enum = schema.get("properties", {}).get("type", {}).get("enum")
 
     for t, path in iter_entries():
-        fm, _ = parse_frontmatter(path)
-        name = fm.get("name", path.stem)
         rel = path.relative_to(ROOT)
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError as e:
+            problems.append(f"{rel}: could not read file ({e})")
+            continue
+        name = fm.get("name", path.stem)
 
         if name in seen_names:
             problems.append(f"duplicate slug '{name}': {seen_names[name]} vs {rel}")
@@ -229,10 +270,18 @@ def cmd_lint(args):
     # second pass for dangling links and inbound-link tracking, now that we know all names
     inbound = set()
     for t, path in iter_entries():
-        fm, _ = parse_frontmatter(path)
-        for link in fm.get("links", []) or []:
+        rel = path.relative_to(ROOT)
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError:
+            continue  # already reported in the first pass
+        links = fm.get("links") or []
+        if not isinstance(links, list):
+            problems.append(f"{rel}: 'links' must be a list, got {links!r}")
+            continue
+        for link in links:
             if link not in seen_names:
-                problems.append(f"{path.relative_to(ROOT)}: dangling link '{link}'")
+                problems.append(f"{rel}: dangling link '{link}'")
             else:
                 inbound.add(link)
 
