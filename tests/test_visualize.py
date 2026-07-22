@@ -93,6 +93,29 @@ class VisualizeTestCase(unittest.TestCase):
         mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
         self.assertNotIn("-->", mmd)
 
+    def test_index_groups_entries_by_type(self):
+        self.run_kb("new", "semantic-entry", "--type", "semantic")
+        self.run_kb("new", "procedural-entry", "--type", "procedural")
+        result = self.run_visualize()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        self.assertIn("# Memory index", index)
+        self.assertIn("## semantic", index)
+        self.assertIn("`semantic-entry`", index)
+        self.assertIn("## procedural", index)
+        self.assertIn("`procedural-entry`", index)
+        semantic_pos = index.index("## semantic")
+        procedural_pos = index.index("## procedural")
+        semantic_entry_pos = index.index("`semantic-entry`")
+        self.assertTrue(semantic_pos < semantic_entry_pos < procedural_pos)
+
+    def test_index_empty_kb_has_no_type_sections(self):
+        result = self.run_visualize()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        self.assertIn("# Memory index", index)
+        self.assertNotIn("## semantic", index)
+
 
 if __name__ == "__main__":
     unittest.main()
