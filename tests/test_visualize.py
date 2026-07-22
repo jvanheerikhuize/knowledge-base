@@ -116,6 +116,30 @@ class VisualizeTestCase(unittest.TestCase):
         self.assertIn("# Memory index", index)
         self.assertNotIn("## semantic", index)
 
+    def test_malformed_links_reported_and_skipped(self):
+        self.run_kb("new", "bad-links-entry", "--type", "semantic")
+        path = self.root / "memory" / "semantic" / "bad-links-entry.md"
+        path.write_text(path.read_text().replace("links: []", "links: not-a-list"))
+        result = self.run_visualize()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("'links' must be a list", result.stderr)
+        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        self.assertNotIn("-->", mmd)
+
+    def test_unreadable_file_skipped_not_crashed(self):
+        self.run_kb("new", "good-entry", "--type", "semantic")
+        self.run_kb("new", "bad-entry", "--type", "semantic")
+        bad_path = self.root / "memory" / "semantic" / "bad-entry.md"
+        bad_path.write_bytes(b"\xff\xfe\x00broken")
+        result = self.run_visualize()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("warning: skipping", result.stderr)
+        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        self.assertIn("n_good_entry", mmd)
+        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        self.assertIn("`good-entry`", index)
+        self.assertNotIn("bad-entry", index)
+
 
 if __name__ == "__main__":
     unittest.main()

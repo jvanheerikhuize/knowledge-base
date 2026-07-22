@@ -40,6 +40,9 @@ gantt
     section Phase 9 — Adoption & Iteration
     Dogfood on a real project repo                  :done, p9a, after p8b, 5d
     Iterate on schema based on real usage           :active, p9b, after p9a, 5d
+    section Phase 10 — Robustness Hardening
+    kb.py: guard unreadable files, validate links    :done, p10a, after p9b, 1d
+    visualize.py: same hardening for consistency     :done, p10b, after p10a, 1d
 ```
 
 ## Phase details
@@ -178,6 +181,32 @@ schema/CLI.
      documented "how to pick up upstream fixes" note, at minimum, or an
      automated check (e.g. a scheduled workflow diffing scaffolded copies
      against upstream).
+
+**Phase 10 — Robustness Hardening**
+Neither `kb.py` nor `visualize.py` handled a file that couldn't be read
+(permission error, non-UTF-8 bytes) or frontmatter that didn't match its
+expected shape — both would crash instead of reporting the bad entry.
+
+- p10a (done): `kb.py`'s `list`/`search`/`show`/`lint` commands now catch
+  `OSError` around every `parse_frontmatter` call (including non-UTF-8
+  files, which `parse_frontmatter` now re-raises as `OSError`) and
+  skip/report the offending file instead of crashing. `cmd_lint`'s second
+  pass (dangling-link / inbound-link tracking) previously re-parsed
+  frontmatter unguarded, so an unreadable file crashed lint even after
+  being reported in the first pass — now guarded consistently. A
+  malformed `links:` value (e.g. a plain string instead of a list) is now
+  reported as a lint problem instead of being silently iterated character
+  by character. Also hardened: `.kb-config` is validated as a plain
+  directory name (no path traversal), template/schema reads are guarded,
+  and `kb new` rejects slugs that reduce to empty.
+- p10b (done): `scripts/visualize.py`'s `main()` now guards every
+  `parse_frontmatter` call with a helper that catches `OSError` and skips
+  the offending file with a warning instead of crashing; `write_index()`
+  reuses the already-parsed frontmatter instead of re-parsing (and
+  re-crashing on) each file. A non-list `links:` value is now reported as
+  a warning and skipped instead of being iterated character by character.
+  `graph.mmd`, `graph.md`, and `index.md` are now written with an explicit
+  `encoding="utf-8"`.
 
 Candidate upgrades (deliberately deferred, not required for v1):
 - Optional embedding-based retrieval as a pluggable backend behind the same
