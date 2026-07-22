@@ -21,10 +21,10 @@ gantt
     scaffold.sh for dropping into other repos       :done, p4a, 2026-07-22, 1d
     GitHub Action: lint + regen graph on PR         :done, p4b, 2026-07-22, 1d
     section Phase 5 — Audit Fixes (bugs)
-    Untrack __pycache__, add .gitignore             :p5a, 2026-07-23, 1d
-    Fix scaffold custom-subfolder support           :p5b, after p5a, 1d
-    Emit graph.md so GitHub renders the diagram     :p5c, after p5a, 1d
-    Staleness as warning; --strict via cron CI      :p5d, after p5b, 1d
+    Untrack __pycache__, add .gitignore             :done, p5a, 2026-07-23, 1d
+    Fix scaffold custom-subfolder support           :done, p5b, after p5a, 1d
+    Emit graph.md so GitHub renders the diagram     :done, p5c, after p5a, 1d
+    Staleness as warning; --strict via cron CI      :done, p5d, after p5b, 1d
     section Phase 6 — Docs & Schema Alignment
     Add parametric to solution-overview enum        :done, p6a, after p5d, 1d
     Align lint claims with actual behavior          :done, p6b, after p6a, 1d
