@@ -30,5 +30,5 @@ jobs:
 
       - name: Fail if generated graph is out of date
         run: |
-          git diff --exit-code -- memory/_generated/graph.mmd || \
-          (echo "memory/_generated/graph.mmd is stale — run scripts/visualize.py and commit it" && exit 1)
+          git diff --exit-code -- memory/_generated/graph.mmd memory/_generated/graph.md || \
+          (echo "memory/_generated graph files are stale — run scripts/visualize.py and commit them" && exit 1)
