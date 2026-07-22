@@ -1,0 +1,34 @@
+name: Knowledge base lint & visualize
+
+on:
+  pull_request:
+    paths:
+      - "memory/**"
+      - "scripts/kb.py"
+      - "scripts/visualize.py"
+  push:
+    branches: [main]
+    paths:
+      - "memory/**"
+
+jobs:
+  lint-and-visualize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fact-check / staleness / contradiction lint
+        run: python3 scripts/kb.py lint
+
+      - name: Regenerate memory graph
+        run: python3 scripts/visualize.py
+
+      - name: Fail if generated graph is out of date
+        run: |
+          git diff --exit-code -- memory/_generated/graph.mmd || \
+          (echo "memory/_generated/graph.mmd is stale — run scripts/visualize.py and commit it" && exit 1)

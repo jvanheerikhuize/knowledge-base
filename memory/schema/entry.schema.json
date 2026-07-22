@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent memory entry frontmatter",
+  "type": "object",
+  "required": ["name", "type", "description", "confidence", "created"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "kebab-case slug, unique across the whole knowledge base"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["semantic", "episodic", "procedural", "working", "retrieval", "parametric", "prospective"]
+    },
+    "description": {
+      "type": "string",
+      "description": "one-line summary used for search results and indices"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["verified", "high", "medium", "low", "unverified"]
+    },
+    "source": {
+      "type": "string",
+      "description": "where this came from: URL, session reference, person"
+    },
+    "created": {
+      "type": "string",
+      "format": "date"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date"
+    },
+    "links": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "slugs of related entries"
+    },
+    "due": {
+      "type": "string",
+      "format": "date",
+      "description": "prospective entries only: when this intention should fire"
+    }
+  }
+}
