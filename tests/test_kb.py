@@ -128,6 +128,9 @@ class TestShow(KbTestCase):
 class TestLint(KbTestCase):
     def test_lint_clean_kb(self):
         self.run_kb("new", "clean-entry", "--type", "semantic")
+        self.run_kb("new", "clean-entry-linker", "--type", "semantic")
+        self.edit_frontmatter("semantic", "clean-entry", links=["clean-entry-linker"])
+        self.edit_frontmatter("semantic", "clean-entry-linker", links=["clean-entry"])
         result = self.run_kb("lint")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("lint clean", result.stdout)
@@ -190,6 +193,67 @@ class TestLint(KbTestCase):
         )
         result = self.run_kb("lint", "--strict")
         self.assertNotEqual(result.returncode, 0)
+
+    def test_lint_catches_type_folder_mismatch(self):
+        self.run_kb("new", "mismatched", "--type", "semantic")
+        self.edit_frontmatter("semantic", "mismatched", type="episodic")
+        result = self.run_kb("lint")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("does not match its folder", result.stdout)
+
+    def test_lint_warns_on_overdue_prospective(self):
+        self.run_kb("new", "overdue-task", "--type", "prospective", "--due", "2020-01-01")
+        result = self.run_kb("lint")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("overdue", result.stdout)
+
+    def test_lint_does_not_warn_on_future_due(self):
+        self.run_kb("new", "future-task", "--type", "prospective", "--due", "2099-01-01")
+        result = self.run_kb("lint")
+        self.assertNotIn("overdue", result.stdout)
+
+    def test_lint_warns_on_orphan_entry(self):
+        self.run_kb("new", "lonely-entry", "--type", "semantic")
+        result = self.run_kb("lint")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("orphan entry", result.stdout)
+
+
+class TestNewDueAndLog(KbTestCase):
+    def test_prospective_requires_due(self):
+        result = self.run_kb("new", "no-due-task", "--type", "prospective")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--due is required", result.stderr)
+
+    def test_prospective_with_due_writes_date(self):
+        self.run_kb("new", "due-task", "--type", "prospective", "--due", "2030-06-01")
+        text = self.entry_path("prospective", "due-task").read_text()
+        self.assertIn("due: 2030-06-01", text)
+
+    def test_non_prospective_strips_due_line(self):
+        self.run_kb("new", "no-due-needed", "--type", "semantic")
+        text = self.entry_path("semantic", "no-due-needed").read_text()
+        self.assertNotIn("due:", text)
+        self.assertNotIn("\n\n\n", text)
+        self.assertIn("links: []\n---\n", text)
+
+    def test_invalid_due_date_rejected(self):
+        result = self.run_kb("new", "bad-due", "--type", "prospective", "--due", "not-a-date")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a valid date", result.stderr)
+
+    def test_new_appends_to_log(self):
+        self.run_kb("new", "logged-entry", "--type", "semantic")
+        log_path = self.root / "memory" / "log.md"
+        self.assertTrue(log_path.is_file())
+        self.assertIn("logged-entry", log_path.read_text())
+
+    def test_new_appends_multiple_log_lines(self):
+        self.run_kb("new", "first-entry", "--type", "semantic")
+        self.run_kb("new", "second-entry", "--type", "semantic")
+        log_text = (self.root / "memory" / "log.md").read_text()
+        self.assertIn("first-entry", log_text)
+        self.assertIn("second-entry", log_text)
 
 
 if __name__ == "__main__":

@@ -30,10 +30,10 @@ gantt
     Align lint claims with actual behavior          :done, p6b, after p6a, 1d
     Enforce schema-required fields in lint          :done, p6c, after p6b, 1d
     section Phase 7 — Source Alignment (LLM-wiki)
-    Generate index.md catalog                       :p7a, after p6c, 1d
-    Add log.md chronological ingest log             :p7b, after p7a, 1d
-    Lint orphan entries (no inbound links)          :p7c, after p7a, 1d
-    Lint overdue prospective + type/folder mismatch :p7d, after p7c, 1d
+    Generate index.md catalog                       :done, p7a, after p6c, 1d
+    Add log.md chronological ingest log             :done, p7b, after p7a, 1d
+    Lint orphan entries (no inbound links)          :done, p7c, after p7a, 1d
+    Lint overdue prospective + type/folder mismatch :done, p7d, after p7c, 1d
     section Phase 8 — Tests & CI Hygiene
     stdlib unittest suite for kb.py/visualize.py    :done, p8a, after p7d, 2d
     CI trigger parity + workflow_dispatch           :done, p8b, after p8a, 1d
@@ -121,7 +121,7 @@ Make the docs and schema tell the truth about the code:
   the `name` kebab-case pattern, and the `type` enum (stdlib `json`, no new
   dependency).
 
-**Phase 7 — Source Alignment (LLM-wiki pattern)**
+**Phase 7 — Source Alignment (LLM-wiki pattern) (done)**
 Close the gaps against the Karpathy gist the design is based on:
 - Generate `memory/_generated/index.md`: a catalog of every entry with its
   one-line description, grouped by type — the gist's `index.md` artifact.
