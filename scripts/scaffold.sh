@@ -31,9 +31,13 @@ mkdir -p "$SCRIPTS_DEST"
 cp "$SELF_DIR/scripts/kb.py" "$SCRIPTS_DEST/kb.py"
 cp "$SELF_DIR/scripts/visualize.py" "$SCRIPTS_DEST/visualize.py"
 
+if [ "$SUBFOLDER" != "memory" ]; then
+  echo "$SUBFOLDER" > "$SCRIPTS_DEST/.kb-config"
+fi
+
 WORKFLOW_DEST="$TARGET_REPO/.github/workflows"
 mkdir -p "$WORKFLOW_DEST"
-cp "$SELF_DIR/.github/workflows/kb-lint.yml" "$WORKFLOW_DEST/kb-lint.yml"
+sed "s#memory/#${SUBFOLDER}/#g" "$SELF_DIR/.github/workflows/kb-lint.yml" > "$WORKFLOW_DEST/kb-lint.yml"
 
 echo "scaffolded knowledge base into $DEST"
 echo "scripts copied into $SCRIPTS_DEST"
