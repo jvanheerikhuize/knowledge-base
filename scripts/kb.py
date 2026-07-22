@@ -27,6 +27,7 @@ MEMORY = ROOT / _memory_dir_name()
 TYPES = ["semantic", "episodic", "procedural", "working", "retrieval", "parametric", "prospective"]
 TEMPLATE = MEMORY / "templates" / "entry.template.md"
 SCHEMA_FILE = MEMORY / "schema" / "entry.schema.json"
+LOG_FILE = MEMORY / "log.md"
 STALE_DAYS = 90
 UNVERIFIED_DAYS = 30
 
@@ -110,6 +111,15 @@ def cmd_new(args):
     if args.type not in TYPES:
         print(f"type must be one of: {', '.join(TYPES)}", file=sys.stderr)
         sys.exit(1)
+    if args.type == "prospective" and not args.due:
+        print("--due is required for --type prospective", file=sys.stderr)
+        sys.exit(1)
+    if args.due:
+        try:
+            datetime.date.fromisoformat(args.due)
+        except ValueError:
+            print(f"--due is not a valid date: {args.due!r}", file=sys.stderr)
+            sys.exit(1)
     slug = re.sub(r"[^a-z0-9]+", "-", args.name.lower()).strip("-")
     folder = MEMORY / args.type
     folder.mkdir(parents=True, exist_ok=True)
@@ -123,8 +133,26 @@ def cmd_new(args):
     text = text.replace("type: semantic", f"type: {args.type}")
     text = text.replace("created: 1970-01-01", f"created: {today}")
     text = text.replace("last_verified: 1970-01-01", f"last_verified: {today}")
+    if args.type == "prospective":
+        text = text.replace("due: 1970-01-01", f"due: {args.due}")
+    else:
+        text = "".join(
+            line for line in text.splitlines(keepends=True)
+            if not line.startswith("due:")
+        )
     dest.write_text(text)
     print(f"created {dest.relative_to(ROOT)}")
+    _append_log(args.type, slug, today)
+
+
+def _append_log(entry_type, slug, today):
+    if not LOG_FILE.is_file():
+        LOG_FILE.write_text(
+            "# Ingest log\n\n"
+            "Chronological record of entries added to the knowledge base.\n\n"
+        )
+    with LOG_FILE.open("a") as f:
+        f.write(f"- {today} — created `{entry_type}/{slug}.md`\n")
 
 
 def cmd_lint(args):
@@ -166,6 +194,18 @@ def cmd_lint(args):
         entry_type = fm.get("type")
         if entry_type and type_enum and entry_type not in type_enum:
             problems.append(f"{rel}: type '{entry_type}' is not one of {type_enum}")
+        if entry_type and entry_type != t:
+            problems.append(f"{rel}: type '{entry_type}' does not match its folder '{t}/'")
+
+        if entry_type == "prospective":
+            due = fm.get("due")
+            if due:
+                try:
+                    due_date = datetime.date.fromisoformat(due)
+                    if due_date < today:
+                        warnings.append(f"{rel}: overdue, due {due} has passed")
+                except ValueError:
+                    problems.append(f"{rel}: due is not a valid date: {due!r}")
 
         created = fm.get("created")
         if created:
@@ -186,12 +226,19 @@ def cmd_lint(args):
             except ValueError:
                 problems.append(f"{rel}: last_verified is not a valid date: {lv!r}")
 
-    # second pass for dangling links, now that we know all names
+    # second pass for dangling links and inbound-link tracking, now that we know all names
+    inbound = set()
     for t, path in iter_entries():
         fm, _ = parse_frontmatter(path)
         for link in fm.get("links", []) or []:
             if link not in seen_names:
                 problems.append(f"{path.relative_to(ROOT)}: dangling link '{link}'")
+            else:
+                inbound.add(link)
+
+    for name, rel in seen_names.items():
+        if name not in inbound:
+            warnings.append(f"{rel}: orphan entry, no other entry links to it")
 
     if not problems and not warnings:
         print("lint clean — no issues found")
@@ -228,6 +275,7 @@ def main():
     p_new = sub.add_parser("new", help="scaffold a new entry")
     p_new.add_argument("name")
     p_new.add_argument("--type", required=True, choices=TYPES)
+    p_new.add_argument("--due", help="ISO date; required for --type prospective")
     p_new.set_defaults(func=cmd_new)
 
     p_lint = sub.add_parser("lint", help="schema, duplicate-slug, dangling-link, and staleness checks")
