@@ -6,6 +6,7 @@ Run `kb.py --help` for usage.
 """
 import argparse
 import datetime
+import json
 import pathlib
 import re
 import sys
@@ -25,8 +26,15 @@ def _memory_dir_name() -> str:
 MEMORY = ROOT / _memory_dir_name()
 TYPES = ["semantic", "episodic", "procedural", "working", "retrieval", "parametric", "prospective"]
 TEMPLATE = MEMORY / "templates" / "entry.template.md"
+SCHEMA_FILE = MEMORY / "schema" / "entry.schema.json"
 STALE_DAYS = 90
 UNVERIFIED_DAYS = 30
+
+
+def _load_schema():
+    if SCHEMA_FILE.is_file():
+        return json.loads(SCHEMA_FILE.read_text())
+    return None
 
 
 def iter_entries():
@@ -124,6 +132,15 @@ def cmd_lint(args):
     warnings = []  # fatal only with --strict
     seen_names = {}
     today = datetime.date.today()
+
+    schema = _load_schema()
+    required_fields = schema.get("required", []) if schema else []
+    name_pattern = None
+    type_enum = None
+    if schema:
+        name_pattern = schema.get("properties", {}).get("name", {}).get("pattern")
+        type_enum = schema.get("properties", {}).get("type", {}).get("enum")
+
     for t, path in iter_entries():
         fm, _ = parse_frontmatter(path)
         name = fm.get("name", path.stem)
@@ -137,6 +154,25 @@ def cmd_lint(args):
         confidence = fm.get("confidence")
         if confidence not in {"verified", "high", "medium", "low", "unverified"}:
             problems.append(f"{rel}: missing/invalid confidence field")
+
+        for field in required_fields:
+            if not fm.get(field):
+                problems.append(f"{rel}: missing required field '{field}' (see memory/schema/entry.schema.json)")
+
+        raw_name = fm.get("name")
+        if raw_name and name_pattern and not re.match(name_pattern, raw_name):
+            problems.append(f"{rel}: name '{raw_name}' does not match required pattern {name_pattern}")
+
+        entry_type = fm.get("type")
+        if entry_type and type_enum and entry_type not in type_enum:
+            problems.append(f"{rel}: type '{entry_type}' is not one of {type_enum}")
+
+        created = fm.get("created")
+        if created:
+            try:
+                datetime.date.fromisoformat(created)
+            except ValueError:
+                problems.append(f"{rel}: created is not a valid date: {created!r}")
 
         lv = fm.get("last_verified")
         if lv:
@@ -194,7 +230,7 @@ def main():
     p_new.add_argument("--type", required=True, choices=TYPES)
     p_new.set_defaults(func=cmd_new)
 
-    p_lint = sub.add_parser("lint", help="fact-check / staleness / contradiction pass")
+    p_lint = sub.add_parser("lint", help="schema, duplicate-slug, dangling-link, and staleness checks")
     p_lint.add_argument("--strict", action="store_true",
                          help="treat staleness/unverified-age warnings as fatal")
     p_lint.set_defaults(func=cmd_lint)
