@@ -11,7 +11,18 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MEMORY = ROOT / "memory"
+CONFIG_FILE = pathlib.Path(__file__).resolve().parent / ".kb-config"
+
+
+def _memory_dir_name() -> str:
+    if CONFIG_FILE.is_file():
+        name = CONFIG_FILE.read_text().strip()
+        if name:
+            return name
+    return "memory"
+
+
+MEMORY = ROOT / _memory_dir_name()
 TYPES = ["semantic", "episodic", "procedural", "working", "retrieval", "parametric", "prospective"]
 TEMPLATE = MEMORY / "templates" / "entry.template.md"
 STALE_DAYS = 90
@@ -109,7 +120,8 @@ def cmd_new(args):
 
 
 def cmd_lint(args):
-    problems = []
+    problems = []  # always fatal
+    warnings = []  # fatal only with --strict
     seen_names = {}
     today = datetime.date.today()
     for t, path in iter_entries():
@@ -132,9 +144,9 @@ def cmd_lint(args):
                 lv_date = datetime.date.fromisoformat(lv)
                 age = (today - lv_date).days
                 if age > STALE_DAYS:
-                    problems.append(f"{rel}: stale, last_verified {age}d ago (>{STALE_DAYS}d)")
+                    warnings.append(f"{rel}: stale, last_verified {age}d ago (>{STALE_DAYS}d)")
                 if confidence == "unverified" and age > UNVERIFIED_DAYS:
-                    problems.append(f"{rel}: unverified for {age}d (>{UNVERIFIED_DAYS}d) — verify or discard")
+                    warnings.append(f"{rel}: unverified for {age}d (>{UNVERIFIED_DAYS}d) — verify or discard")
             except ValueError:
                 problems.append(f"{rel}: last_verified is not a valid date: {lv!r}")
 
@@ -145,13 +157,20 @@ def cmd_lint(args):
             if link not in seen_names:
                 problems.append(f"{path.relative_to(ROOT)}: dangling link '{link}'")
 
-    if not problems:
+    if not problems and not warnings:
         print("lint clean — no issues found")
         return
+
     for p in problems:
         print(f"- {p}")
-    print(f"\n{len(problems)} issue(s) found")
-    sys.exit(1)
+    for w in warnings:
+        print(f"- [warning] {w}")
+
+    total = len(problems) + len(warnings)
+    print(f"\n{total} issue(s) found ({len(problems)} error(s), {len(warnings)} warning(s))")
+
+    if problems or (args.strict and warnings):
+        sys.exit(1)
 
 
 def main():
@@ -176,6 +195,8 @@ def main():
     p_new.set_defaults(func=cmd_new)
 
     p_lint = sub.add_parser("lint", help="fact-check / staleness / contradiction pass")
+    p_lint.add_argument("--strict", action="store_true",
+                         help="treat staleness/unverified-age warnings as fatal")
     p_lint.set_defaults(func=cmd_lint)
 
     args = parser.parse_args()

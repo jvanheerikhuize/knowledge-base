@@ -58,11 +58,13 @@ scripts/kb.py lint                       # fact-check / staleness / contradictio
 ## Visualizing the knowledge base
 
 ```
-scripts/visualize.py    # regenerates memory/_generated/graph.mmd (Mermaid)
+scripts/visualize.py    # regenerates memory/_generated/graph.{mmd,md}
 ```
 
-Open `_generated/graph.mmd` in any Mermaid-aware viewer (GitHub renders it
-inline, as do most IDEs and Claude artifacts).
+`graph.mmd` is the raw Mermaid source, for IDEs and tools that read `.mmd`
+directly. GitHub does not render standalone `.mmd` files — view
+`_generated/graph.md` instead, which wraps the same diagram in a
+` ```mermaid ` fence that GitHub (and Claude artifacts) render inline.
 
 ## Further reading
 
