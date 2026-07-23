@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scaffolder: copies the memory/ knowledge base + scripts/ into a target repo
+# Scaffolder: copies the memory/ knowledge base + .kb/ machinery + scripts/ into a target repo
 # as a subfolder. Safe to run from a CI/pipeline action or interactively.
 #
 # Usage:
@@ -25,6 +25,15 @@ fi
 
 mkdir -p "$DEST"
 cp -R "$SELF_DIR/memory/." "$DEST/"
+
+# Tooling machinery lives in a fixed .kb/ dir (never renamed, even when the
+# human-readable memory dir is scaffolded under a different subfolder name).
+KB_DEST="$TARGET_REPO/.kb"
+if [ -e "$KB_DEST" ]; then
+  echo "refusing to overwrite existing path: $KB_DEST" >&2
+  exit 1
+fi
+cp -R "$SELF_DIR/.kb" "$KB_DEST"
 
 SCRIPTS_DEST="$TARGET_REPO/scripts"
 mkdir -p "$SCRIPTS_DEST"

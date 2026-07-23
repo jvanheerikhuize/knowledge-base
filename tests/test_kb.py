@@ -20,16 +20,16 @@ class KbTestCase(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.root = Path(self.tmpdir.name)
         (self.root / "scripts").mkdir()
-        (self.root / "memory" / "templates").mkdir(parents=True)
-        (self.root / "memory" / "schema").mkdir(parents=True)
+        (self.root / ".kb" / "templates").mkdir(parents=True)
+        (self.root / ".kb" / "schema").mkdir(parents=True)
         shutil.copy(REPO_ROOT / "scripts" / "kb.py", self.root / "scripts" / "kb.py")
         shutil.copy(
-            REPO_ROOT / "memory" / "templates" / "entry.template.md",
-            self.root / "memory" / "templates" / "entry.template.md",
+            REPO_ROOT / ".kb" / "templates" / "entry.template.md",
+            self.root / ".kb" / "templates" / "entry.template.md",
         )
         shutil.copy(
-            REPO_ROOT / "memory" / "schema" / "entry.schema.json",
-            self.root / "memory" / "schema" / "entry.schema.json",
+            REPO_ROOT / ".kb" / "schema" / "entry.schema.json",
+            self.root / ".kb" / "schema" / "entry.schema.json",
         )
 
     def tearDown(self):
@@ -244,14 +244,14 @@ class TestNewDueAndLog(KbTestCase):
 
     def test_new_appends_to_log(self):
         self.run_kb("new", "logged-entry", "--type", "semantic")
-        log_path = self.root / "memory" / "log.md"
+        log_path = self.root / ".kb" / "log.md"
         self.assertTrue(log_path.is_file())
         self.assertIn("logged-entry", log_path.read_text())
 
     def test_new_appends_multiple_log_lines(self):
         self.run_kb("new", "first-entry", "--type", "semantic")
         self.run_kb("new", "second-entry", "--type", "semantic")
-        log_text = (self.root / "memory" / "log.md").read_text()
+        log_text = (self.root / ".kb" / "log.md").read_text()
         self.assertIn("first-entry", log_text)
         self.assertIn("second-entry", log_text)
 
