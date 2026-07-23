@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Visualization layer: regenerates memory/_generated/graph.mmd (Mermaid).
+"""Visualization layer: regenerates .kb/generated/graph.mmd (Mermaid).
 
 Nodes are colored by memory type; a subtle marker denotes confidence.
 Edges come from each entry's `links:` frontmatter field.
@@ -9,11 +9,11 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from kb import MEMORY, TYPES, iter_entries, parse_frontmatter  # noqa: E402
+from kb import KB_DIR, TYPES, iter_entries, parse_frontmatter  # noqa: E402
 
-OUT = MEMORY / "_generated" / "graph.mmd"
-OUT_MD = MEMORY / "_generated" / "graph.md"
-OUT_INDEX = MEMORY / "_generated" / "index.md"
+OUT = KB_DIR / "generated" / "graph.mmd"
+OUT_MD = KB_DIR / "generated" / "graph.md"
+OUT_INDEX = KB_DIR / "generated" / "index.md"
 
 TYPE_CLASS = {
     "semantic": "semantic",

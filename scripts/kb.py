@@ -34,10 +34,13 @@ def _memory_dir_name() -> str:
 
 
 MEMORY = ROOT / _memory_dir_name()
+# Tooling machinery lives in a fixed .kb/ dir, decoupled from the (renamable)
+# human-readable memory dir so the two never get tangled.
+KB_DIR = ROOT / ".kb"
 TYPES = ["semantic", "episodic", "procedural", "working", "retrieval", "parametric", "prospective"]
-TEMPLATE = MEMORY / "templates" / "entry.template.md"
-SCHEMA_FILE = MEMORY / "schema" / "entry.schema.json"
-LOG_FILE = MEMORY / "log.md"
+TEMPLATE = KB_DIR / "templates" / "entry.template.md"
+SCHEMA_FILE = KB_DIR / "schema" / "entry.schema.json"
+LOG_FILE = KB_DIR / "log.md"
 STALE_DAYS = 90
 UNVERIFIED_DAYS = 30
 
@@ -226,7 +229,7 @@ def cmd_lint(args):
 
         for field in required_fields:
             if not fm.get(field):
-                problems.append(f"{rel}: missing required field '{field}' (see memory/schema/entry.schema.json)")
+                problems.append(f"{rel}: missing required field '{field}' (see .kb/schema/entry.schema.json)")
 
         raw_name = fm.get("name")
         if raw_name and name_pattern and not re.match(name_pattern, raw_name):

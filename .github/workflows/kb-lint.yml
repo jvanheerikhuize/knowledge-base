@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "memory/**"
+      - ".kb/**"
       - "scripts/kb.py"
       - "scripts/visualize.py"
   push:
     branches: [main]
     paths:
       - "memory/**"
+      - ".kb/**"
       - "scripts/kb.py"
       - "scripts/visualize.py"
   schedule:
@@ -39,8 +41,8 @@ jobs:
 
       - name: Fail if generated graph is out of date
         run: |
-          git diff --exit-code -- memory/_generated/graph.mmd memory/_generated/graph.md memory/_generated/index.md || \
-          (echo "memory/_generated graph files are stale — run scripts/visualize.py and commit them" && exit 1)
+          git diff --exit-code -- .kb/generated/graph.mmd .kb/generated/graph.md .kb/generated/index.md || \
+          (echo ".kb/generated graph files are stale — run scripts/visualize.py and commit them" && exit 1)
 
   strict-lint:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

@@ -15,17 +15,17 @@ class VisualizeTestCase(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.root = Path(self.tmpdir.name)
         (self.root / "scripts").mkdir()
-        (self.root / "memory" / "templates").mkdir(parents=True)
-        (self.root / "memory" / "schema").mkdir(parents=True)
+        (self.root / ".kb" / "templates").mkdir(parents=True)
+        (self.root / ".kb" / "schema").mkdir(parents=True)
         shutil.copy(REPO_ROOT / "scripts" / "kb.py", self.root / "scripts" / "kb.py")
         shutil.copy(REPO_ROOT / "scripts" / "visualize.py", self.root / "scripts" / "visualize.py")
         shutil.copy(
-            REPO_ROOT / "memory" / "templates" / "entry.template.md",
-            self.root / "memory" / "templates" / "entry.template.md",
+            REPO_ROOT / ".kb" / "templates" / "entry.template.md",
+            self.root / ".kb" / "templates" / "entry.template.md",
         )
         shutil.copy(
-            REPO_ROOT / "memory" / "schema" / "entry.schema.json",
-            self.root / "memory" / "schema" / "entry.schema.json",
+            REPO_ROOT / ".kb" / "schema" / "entry.schema.json",
+            self.root / ".kb" / "schema" / "entry.schema.json",
         )
 
     def tearDown(self):
@@ -63,16 +63,16 @@ class VisualizeTestCase(unittest.TestCase):
     def test_empty_kb_produces_placeholder_node(self):
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertIn("no entries yet", mmd)
-        md = (self.root / "memory" / "_generated" / "graph.md").read_text()
+        md = (self.root / ".kb" / "generated" / "graph.md").read_text()
         self.assertIn("```mermaid", md)
 
     def test_entries_become_nodes_with_type_class(self):
         self.run_kb("new", "graph-entry", "--type", "procedural")
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertIn("n_graph_entry", mmd)
         self.assertIn(":::procedural", mmd)
 
@@ -82,7 +82,7 @@ class VisualizeTestCase(unittest.TestCase):
         self.edit_frontmatter("semantic", "source-entry", links=["target-entry"])
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertIn("n_source_entry --> n_target_entry", mmd)
 
     def test_dangling_link_produces_no_edge(self):
@@ -90,7 +90,7 @@ class VisualizeTestCase(unittest.TestCase):
         self.edit_frontmatter("semantic", "lonely-entry", links=["nonexistent-target"])
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertNotIn("-->", mmd)
 
     def test_index_groups_entries_by_type(self):
@@ -98,7 +98,7 @@ class VisualizeTestCase(unittest.TestCase):
         self.run_kb("new", "procedural-entry", "--type", "procedural")
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        index = (self.root / ".kb" / "generated" / "index.md").read_text()
         self.assertIn("# Memory index", index)
         self.assertIn("## semantic", index)
         self.assertIn("`semantic-entry`", index)
@@ -112,7 +112,7 @@ class VisualizeTestCase(unittest.TestCase):
     def test_index_empty_kb_has_no_type_sections(self):
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stderr)
-        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        index = (self.root / ".kb" / "generated" / "index.md").read_text()
         self.assertIn("# Memory index", index)
         self.assertNotIn("## semantic", index)
 
@@ -123,7 +123,7 @@ class VisualizeTestCase(unittest.TestCase):
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("'links' must be a list", result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertNotIn("-->", mmd)
 
     def test_unreadable_file_skipped_not_crashed(self):
@@ -134,9 +134,9 @@ class VisualizeTestCase(unittest.TestCase):
         result = self.run_visualize()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("warning: skipping", result.stderr)
-        mmd = (self.root / "memory" / "_generated" / "graph.mmd").read_text()
+        mmd = (self.root / ".kb" / "generated" / "graph.mmd").read_text()
         self.assertIn("n_good_entry", mmd)
-        index = (self.root / "memory" / "_generated" / "index.md").read_text()
+        index = (self.root / ".kb" / "generated" / "index.md").read_text()
         self.assertIn("`good-entry`", index)
         self.assertNotIn("bad-entry", index)
 
