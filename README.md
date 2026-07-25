@@ -296,3 +296,9 @@ of agent memory.
 ## License
 
 [MIT](LICENSE)
+
+## Roadmap
+
+Phase 8: Automated graph regeneration + staleness audits. Future: type-specific ingestion templates, integration with digital-twin and knowledge repos.
+
+---
