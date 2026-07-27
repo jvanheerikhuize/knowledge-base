@@ -23,9 +23,9 @@ dependencies.
 
 Every entry is one markdown file with YAML frontmatter (name, type,
 description, confidence, dates, links). The current contents are always
-visible in the auto-generated
-[memory graph](.kb/generated/graph.md) and
-[index](.kb/generated/index.md).
+visible in the published
+[memory overview](https://jvanheerikhuize.github.io/knowledge-base/) — index, per-entry pages, and a link graph, rebuilt
+on every push that changes memory content.
 
 ## Start here
 
@@ -39,10 +39,10 @@ visible in the auto-generated
 
 ```
 memory/       the knowledge base itself, one folder per memory type (human-readable)
-.kb/          fixed tooling machinery: templates/, schema/, generated/ graph+index, log.md
-scripts/      kb.py (CLI), visualize.py (mermaid graph generator), build_site.py, scaffold.sh
-tests/        stdlib unittest suites for kb.py, visualize.py, and build_site.py
-.github/      CI workflows: lint + re-visualize on change, publish the overview to Pages
+.kb/          fixed tooling machinery: templates/, schema/, log.md
+scripts/      kb.py (CLI), build_site.py (static overview), serve.py (local editor), scaffold.sh
+tests/        stdlib unittest suites for kb.py and build_site.py
+.github/      CI workflows: lint on change, publish the overview to Pages
 site/         generated static overview (git-ignored; built in CI, published to Pages)
 ```
 
@@ -78,12 +78,12 @@ flowchart TB
     end
 
     subgraph Interface["Interaction Interface"]
-        CLI["scripts/kb.py<br/>list / search / show / lint"]
+        CLI["scripts/kb.py<br/>list / search / show / new<br/>triage / verify / set / link / rm / lint"]
     end
 
-    subgraph Viz["Visualization Layer"]
-        GEN["scripts/visualize.py"]
-        GRAPH[".kb/generated/graph.mmd"]
+    subgraph Viz["Overview / Editing"]
+        SITE["scripts/build_site.py<br/>static site -> Pages"]
+        SERVE["scripts/serve.py<br/>local read/write editor"]
     end
 
     subgraph Pipeline["Scaffolder / CI"]
@@ -94,8 +94,9 @@ flowchart TB
     Sources --> Ingestion --> KB
     ENTRY -.orients.-> SEM & EPI & PRO & WRK & RET & PAR & PRS
     KB --> CLI
-    KB --> GEN --> GRAPH
-    GHA --> GEN
+    KB --> SITE
+    KB <--> SERVE
+    GHA --> SITE
     GHA --> CLI
     SCAF -. drops memory/+.kb/+scripts/ into any repo .-> KB
 ```
@@ -140,7 +141,7 @@ sequenceDiagram
     participant Agent
     participant KB as memory/&lt;type&gt;/*.md
     participant Lint as kb.py lint
-    participant Viz as visualize.py
+    participant Site as build_site.py
 
     Agent->>KB: kb.py new --type semantic "fact name"
     Note over KB: writes frontmatter:<br/>confidence, source, last_verified, links
@@ -148,9 +149,10 @@ sequenceDiagram
     Agent->>Lint: kb.py lint
     Lint-->>Agent: flags stale (>90d unverified),<br/>duplicate slugs, dangling links, schema violations
     Agent->>KB: resolves flags, updates last_verified
-    Agent->>Viz: scripts/visualize.py
-    Viz->>KB: reads all frontmatter
-    Viz-->>KB: writes .kb/generated/graph.mmd
+    Agent->>KB: kb.py verify / set / link
+    Note over KB: mutations recorded in .kb/log.md
+    KB->>Site: push to main
+    Site-->>Agent: republished overview on Pages
 ```
 
 ## Design decisions
@@ -162,8 +164,8 @@ sequenceDiagram
 | No infra | No DB/vector store. "Retrieval memory" is plain markdown + keyword search over frontmatter, not embeddings |
 | Industry-standard alignment | CoALA memory taxonomy + `AGENTS.md` convention + frontmatter style used by Jekyll/Obsidian tooling; maintenance follows Karpathy's LLM-wiki pattern (immutable sources, an incrementally curated linked layer, periodic lint) |
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the operating agent (not a bespoke model call) does the classification, keeping the system model-agnostic |
-| Visualization layer | `scripts/visualize.py` walks frontmatter `links:` and emits a Mermaid graph + index, colored by memory type |
-| Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `lint` |
+| Visualization layer | `scripts/build_site.py` renders a Mermaid link graph, colored by memory type, as one page of the published overview — no committed generated files to keep in sync |
+| Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
 | Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
@@ -183,8 +185,16 @@ python3 scripts/kb.py search "<keyword>"
 python3 scripts/kb.py new --type semantic "<name>"
 python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
 python3 scripts/kb.py lint
-python3 scripts/visualize.py
+
+python3 scripts/kb.py triage           # what needs attention, worst first
+python3 scripts/kb.py verify <name> --confidence high
+python3 scripts/kb.py set <name> description "a better summary"
+python3 scripts/kb.py link <name> <target> [--remove]
+python3 scripts/kb.py edit <name>      # opens $EDITOR
+python3 scripts/kb.py rm <name> [--force]
+
 python3 scripts/build_site.py          # renders the overview into site/
+python3 scripts/serve.py               # same site, locally, with editing on
 ```
 
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
@@ -228,7 +238,7 @@ python3 -m unittest discover tests
 scripts/scaffold.sh /path/to/target-repo [subfolder-name]
 ```
 
-Copies `memory/`, `scripts/kb.py`, `scripts/visualize.py`, and the CI workflow
+Copies `memory/`, `scripts/kb.py`, and the CI workflow
 into the target repo. Solution- and agent-agnostic — no dependency on this repo
 at runtime.
 
@@ -243,41 +253,28 @@ automatically. Pick whichever of these fits the target repo:
   ```bash
   git remote add kb-upstream <this-repo-url>
   git fetch kb-upstream
-  git diff HEAD kb-upstream/main -- scripts/kb.py scripts/visualize.py
-  git checkout kb-upstream/main -- scripts/kb.py scripts/visualize.py
+  git diff HEAD kb-upstream/main -- scripts/kb.py
+  git checkout kb-upstream/main -- scripts/kb.py
   ```
 
 - **One-off file copy**, if you don't want a permanent remote:
 
   ```bash
   curl -fsSL <raw-url>/scripts/kb.py -o scripts/kb.py
-  curl -fsSL <raw-url>/scripts/visualize.py -o scripts/visualize.py
   ```
 
 - **Automate it** with a scheduled workflow (e.g.
   [`actions-template-sync`](https://github.com/AndreasAugustin/actions-template-sync))
-  that opens a PR whenever `scripts/kb.py` or `scripts/visualize.py` changes
+  that opens a PR whenever `scripts/kb.py` changes
   upstream, if the target repo wants sync without a manual check-in.
 
 The machinery is what's meant to be pulled verbatim — `scripts/kb.py`,
-`scripts/visualize.py`, and the `.kb/templates`/`.kb/schema` definitions. The
-`memory/` contents, `.kb/generated/`, `.kb/log.md`, and `.kb-config` are the
-target repo's own data and shouldn't be overwritten by a sync.
+`scripts/build_site.py`, and the `.kb/templates`/`.kb/schema` definitions. The
+`memory/` contents, `.kb/log.md`, and `.kb-config` are the target repo's own
+data and shouldn't be overwritten by a sync.
 
-**After syncing `scripts/visualize.py`, regenerate and commit the graph.**
-CI's staleness check (`kb-lint.yml`) diffs the committed
-`.kb/generated/graph.md`/`graph.mmd` against freshly generated output
-and fails if they don't match. A `visualize.py` sync can change what the
-generator emits (e.g. a mermaid label format tweak) without changing the
-target repo's `memory/` content, so the committed graph can go stale even
-though nothing in `memory/` changed. Always follow a `visualize.py` sync
-with:
-
-```bash
-python3 scripts/visualize.py
-git add .kb/generated/graph.md .kb/generated/graph.mmd
-git commit -m "chore: regenerate kb graph after visualize.py sync"
-```
+Nothing generated is committed, so a sync never leaves stale build output
+behind — the overview is rebuilt from `memory/` on demand.
 
 ### Relationship to other AI-context systems
 
