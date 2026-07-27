@@ -21,14 +21,14 @@ Every path `.claude/CLAUDE.md` names is wrong:
 | `types/` — memory type definitions | no such directory; types are folders under `memory/` |
 | `templates/<type>/` — per-type templates | single shared template at `.kb/templates/entry.template.md` |
 | `ci/lint.py` | `scripts/kb.py lint` |
-| `ci/regenerate_graph.py` | `scripts/visualize.py` |
+| `ci/regenerate_graph.py` | no such script; the graph is a page of the published site, built by `scripts/build_site.py` |
 | `ingestion/` | no such directory; use `scripts/kb.py new` |
 
 The real layout: seven memory-type folders under `memory/`
 (semantic, episodic, procedural, working, retrieval, parametric,
-prospective), tooling in `scripts/` (`kb.py`, `visualize.py`,
+prospective), tooling in `scripts/` (`kb.py`, `build_site.py`, `serve.py`,
 `scaffold.sh`), and machine-readable config in `.kb/` (`schema/`,
-`templates/`, `generated/`). CI runs `.github/workflows/kb-lint.yml`.
+`templates/`, `log.md`). CI runs `.github/workflows/kb-lint.yml`.
 
 An agent that follows `.claude/CLAUDE.md` will fail on its first command.
 Until that file is rewritten or deleted, read `memory/AGENT.md` first. The

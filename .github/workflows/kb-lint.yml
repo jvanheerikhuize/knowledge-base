@@ -1,4 +1,4 @@
-name: Knowledge base lint & visualize
+name: Knowledge base lint
 
 on:
   pull_request:
@@ -6,22 +6,24 @@ on:
       - "memory/**"
       - ".kb/**"
       - "scripts/kb.py"
-      - "scripts/visualize.py"
       - "scripts/build_site.py"
+      - "scripts/serve.py"
+      - "tests/**"
   push:
     branches: [main]
     paths:
       - "memory/**"
       - ".kb/**"
       - "scripts/kb.py"
-      - "scripts/visualize.py"
       - "scripts/build_site.py"
+      - "scripts/serve.py"
+      - "tests/**"
   schedule:
     - cron: "0 6 * * 1"  # weekly, Mondays 06:00 UTC
   workflow_dispatch:
 
 jobs:
-  lint-and-visualize:
+  lint:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
@@ -37,14 +39,6 @@ jobs:
 
       - name: Schema and staleness lint
         run: python3 scripts/kb.py lint
-
-      - name: Regenerate memory graph
-        run: python3 scripts/visualize.py
-
-      - name: Fail if generated graph is out of date
-        run: |
-          git diff --exit-code -- .kb/generated/graph.mmd .kb/generated/graph.md .kb/generated/index.md || \
-          (echo ".kb/generated graph files are stale — run scripts/visualize.py and commit them" && exit 1)
 
   strict-lint:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

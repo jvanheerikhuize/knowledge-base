@@ -15,4 +15,5 @@ links: [kb-is-file-based]
    `memory/AGENT.md`.
 4. Link related entries via the `links:` frontmatter field.
 5. Run `scripts/kb.py lint` to catch dangling links or missing fields.
-6. Run `scripts/visualize.py` to refresh `.kb/generated/graph.mmd`.
+6. Run `scripts/kb.py triage` to see whether the pass left anything orphaned,
+   unlinked, or unverified.
