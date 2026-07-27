@@ -78,7 +78,7 @@ flowchart TB
     end
 
     subgraph Interface["Interaction Interface"]
-        CLI["scripts/kb.py<br/>list / search / show / new<br/>status / triage / verify<br/>set / link / rm / lint"]
+        CLI["scripts/kb.py<br/>search / context / list / show<br/>new / status / triage / verify<br/>set / link / rm / lint"]
     end
 
     subgraph Viz["Overview / Editing"]
@@ -165,7 +165,7 @@ sequenceDiagram
 | Industry-standard alignment | CoALA memory taxonomy + `AGENTS.md` convention + frontmatter style used by Jekyll/Obsidian tooling; maintenance follows Karpathy's LLM-wiki pattern (immutable sources, an incrementally curated linked layer, periodic lint) |
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the operating agent (not a bespoke model call) does the classification, keeping the system model-agnostic |
 | Visualization layer | `scripts/build_site.py` renders a Mermaid link graph, colored by memory type, as one page of the published overview — no committed generated files to keep in sync |
-| Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `status`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
+| Interaction interface | `scripts/kb.py` CLI: `search`, `context`, `list`, `show`, `new`, `status`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
 | Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
@@ -181,7 +181,8 @@ duplicate slugs, not conflicting claims.
 
 ```
 python3 scripts/kb.py list
-python3 scripts/kb.py search "<keyword>"
+python3 scripts/kb.py search "<query>" --limit 10   # ranked, best first
+python3 scripts/kb.py context "<task>" --budget 2000  # paste-ready context pack
 python3 scripts/kb.py new --type semantic "<name>"
 python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
 python3 scripts/kb.py lint
@@ -198,6 +199,16 @@ python3 scripts/kb.py rm <name> [--force]
 python3 scripts/build_site.py          # renders the overview into site/
 python3 scripts/serve.py               # same site, locally, with editing on
 ```
+
+`kb.py search` ranks with BM25 over the whole store rather than reporting
+substring hits in file order, and the ranking knows what kind of store this
+is: a term in an entry's name weighs more than one in its body, memory type
+sets a prior (a procedure answers a task better than a scratch file),
+recency applies to `episodic` entries only — a log decays, a fact does not —
+and confidence nudges near-ties. `kb.py context "<task>"` wraps the same
+ranking into a paste-ready brief, trimmed to a token budget, every entry
+carrying its confidence, verification date, and source path so nothing
+enters an agent's context unattributed.
 
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
 dangling links, and warns on stale, unverified, orphaned, or overdue

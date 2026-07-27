@@ -23,3 +23,5 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-27 — verified `prospective/workspace-improvement-phases.md` — confidence=high
 - 2026-07-27 — created `semantic/kb-entry-status-model.md`
 - 2026-07-27 — linked `semantic/memory-overview-site.md` — -> kb-entry-status-model
+- 2026-07-27 — created `semantic/kb-ranked-retrieval.md`
+- 2026-07-27 — linked `semantic/kb-agent-entrypoint-is-agent-md.md` — -> kb-ranked-retrieval
