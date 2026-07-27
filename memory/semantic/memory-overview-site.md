@@ -33,6 +33,10 @@ to `main` touching `memory/**`, `.kb/**`, `scripts/kb.py`, or the builder. Other
 pushes do not redeploy, so a deploy means the memory itself moved. Lint runs
 before the build, so a schema-invalid KB fails instead of publishing.
 
+**Live at** https://jvanheerikhuize.github.io/knowledge-base/ — Pages is enabled
+with `build_type: workflow`, so the workflow above is the only thing that
+publishes; there is no branch-based build to keep in sync.
+
 **Consequences to remember.** `site/` is git-ignored — never commit build
 output. The repository is public, so everything in `memory/` is published to
 the open web. Jerry has explicitly accepted this, so it is not a reason to
