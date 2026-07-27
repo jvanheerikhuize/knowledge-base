@@ -324,6 +324,10 @@ of agent memory.
 
 ## Roadmap
 
-Phase 8: Automated graph regeneration + staleness audits. Future: type-specific ingestion templates, integration with digital-twin and knowledge repos.
+See [ROADMAP.md](ROADMAP.md). In short: formation is done (templates, schema
+lint, staleness audits, the published site), so the work ahead is in the two
+harder stages of the memory lifecycle — **evolution** (ranked retrieval,
+consolidation, decay, temporal validity) and **exposure** (an MCP server so
+agents can query the store as a tool rather than shelling out).
 
 ---
