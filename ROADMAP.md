@@ -15,27 +15,27 @@ Status legend: `done` · `next` · `planned` · `someday`
 
 ---
 
-## Phase 1 — Retrieval that ranks · `next`
+## Phase 1 — Retrieval that ranks · `done`
 
-**Gap.** `kb.py search` is an unranked substring match over body plus
-frontmatter values. Every hit is equal, and the caller sorts by hand. The
+**Gap.** `kb.py search` was an unranked substring match over body plus
+frontmatter values. Every hit was equal, and the caller sorted by hand. The
 success metric in [PURPOSE.md](PURPOSE.md) is that an agent can "retrieve
 relevant facts at inference time" — unranked grep does not meet that once the
 store passes a few dozen entries.
 
-- **BM25 ranking in `search`.** Classic BM25 is ~40 lines of stdlib; the corpus
+- ✅ **BM25 ranking in `search`.** Classic BM25 is ~40 lines of stdlib; the corpus
   is small enough that scoring every entry per query is free. Ranked output,
   `--limit`, and a score column.
-- **Type-aware scoring.** Recency is a first-class signal for `episodic` (what
+- ✅ **Type-aware scoring.** Recency is a first-class signal for `episodic` (what
   happened most recently usually wins); content similarity is the right signal
   for `semantic`. Keep episodic logs out of the semantic ranking by default so
   a busy week of events cannot bury a durable fact.
-- **`kb.py context "<task>" [--budget N]`.** Emit a paste-ready context pack:
+- ✅ **`kb.py context "<task>" [--budget N]`.** Emit a paste-ready context pack:
   the top-ranked entries, trimmed to a token budget, with provenance. This is
   the single command an agent should need at the start of a task, and it is the
   literal shape of the success metric.
 
-## Phase 2 — Expose the KB over MCP · `planned`
+## Phase 2 — Expose the KB over MCP · `next`
 
 **Gap.** Every consumer has to shell out to `kb.py` and parse text. The
 near-neighbour projects (Basic Memory, brain.md, kb-mcp, Agent Memory) have all

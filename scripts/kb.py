@@ -8,6 +8,7 @@ import argparse
 import collections
 import datetime
 import json
+import math
 import pathlib
 import re
 import sys
@@ -135,6 +136,250 @@ _REASON_STATUS = {
     "orphan": "isolated",
     "unlinked": "isolated",
 }
+
+# --- Ranked retrieval -------------------------------------------------------
+# Classic BM25 over the whole store. The corpus is a few dozen files, so
+# scoring every entry on every query costs nothing and needs no index.
+BM25_K1 = 1.5
+BM25_B = 0.75
+# A term in the name says more about what an entry is about than the same term
+# buried in the body. Weighting is applied by repeating the field's tokens.
+FIELD_WEIGHTS = {"name": 3, "description": 2, "body": 1, "meta": 1}
+# Type-aware scoring. Some memory types are simply better answers to a
+# "what do I need to know" query than others.
+TYPE_WEIGHTS = {
+    "semantic": 1.0,
+    "procedural": 1.0,
+    "retrieval": 1.0,
+    "prospective": 0.9,
+    "episodic": 0.85,
+    "parametric": 0.6,
+    "working": 0.4,
+}
+# Episodic memory is a log: a recent run is far more informative than an old
+# one, so recency is a first-class signal for that type only.
+EPISODIC_HALF_LIFE_DAYS = 90
+EPISODIC_RECENCY_WEIGHT = 0.4
+# Trust nudges the ranking without ever letting confidence outrank relevance.
+CONFIDENCE_WEIGHTS = {
+    "verified": 1.10,
+    "high": 1.05,
+    "medium": 1.0,
+    "low": 0.92,
+    "unverified": 0.88,
+}
+# Rough characters-per-token, good enough to hold a context pack to a budget
+# without pulling in a tokenizer.
+CHARS_PER_TOKEN = 4
+DEFAULT_CONTEXT_BUDGET = 2000
+_WORD = re.compile(r"[a-z0-9][a-z0-9_.-]*")
+
+
+def tokenize(text):
+    """Lowercase word tokens, dropping single characters and pure noise."""
+    return [t.strip(".-_") for t in _WORD.findall(str(text).lower())
+            if len(t.strip(".-_")) > 1]
+
+
+def entry_documents():
+    """Every entry as (type, path, frontmatter, body, weighted token list)."""
+    docs = []
+    for t, path in iter_entries():
+        try:
+            fm, body = parse_frontmatter(path)
+        except OSError as e:
+            print(f"warning: skipping {path.relative_to(ROOT)}: {e}", file=sys.stderr)
+            continue
+        meta = " ".join(
+            serialize_value(v) for k, v in fm.items()
+            if k not in ("name", "description")
+        )
+        fields = {
+            "name": fm.get("name", path.stem).replace("-", " "),
+            "description": fm.get("description", ""),
+            "body": body,
+            "meta": meta,
+        }
+        tokens = []
+        for field, weight in FIELD_WEIGHTS.items():
+            tokens += tokenize(fields[field]) * weight
+        docs.append((t, path, fm, body, tokens))
+    return docs
+
+
+def _recency_factor(fm, today):
+    """Episodic recency multiplier: 1 + w at today, decaying to 1 over time."""
+    for key in ("last_verified", "created"):
+        value = fm.get(key)
+        if not value:
+            continue
+        try:
+            age = (today - datetime.date.fromisoformat(str(value))).days
+        except ValueError:
+            continue
+        age = max(age, 0)
+        return 1 + EPISODIC_RECENCY_WEIGHT * 0.5 ** (age / EPISODIC_HALF_LIFE_DAYS)
+    return 1.0
+
+
+def rank(query, types=None, include_episodic=True, docs=None):
+    """Score every entry against a query with BM25 plus type-aware weighting.
+
+    BM25 supplies relevance. On top of it, three signals that are specific to
+    a memory store: the memory *type* (a procedure answers a task better than
+    a working-memory scratch file), *recency* for episodic entries only
+    (a log entry decays in usefulness, a fact does not), and *confidence*
+    (a nudge — it can reorder near-ties, never outrank a real match).
+
+    Returns hits scoring above zero, best first.
+    """
+    q = tokenize(query)
+    docs = entry_documents() if docs is None else docs
+    if not q or not docs:
+        return []
+
+    n = len(docs)
+    avgdl = sum(len(d[4]) for d in docs) / n
+    df = collections.Counter()
+    counts = []
+    for _, _, _, _, tokens in docs:
+        c = collections.Counter(tokens)
+        counts.append(c)
+        for term in set(q):
+            if c[term]:
+                df[term] += 1
+
+    today = datetime.date.today()
+    hits = []
+    for (t, path, fm, body, tokens), c in zip(docs, counts):
+        if types and t not in types:
+            continue
+        if not include_episodic and t == "episodic":
+            continue
+        dl = len(tokens) or 1
+        base = 0.0
+        matched = []
+        for term in q:
+            f = c[term]
+            if not f:
+                continue
+            matched.append(term)
+            idf = math.log(1 + (n - df[term] + 0.5) / (df[term] + 0.5))
+            base += idf * (f * (BM25_K1 + 1)) / (
+                f + BM25_K1 * (1 - BM25_B + BM25_B * dl / avgdl)
+            )
+        if base <= 0:
+            continue
+        score = base * TYPE_WEIGHTS.get(t, 1.0)
+        score *= CONFIDENCE_WEIGHTS.get(fm.get("confidence", ""), 1.0)
+        if t == "episodic":
+            score *= _recency_factor(fm, today)
+        hits.append({
+            "name": fm.get("name", path.stem),
+            "type": t,
+            "path": str(path.relative_to(ROOT)),
+            "description": fm.get("description", ""),
+            "confidence": fm.get("confidence", ""),
+            "last_verified": fm.get("last_verified", ""),
+            "score": round(score, 3),
+            "bm25": round(base, 3),
+            "matched": sorted(set(matched)),
+            "snippet": snippet(body, set(q)),
+            "body": body,
+        })
+    hits.sort(key=lambda h: (-h["score"], h["name"]))
+    return hits
+
+
+def snippet(body, terms, width=160):
+    """The first line of the body that mentions a query term."""
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("---", "|", "#")):
+            continue
+        if terms & set(tokenize(stripped)):
+            return stripped[:width] + ("…" if len(stripped) > width else "")
+    for line in body.splitlines():
+        if line.strip():
+            return line.strip()[:width]
+    return ""
+
+
+def est_tokens(text):
+    """Cheap token estimate — no tokenizer, no dependency."""
+    return max(1, -(-len(text) // CHARS_PER_TOKEN))
+
+
+def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
+                 include_episodic=False, limit=None):
+    """A paste-ready, budgeted brief on a task, with provenance per entry.
+
+    Entries go in best-first until the budget is spent; the one that straddles
+    the boundary is trimmed at a paragraph break rather than dropped, so the
+    pack always uses the budget it was given. Episodic logs are left out by
+    default: they describe one past run, which usually crowds out the durable
+    knowledge a task actually needs.
+    """
+    hits = rank(query, types=types, include_episodic=include_episodic)
+    if limit:
+        hits = hits[:limit]
+
+    sections, used, included, trimmed = [], 0, [], []
+    for hit in hits:
+        header = (
+            f"### {hit['name']}  ({hit['type']})\n"
+            f"> {hit['description']}\n"
+            f"> confidence: {hit['confidence'] or 'unknown'} · "
+            f"last verified: {hit['last_verified'] or 'never'} · "
+            f"source: {hit['path']} · relevance: {hit['score']}\n\n"
+        )
+        remaining = budget - used - est_tokens(header)
+        if remaining <= 0:
+            break
+        body = hit["body"].strip()
+        if est_tokens(body) > remaining:
+            body = _trim_to_tokens(body, remaining)
+            if not body:
+                break
+            trimmed.append(hit["name"])
+        sections.append(header + body + "\n")
+        used += est_tokens(header) + est_tokens(body)
+        included.append(hit)
+
+    head = (
+        f"# Context for: {query}\n\n"
+        f"{len(included)} entr{'y' if len(included) == 1 else 'ies'} from the "
+        f"knowledge base, most relevant first, ~{used} tokens "
+        f"(budget {budget}).\n\n"
+    )
+    return {
+        "query": query,
+        "budget": budget,
+        "tokens": used,
+        "entries": [{k: v for k, v in h.items() if k != "body"} for h in included],
+        "trimmed": trimmed,
+        "text": head + "\n".join(sections) if sections else head + "(no matches)\n",
+    }
+
+
+TRIM_MARKER = "\n\n_(trimmed to fit the context budget)_"
+
+
+def _trim_to_tokens(body, budget):
+    """Cut a body to a token budget at the last paragraph break that fits.
+
+    The "trimmed" marker is charged against the same budget, so a pack never
+    overshoots the number it was given.
+    """
+    limit = budget * CHARS_PER_TOKEN - len(TRIM_MARKER)
+    if limit <= 0:
+        return ""
+    head = body[:limit]
+    cut = head.rfind("\n\n")
+    if cut > limit // 3:
+        head = head[:cut]
+    return head.rstrip() + TRIM_MARKER
+
 
 
 def _load_schema():
@@ -554,20 +799,38 @@ def cmd_list(args):
 
 
 def cmd_search(args):
-    query = args.query.lower()
-    hits = 0
-    for t, path in iter_entries():
-        try:
-            fm, body = parse_frontmatter(path)
-        except OSError as e:
-            print(f"warning: skipping {path.relative_to(ROOT)}: {e}", file=sys.stderr)
-            continue
-        haystack = body.lower() + "\n" + "\n".join(str(v) for v in fm.values()).lower()
-        if query in haystack:
-            hits += 1
-            print(f"[{t}] {fm.get('name', path.stem)} — {fm.get('description', '')}\n  {path.relative_to(ROOT)}")
+    hits = rank(args.query, types=[args.type] if args.type else None)
+    if args.json:
+        payload = [{k: v for k, v in h.items() if k != "body"} for h in hits]
+        print(json.dumps(payload[: args.limit] if args.limit else payload, indent=2))
+        return
     if not hits:
         print("(no matches)")
+        return
+    shown = hits[: args.limit] if args.limit else hits
+    for i, h in enumerate(shown, 1):
+        print(f"{i:2}. {h['score']:6.2f}  [{h['type']:11}] {h['name']}")
+        if h["description"]:
+            print(f"           {h['description']}")
+        if h["snippet"]:
+            print(f"           … {h['snippet']}")
+        print(f"           {h['path']}  ({', '.join(h['matched'])})")
+    if len(hits) > len(shown):
+        print(f"\n{len(hits) - len(shown)} more — raise --limit to see them.")
+
+
+def cmd_context(args):
+    pack = context_pack(
+        args.query,
+        budget=args.budget,
+        types=[args.type] if args.type else None,
+        include_episodic=args.episodic,
+        limit=args.limit,
+    )
+    if args.json:
+        print(json.dumps(pack, indent=2))
+        return
+    print(pack["text"])
 
 
 def cmd_show(args):
@@ -762,9 +1025,26 @@ def main():
     p_list.add_argument("--type", choices=TYPES)
     p_list.set_defaults(func=cmd_list)
 
-    p_search = sub.add_parser("search", help="keyword search across all entries")
+    p_search = sub.add_parser("search", help="ranked search across all entries")
     p_search.add_argument("query")
+    p_search.add_argument("--limit", type=int, default=10,
+                          help="how many hits to show (0 for all; default 10)")
+    p_search.add_argument("--type", choices=TYPES, help="only this memory type")
+    p_search.add_argument("--json", action="store_true", help="machine-readable output")
     p_search.set_defaults(func=cmd_search)
+
+    p_context = sub.add_parser(
+        "context", help="paste-ready, budgeted context pack for a task")
+    p_context.add_argument("query", help="the task you are about to work on")
+    p_context.add_argument("--budget", type=int, default=DEFAULT_CONTEXT_BUDGET,
+                           help=f"approximate token budget (default {DEFAULT_CONTEXT_BUDGET})")
+    p_context.add_argument("--limit", type=int, default=0,
+                           help="cap the number of entries considered (0 for no cap)")
+    p_context.add_argument("--type", choices=TYPES, help="only this memory type")
+    p_context.add_argument("--episodic", action="store_true",
+                           help="include episodic logs, excluded by default")
+    p_context.add_argument("--json", action="store_true", help="machine-readable output")
+    p_context.set_defaults(func=cmd_context)
 
     p_show = sub.add_parser("show", help="print one entry")
     p_show.add_argument("name")

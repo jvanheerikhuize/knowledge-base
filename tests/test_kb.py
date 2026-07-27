@@ -115,6 +115,115 @@ class TestListAndSearch(KbTestCase):
         self.assertIn("no matches", result.stdout)
 
 
+class RankingTestCase(KbTestCase):
+    """A small corpus with known term distribution, for ranking assertions."""
+
+    def make(self, entry_type, slug, body, **fields):
+        self.run_kb("new", slug, "--type", entry_type,
+                    *(["--due", "2099-01-01"] if entry_type == "prospective" else []))
+        path = self.entry_path(entry_type, slug)
+        text = path.read_text()
+        text = text[: text.index("---", 3) + 4] + body + "\n"
+        path.write_text(text)
+        if fields:
+            self.edit_frontmatter(entry_type, slug, **fields)
+        return path
+
+
+class TestSearchRanking(RankingTestCase):
+    def test_more_mentions_rank_higher(self):
+        self.make("semantic", "dense", "kafka kafka kafka partitions and offsets")
+        self.make("semantic", "sparse", "kafka is mentioned once here, among much "
+                  "other unrelated prose about printers and paper trays")
+        out = self.run_kb("search", "kafka").stdout
+        self.assertLess(out.index("dense"), out.index("sparse"))
+
+    def test_a_name_match_outranks_a_body_match(self):
+        self.make("semantic", "kafka-retention", "durable log storage policy")
+        self.make("semantic", "unrelated-note", "we once evaluated kafka briefly")
+        out = self.run_kb("search", "kafka").stdout
+        self.assertLess(out.index("kafka-retention"), out.index("unrelated-note"))
+
+    def test_output_carries_a_score_and_the_matched_terms(self):
+        self.make("semantic", "scored", "postgres vacuum tuning")
+        payload = json.loads(self.run_kb("search", "vacuum", "--json").stdout)
+        self.assertEqual(payload[0]["name"], "scored")
+        self.assertGreater(payload[0]["score"], 0)
+        self.assertEqual(payload[0]["matched"], ["vacuum"])
+
+    def test_limit_caps_the_result_list(self):
+        for i in range(4):
+            self.make("semantic", f"note-{i}", "shared topic term")
+        payload = json.loads(self.run_kb("search", "topic", "--limit", "2", "--json").stdout)
+        self.assertEqual(len(payload), 2)
+
+    def test_type_filter_restricts_the_corpus(self):
+        self.make("semantic", "a-fact", "deployment rollback")
+        self.make("procedural", "a-runbook", "deployment rollback")
+        payload = json.loads(
+            self.run_kb("search", "deployment", "--type", "procedural", "--json").stdout)
+        self.assertEqual([h["name"] for h in payload], ["a-runbook"])
+
+    def test_recent_episodic_outranks_an_old_one(self):
+        today = datetime.date.today()
+        old = (today - datetime.timedelta(days=900)).isoformat()
+        self.make("episodic", "old-run", "migration attempt notes",
+                  created=old, last_verified=old)
+        self.make("episodic", "new-run", "migration attempt notes",
+                  created=today.isoformat(), last_verified=today.isoformat())
+        out = self.run_kb("search", "migration").stdout
+        self.assertLess(out.index("new-run"), out.index("old-run"))
+
+    def test_confidence_breaks_a_tie(self):
+        self.make("semantic", "trusted-one", "identical wording here",
+                  confidence="verified")
+        self.make("semantic", "shaky-one", "identical wording here",
+                  confidence="low")
+        out = self.run_kb("search", "identical wording").stdout
+        self.assertLess(out.index("trusted-one"), out.index("shaky-one"))
+
+    def test_a_query_of_only_noise_matches_nothing(self):
+        self.make("semantic", "some-entry", "real content")
+        self.assertIn("no matches", self.run_kb("search", "a").stdout)
+
+
+class TestContext(RankingTestCase):
+    def test_pack_names_the_task_and_carries_provenance(self):
+        self.make("semantic", "cache-policy", "we cache for one hour",
+                  confidence="verified")
+        out = self.run_kb("context", "cache policy").stdout
+        self.assertIn("# Context for: cache policy", out)
+        self.assertIn("cache-policy", out)
+        self.assertIn("memory/semantic/cache-policy.md", out)
+        self.assertIn("confidence: verified", out)
+
+    def test_pack_never_exceeds_its_budget(self):
+        for i in range(6):
+            self.make("semantic", f"long-{i}", "budget " + ("filler words " * 200))
+        for budget in (100, 300, 900):
+            pack = json.loads(
+                self.run_kb("context", "budget", "--budget", str(budget), "--json").stdout)
+            self.assertLessEqual(pack["tokens"], budget, budget)
+
+    def test_a_straddling_entry_is_trimmed_not_dropped(self):
+        self.make("semantic", "big-one", "trimmable " + ("filler words " * 400))
+        pack = json.loads(
+            self.run_kb("context", "trimmable", "--budget", "120", "--json").stdout)
+        self.assertEqual(pack["trimmed"], ["big-one"])
+        self.assertEqual([e["name"] for e in pack["entries"]], ["big-one"])
+
+    def test_episodic_is_excluded_by_default_and_opt_in(self):
+        self.make("episodic", "the-run", "rollout observations")
+        self.assertNotIn("the-run", self.run_kb("context", "rollout").stdout)
+        self.assertIn("the-run", self.run_kb("context", "rollout", "--episodic").stdout)
+
+    def test_no_matches_still_produces_a_valid_pack(self):
+        self.make("semantic", "unrelated", "nothing to see")
+        pack = json.loads(self.run_kb("context", "quasar-telemetry", "--json").stdout)
+        self.assertEqual(pack["entries"], [])
+        self.assertIn("no matches", pack["text"])
+
+
 class TestShow(KbTestCase):
     def test_show_prints_entry(self):
         self.run_kb("new", "shown-entry", "--type", "semantic")

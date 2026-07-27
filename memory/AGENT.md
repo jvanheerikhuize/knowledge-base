@@ -73,11 +73,29 @@ Run `scripts/kb.py status` for the board, `--legend` for this table, or open
 if left alone. This is what keeps "clean" from quietly meaning "unexamined":
 `triage` lists only what is already wrong, `status` accounts for everything.
 
+## Retrieving what you need
+
+Start a task with `scripts/kb.py context "<what you are about to do>"`. It
+returns a paste-ready brief: the highest-ranked entries, trimmed to a token
+budget (`--budget`, default 2000), each carrying its own provenance —
+confidence, `last_verified`, and the file it came from — so nothing enters
+your context unattributed. Episodic logs are left out by default because they
+describe one past run and crowd out durable knowledge; pass `--episodic` to
+include them.
+
+`scripts/kb.py search` is the same ranking without the packaging: BM25 over
+the whole store, best first, with a score column and `--limit`. Ranking is
+type-aware — a term in an entry's *name* counts for more than one buried in
+the body; procedures and facts outrank scratch files; recency is applied to
+`episodic` entries only (a log decays, a fact does not); and confidence is a
+small nudge that reorders near-ties without ever outranking a real match.
+
 ## Interacting with the knowledge base
 
 ```
 scripts/kb.py list [--type TYPE]         # list entries, optionally filtered
-scripts/kb.py search "<query>"           # keyword search across all entries
+scripts/kb.py search "<query>" [--limit N] [--type T]   # ranked search, best first
+scripts/kb.py context "<task>" [--budget N]             # paste-ready context pack for a task
 scripts/kb.py show <name>                # print one entry
 scripts/kb.py new --type TYPE "<name>"   # scaffold a new entry
 scripts/kb.py lint                       # schema, duplicate-slug, dangling-link, and staleness checks
