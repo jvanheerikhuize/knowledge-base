@@ -2,7 +2,7 @@
 name: persist-insight-to-knowledge-base
 type: procedural
 description: standing convention — durable knowledge from any session lands in the knowledge-base repo, not only in per-project auto-memory
-confidence: high
+confidence: verified
 source: Jerry, session 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27

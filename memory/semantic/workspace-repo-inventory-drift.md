@@ -30,9 +30,10 @@ Consequences: the workspace-level skills that iterate the table (`/repo-status`,
 `/repo-audit`, `/sync-repos`) will silently skip the three unlisted repos if
 they read CLAUDE.md rather than globbing the directory, and any agent
 following the table will look for `knowledge/` and fail. `knowledge-base`'s
-own `memory/AGENT.md` also tells agents to "keep wikilinks consistent across
-knowledge-base, knowledge, and digital-twin" — a reference to the missing
-repo.
+own `.claude/CLAUDE.md` (line 30 — not `memory/AGENT.md`, which is clean)
+also tells agents to "keep wikilinks consistent across knowledge-base,
+knowledge, and digital-twin" — a reference to the missing repo, and one more
+count against that file per [[kb-agent-entrypoint-is-agent-md]].
 
 The "Current state notes" section of the same file asserts "All 20 repos: on
 main and clean" — treat that as a snapshot from an earlier session, not a
