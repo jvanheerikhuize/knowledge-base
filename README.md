@@ -78,7 +78,7 @@ flowchart TB
     end
 
     subgraph Interface["Interaction Interface"]
-        CLI["scripts/kb.py<br/>list / search / show / new<br/>triage / verify / set / link / rm / lint"]
+        CLI["scripts/kb.py<br/>list / search / show / new<br/>status / triage / verify<br/>set / link / rm / lint"]
     end
 
     subgraph Viz["Overview / Editing"]
@@ -165,7 +165,7 @@ sequenceDiagram
 | Industry-standard alignment | CoALA memory taxonomy + `AGENTS.md` convention + frontmatter style used by Jekyll/Obsidian tooling; maintenance follows Karpathy's LLM-wiki pattern (immutable sources, an incrementally curated linked layer, periodic lint) |
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the operating agent (not a bespoke model call) does the classification, keeping the system model-agnostic |
 | Visualization layer | `scripts/build_site.py` renders a Mermaid link graph, colored by memory type, as one page of the published overview — no committed generated files to keep in sync |
-| Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
+| Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `status`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
 | Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
@@ -186,7 +186,9 @@ python3 scripts/kb.py new --type semantic "<name>"
 python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
 python3 scripts/kb.py lint
 
-python3 scripts/kb.py triage           # what needs attention, worst first
+python3 scripts/kb.py status           # where every entry stands, and what moves it
+python3 scripts/kb.py status --legend  # what each status means and how to leave it
+python3 scripts/kb.py triage           # only what needs attention, worst first
 python3 scripts/kb.py verify <name> --confidence high
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
@@ -201,6 +203,14 @@ python3 scripts/serve.py               # same site, locally, with editing on
 dangling links, and warns on stale, unverified, orphaned, or overdue
 entries (`--strict` turns warnings fatal; CI runs that weekly).
 
+`kb.py status` answers the complementary question. Where `triage` lists only
+what is already wrong, `status` places *every* entry in exactly one of eight
+states — `broken`, `overdue`, `stale`, `unverified`, `provisional`, `isolated`,
+`ageing`, `current` — worst first, each carrying the literal command that moves
+it out, plus a `review_by` date (`last_verified` + 90 days). That is what stops
+"clean" from quietly meaning "unexamined". The full table lives in
+[`memory/AGENT.md`](memory/AGENT.md#entry-status).
+
 ## Overview site
 
 `scripts/build_site.py` renders `memory/` into a static site under `site/`:
@@ -208,6 +218,8 @@ entries (`--strict` turns warnings fatal; CI runs that weekly).
 - an index of every entry with per-type filters and instant client-side search
 - one page per entry with its frontmatter, rendered body, resolved
   `[[wikilinks]]`, outgoing links, and backlinks
+- a status board (`status.html`) placing every entry in exactly one status,
+  with the legend and the command that moves it
 - a Mermaid graph page and a memory-type reference page
 - `site/data.json` — every entry as structured data, including bodies,
   links, and backlinks

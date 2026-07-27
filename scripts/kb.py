@@ -5,6 +5,7 @@ No third-party dependencies — stdlib only, so the KB stays infra-free.
 Run `kb.py --help` for usage.
 """
 import argparse
+import collections
 import datetime
 import json
 import pathlib
@@ -54,6 +55,85 @@ TRIAGE_SEVERITY = {
     "never-verified": 4,
     "orphan": 5,
     "unlinked": 6,
+}
+# How close to STALE_DAYS an entry gets before it is called out as ageing.
+AGEING_RATIO = 2 / 3
+
+# Every entry sits in exactly one of these states. Ordered worst first: an
+# entry that qualifies for several takes the earliest one, so the status
+# answers "what is the single next thing to do about this entry".
+# `action` is the literal command that moves it out of the state.
+STATUS_MODEL = [
+    {
+        "key": "broken",
+        "label": "Broken metadata",
+        "meaning": "A date in the frontmatter cannot be parsed, so this entry "
+                   "escapes every freshness check.",
+        "action": "kb.py set <name> last_verified YYYY-MM-DD",
+    },
+    {
+        "key": "overdue",
+        "label": "Overdue",
+        "meaning": "A prospective entry whose due date has passed. It is a "
+                   "reminder that has already fired.",
+        "action": "act on it, then kb.py set <name> due YYYY-MM-DD (or kb.py rm <name>)",
+    },
+    {
+        "key": "stale",
+        "label": "Stale",
+        "meaning": f"Not re-checked in over {STALE_DAYS} days. It may still be "
+                   "true; nobody has looked.",
+        "action": "re-check it against the source, then kb.py verify <name>",
+    },
+    {
+        "key": "unverified",
+        "label": "Unverified",
+        "meaning": "Recorded but never confirmed against a primary source. "
+                   "Treat as a claim, not a fact.",
+        "action": "confirm it, then kb.py verify <name> --confidence verified",
+    },
+    {
+        "key": "provisional",
+        "label": "Provisional",
+        "meaning": "Confidence is low or medium — believed, but the evidence "
+                   "was indirect.",
+        "action": "check it directly, then kb.py verify <name> --confidence verified",
+    },
+    {
+        "key": "isolated",
+        "label": "Isolated",
+        "meaning": "Nothing links to it, or it links to nothing. It will not "
+                   "be found by following the graph.",
+        "action": "kb.py link <other-entry> <name>",
+    },
+    {
+        "key": "ageing",
+        "label": "Ageing",
+        "meaning": "Still fresh, but approaching the staleness cutoff. "
+                   "Nothing is wrong yet.",
+        "action": "nothing now; re-verify before the review date",
+    },
+    {
+        "key": "current",
+        "label": "Current",
+        "meaning": "Verified recently, trusted, and connected to the graph. "
+                   "Nothing to do.",
+        "action": "nothing; re-verify by the review date to keep it here",
+    },
+]
+STATUS_BY_KEY = {s["key"]: s for s in STATUS_MODEL}
+STATUS_ORDER = [s["key"] for s in STATUS_MODEL]
+
+# Which triage reason code implies which status.
+_REASON_STATUS = {
+    "invalid-due": "broken",
+    "invalid-date": "broken",
+    "overdue": "overdue",
+    "stale": "stale",
+    "unverified": "unverified",
+    "never-verified": "unverified",
+    "orphan": "isolated",
+    "unlinked": "isolated",
 }
 
 
@@ -238,6 +318,101 @@ def triage_report():
 
     report.sort(key=lambda r: (r["severity"], r["type"], r["name"]))
     return report
+
+
+def status_report():
+    """Every entry with the one status that describes it, worst first.
+
+    Triage answers "what is broken"; this answers "where does each entry
+    stand, and what single command moves it". Same rules, no gaps: every
+    entry appears exactly once.
+    """
+    today = datetime.date.today()
+    by_name = {r["name"]: r for r in triage_report()}
+
+    report = []
+    for t, path in iter_entries():
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError:
+            continue
+        name = fm.get("name", path.stem)
+        confidence = fm.get("confidence", "")
+        reasons = [x for x in by_name.get(name, {}).get("reasons", [])]
+
+        age = review = None
+        lv = fm.get("last_verified")
+        if lv:
+            try:
+                d = datetime.date.fromisoformat(lv)
+                age = (today - d).days
+                review = (d + datetime.timedelta(days=STALE_DAYS)).isoformat()
+            except ValueError:
+                pass
+
+        candidates = {_REASON_STATUS[x["code"]] for x in reasons
+                      if x["code"] in _REASON_STATUS}
+        if confidence in ("low", "medium"):
+            candidates.add("provisional")
+        if not candidates and age is not None and age > STALE_DAYS * AGEING_RATIO:
+            candidates.add("ageing")
+        status = min(candidates, key=STATUS_ORDER.index) if candidates else "current"
+
+        report.append({
+            "name": name,
+            "type": t,
+            "path": str(path.relative_to(ROOT)),
+            "confidence": confidence,
+            "description": fm.get("description", ""),
+            "status": status,
+            "label": STATUS_BY_KEY[status]["label"],
+            "action": STATUS_BY_KEY[status]["action"].replace("<name>", name),
+            "last_verified": lv or "",
+            "age_days": age,
+            "review_by": review or "",
+            "reasons": reasons,
+        })
+
+    report.sort(key=lambda r: (STATUS_ORDER.index(r["status"]), r["type"], r["name"]))
+    return report
+
+
+def cmd_status(args):
+    report = status_report()
+    if args.type:
+        report = [r for r in report if r["type"] == args.type]
+    if args.status:
+        report = [r for r in report if r["status"] == args.status]
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return
+    if args.legend:
+        print("Entry statuses, worst first. Each is left by running its action.\n")
+        for s in STATUS_MODEL:
+            print(f"{s['label']} ({s['key']})")
+            print(f"  {s['meaning']}")
+            print(f"  → {s['action']}\n")
+        return
+    if not report:
+        print("no entries match")
+        return
+
+    counts = collections.Counter(r["status"] for r in report)
+    for key in STATUS_ORDER:
+        rows = [r for r in report if r["status"] == key]
+        if not rows:
+            continue
+        s = STATUS_BY_KEY[key]
+        print(f"\n{s['label'].upper()} ({len(rows)}) — {s['meaning']}")
+        print(f"  action: {s['action']}")
+        for r in rows:
+            age = f"{r['age_days']}d ago" if r["age_days"] is not None else "never"
+            print(f"    [{r['type']:11}] {r['name']:34} {r['confidence']:10} verified {age}")
+
+    summary = "  ".join(f"{STATUS_BY_KEY[k]['label'].lower()}: {counts[k]}"
+                        for k in STATUS_ORDER if counts[k])
+    print(f"\n{len(report)} entries — {summary}")
+    print("Run 'kb.py status --legend' for what each status means.")
 
 
 def cmd_triage(args):
@@ -605,6 +780,15 @@ def main():
     p_lint.add_argument("--strict", action="store_true",
                          help="treat staleness/unverified-age warnings as fatal")
     p_lint.set_defaults(func=cmd_lint)
+
+    p_status = sub.add_parser("status",
+                              help="where every entry stands, and the command that moves it")
+    p_status.add_argument("--type", choices=TYPES, help="only this memory type")
+    p_status.add_argument("--status", choices=STATUS_ORDER, help="only entries in this status")
+    p_status.add_argument("--legend", action="store_true",
+                          help="explain each status and how to leave it")
+    p_status.add_argument("--json", action="store_true", help="machine-readable output")
+    p_status.set_defaults(func=cmd_status)
 
     p_triage = sub.add_parser("triage", help="queue of entries needing attention")
     p_triage.add_argument("--type", choices=TYPES, help="only this memory type")

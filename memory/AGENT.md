@@ -48,6 +48,31 @@ is stale, `confidence: unverified` entries older than 30 days, dangling
 detect content-level contradictions between entries — no such checker
 exists yet.
 
+## Entry status
+
+Confidence says how much an entry is trusted; `last_verified` says how
+recently anybody looked. Status collapses both — plus links and due dates —
+into one answer per entry: *what is the single next thing to do about it.*
+Every entry sits in exactly one status, and if several apply the worst wins.
+
+Run `scripts/kb.py status` for the board, `--legend` for this table, or open
+`status.html` on the site.
+
+| Status | What it means | How to change it |
+|---|---|---|
+| `broken` | A frontmatter date will not parse, so the entry escapes every freshness check | `kb.py set <name> last_verified YYYY-MM-DD` |
+| `overdue` | A prospective entry whose `due` date has passed — a reminder that already fired | act on it, then `kb.py set <name> due YYYY-MM-DD` (or `kb.py rm <name>`) |
+| `stale` | Not re-checked in over 90 days; may still be true, nobody has looked | re-check against the source, then `kb.py verify <name>` |
+| `unverified` | Recorded but never confirmed against a primary source — a claim, not a fact | confirm it, then `kb.py verify <name> --confidence verified` |
+| `provisional` | Confidence is `low` or `medium` — believed, but the evidence was indirect | check it directly, then `kb.py verify <name> --confidence verified` |
+| `isolated` | Nothing links to it, or it links to nothing; unreachable by following the graph | `kb.py link <other-entry> <name>` |
+| `ageing` | Still fresh, but past two-thirds of the way to the staleness cutoff | nothing now; re-verify before the review date |
+| `current` | Verified recently, trusted, and connected. Nothing to do | nothing; re-verify by the review date to stay here |
+
+`review_by` is `last_verified` + 90 days — the date an entry falls to `stale`
+if left alone. This is what keeps "clean" from quietly meaning "unexamined":
+`triage` lists only what is already wrong, `status` accounts for everything.
+
 ## Interacting with the knowledge base
 
 ```
@@ -57,6 +82,7 @@ scripts/kb.py show <name>                # print one entry
 scripts/kb.py new --type TYPE "<name>"   # scaffold a new entry
 scripts/kb.py lint                       # schema, duplicate-slug, dangling-link, and staleness checks
 
+scripts/kb.py status [--type T] [--status S] [--legend]   # where every entry stands, and what moves it
 scripts/kb.py triage                     # what needs attention, most urgent first
 scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field

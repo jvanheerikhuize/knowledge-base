@@ -21,3 +21,5 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-27 — verified `procedural/purge-context-after-each-change.md` — confidence=verified
 - 2026-07-27 — verified `prospective/kb-roadmap.md` — confidence=high
 - 2026-07-27 — verified `prospective/workspace-improvement-phases.md` — confidence=high
+- 2026-07-27 — created `semantic/kb-entry-status-model.md`
+- 2026-07-27 — linked `semantic/memory-overview-site.md` — -> kb-entry-status-model

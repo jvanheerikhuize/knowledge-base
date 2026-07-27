@@ -299,6 +299,94 @@ class TestTriage(KbTestCase):
         self.assertEqual([r["name"] for r in by_reason], ["due-task"])
 
 
+class TestStatus(KbTestCase):
+    """`status` covers every entry exactly once; `triage` covers only problems."""
+
+    def _clean_pair(self):
+        self.run_kb("new", "a-entry", "--type", "semantic")
+        self.run_kb("new", "b-entry", "--type", "semantic")
+        self.run_kb("link", "a-entry", "b-entry")
+        self.run_kb("link", "b-entry", "a-entry")
+        self.run_kb("verify", "a-entry", "--confidence", "verified")
+        self.run_kb("verify", "b-entry", "--confidence", "verified")
+
+    def test_every_entry_appears_exactly_once(self):
+        self._clean_pair()
+        self.run_kb("new", "lonely", "--type", "semantic")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        names = [r["name"] for r in report]
+        self.assertEqual(sorted(names), ["a-entry", "b-entry", "lonely"])
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_clean_entries_are_current(self):
+        self._clean_pair()
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        self.assertEqual({r["status"] for r in report}, {"current"})
+
+    def test_worst_status_wins(self):
+        # Overdue *and* orphaned; overdue is the more urgent of the two.
+        self.run_kb("new", "past-task", "--type", "prospective", "--due", "2000-01-01")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        self.assertEqual(report[0]["status"], "overdue")
+        self.assertIn("orphan", [r["code"] for r in report[0]["reasons"]])
+
+    def test_orphan_is_isolated_and_stale_beats_it(self):
+        self.run_kb("new", "lonely", "--type", "semantic")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        self.assertEqual(report[0]["status"], "isolated")
+        self.edit_frontmatter("semantic", "lonely", last_verified="2000-01-01")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        self.assertEqual(report[0]["status"], "stale")
+
+    def test_low_confidence_is_provisional(self):
+        self._clean_pair()
+        self.run_kb("set", "a-entry", "confidence", "medium")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        by_name = {r["name"]: r for r in report}
+        self.assertEqual(by_name["a-entry"]["status"], "provisional")
+        self.assertEqual(by_name["b-entry"]["status"], "current")
+
+    def test_every_record_names_the_command_that_moves_it(self):
+        self._clean_pair()
+        self.run_kb("set", "a-entry", "confidence", "low")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        for record in report:
+            self.assertTrue(record["action"])
+            self.assertNotIn("<name>", record["action"])
+        action = next(r["action"] for r in report if r["name"] == "a-entry")
+        self.assertIn("a-entry", action)
+
+    def test_review_by_is_ninety_days_after_last_verified(self):
+        self._clean_pair()
+        self.edit_frontmatter("semantic", "a-entry", last_verified="2020-01-01")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        record = next(r for r in report if r["name"] == "a-entry")
+        self.assertEqual(record["review_by"], "2020-03-31")
+
+    def test_unparseable_date_is_broken(self):
+        self._clean_pair()
+        self.edit_frontmatter("semantic", "a-entry", last_verified="soon")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        record = next(r for r in report if r["name"] == "a-entry")
+        self.assertEqual(record["status"], "broken")
+        self.assertIsNone(record["age_days"])
+
+    def test_filters_by_type_and_status(self):
+        self._clean_pair()
+        self.run_kb("new", "past-task", "--type", "prospective", "--due", "2000-01-01")
+        by_type = json.loads(self.run_kb("status", "--type", "prospective", "--json").stdout)
+        self.assertEqual([r["name"] for r in by_type], ["past-task"])
+        by_status = json.loads(self.run_kb("status", "--status", "current", "--json").stdout)
+        self.assertEqual(sorted(r["name"] for r in by_status), ["a-entry", "b-entry"])
+
+    def test_legend_explains_every_status(self):
+        result = self.run_kb("status", "--legend")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for key in ("broken", "overdue", "stale", "unverified",
+                    "provisional", "isolated", "ageing", "current"):
+            self.assertIn(key, result.stdout)
+
+
 class TestVerify(KbTestCase):
     def test_stamps_today_and_optional_confidence(self):
         self.run_kb("new", "stale-fact", "--type", "semantic")
