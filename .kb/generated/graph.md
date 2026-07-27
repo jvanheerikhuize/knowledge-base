@@ -11,8 +11,18 @@ flowchart LR
     classDef retrieval fill:#00838f,color:#fff
     classDef parametric fill:#455a64,color:#fff
     classDef prospective fill:#ef6c00,color:#fff
+    n_kb_agent_entrypoint_is_agent_md["kb-agent-entrypoint-is-agent-md<br/>(verified)"]:::semantic
     n_kb_is_file_based["kb-is-file-based<br/>(verified)"]:::semantic
+    n_workspace_repo_inventory_drift["workspace-repo-inventory-drift<br/>(verified)"]:::semantic
     n_distill_session_into_memory["distill-session-into-memory<br/>(high)"]:::procedural
+    n_persist_insight_to_knowledge_base["persist-insight-to-knowledge-base<br/>(high)"]:::procedural
+    n_kb_agent_entrypoint_is_agent_md --> n_kb_is_file_based
+    n_kb_agent_entrypoint_is_agent_md --> n_persist_insight_to_knowledge_base
     n_kb_is_file_based --> n_distill_session_into_memory
+    n_workspace_repo_inventory_drift --> n_persist_insight_to_knowledge_base
     n_distill_session_into_memory --> n_kb_is_file_based
+    n_persist_insight_to_knowledge_base --> n_distill_session_into_memory
+    n_persist_insight_to_knowledge_base --> n_kb_is_file_based
+    n_persist_insight_to_knowledge_base --> n_workspace_repo_inventory_drift
+    n_persist_insight_to_knowledge_base --> n_kb_agent_entrypoint_is_agent_md
 ```
