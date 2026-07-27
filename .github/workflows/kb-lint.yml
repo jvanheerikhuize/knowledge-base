@@ -7,6 +7,7 @@ on:
       - ".kb/**"
       - "scripts/kb.py"
       - "scripts/visualize.py"
+      - "scripts/build_site.py"
   push:
     branches: [main]
     paths:
@@ -14,6 +15,7 @@ on:
       - ".kb/**"
       - "scripts/kb.py"
       - "scripts/visualize.py"
+      - "scripts/build_site.py"
   schedule:
     - cron: "0 6 * * 1"  # weekly, Mondays 06:00 UTC
   workflow_dispatch:

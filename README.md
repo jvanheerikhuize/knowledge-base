@@ -40,9 +40,10 @@ visible in the auto-generated
 ```
 memory/       the knowledge base itself, one folder per memory type (human-readable)
 .kb/          fixed tooling machinery: templates/, schema/, generated/ graph+index, log.md
-scripts/      kb.py (CLI), visualize.py (mermaid graph generator), scaffold.sh
-tests/        stdlib unittest suites for kb.py and visualize.py
-.github/      CI workflow that lints and re-visualizes the KB on every change
+scripts/      kb.py (CLI), visualize.py (mermaid graph generator), build_site.py, scaffold.sh
+tests/        stdlib unittest suites for kb.py, visualize.py, and build_site.py
+.github/      CI workflows: lint + re-visualize on change, publish the overview to Pages
+site/         generated static overview (git-ignored; built in CI, published to Pages)
 ```
 
 `memory/` holds only human-readable knowledge — `AGENT.md` plus one folder per
@@ -163,14 +164,15 @@ sequenceDiagram
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the operating agent (not a bespoke model call) does the classification, keeping the system model-agnostic |
 | Visualization layer | `scripts/visualize.py` walks frontmatter `links:` and emits a Mermaid graph + index, colored by memory type |
 | Interaction interface | `scripts/kb.py` CLI: `list`, `search`, `show`, `new`, `lint` |
+| Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
 
 **Deliberate non-goals (v1):** no embeddings/vector search (grep-based
 retrieval is the trade-off that keeps "no infra" true); no hardcoded
-LLM-driven classification pipeline (ingestion is agent-assisted); no UI server
-for visualization (Mermaid renders natively in GitHub, IDEs, and Claude
-artifacts). No content-level contradiction checker exists yet — lint detects
+LLM-driven classification pipeline (ingestion is agent-assisted); no UI *server*
+(the overview is statically generated — Mermaid also renders natively in GitHub,
+IDEs, and Claude artifacts). No content-level contradiction checker exists yet — lint detects
 duplicate slugs, not conflicting claims.
 
 ## CLI quickstart
@@ -182,11 +184,37 @@ python3 scripts/kb.py new --type semantic "<name>"
 python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
 python3 scripts/kb.py lint
 python3 scripts/visualize.py
+python3 scripts/build_site.py          # renders the overview into site/
 ```
 
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
 dangling links, and warns on stale, unverified, orphaned, or overdue
 entries (`--strict` turns warnings fatal; CI runs that weekly).
+
+## Overview site
+
+`scripts/build_site.py` renders `memory/` into a static site under `site/`:
+
+- an index of every entry with per-type filters and instant client-side search
+- one page per entry with its frontmatter, rendered body, resolved
+  `[[wikilinks]]`, outgoing links, and backlinks
+- a Mermaid graph page and a memory-type reference page
+- `site/data.json` — every entry as structured data, including bodies,
+  links, and backlinks
+
+`data.json` is the interactivity hook: anything richer than filter-and-search
+(timelines, graph exploration, an edit surface) can be built against it without
+changing the builder. The site is stdlib-generated, self-contained apart from
+the Mermaid script on the graph page, and never committed — `site/` is
+git-ignored and built fresh in CI.
+
+**Publishing.** `.github/workflows/pages.yml` rebuilds and deploys to GitHub
+Pages on every push to `main` that touches `memory/**`, `.kb/**`,
+`scripts/kb.py`, or the builder itself. Pushes that change only docs, tests, or
+unrelated tooling do not trigger a rebuild, so a deploy always means the memory
+itself moved. The workflow lints before it builds: a schema-invalid KB fails
+rather than publishing. Pages must be enabled once for the repository with
+**Settings → Pages → Source: GitHub Actions**.
 
 ## Tests
 

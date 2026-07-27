@@ -1,0 +1,58 @@
+name: Publish memory overview
+
+# Rebuilds and republishes the static overview whenever memory content
+# meaningfully changes. Pushes that touch only unrelated files (README,
+# tests, other tooling) do not trigger a rebuild.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "memory/**"
+      - ".kb/**"
+      - "scripts/kb.py"
+      - "scripts/build_site.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy in flight; queue instead, so the last push wins.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Schema and staleness lint
+        run: python3 scripts/kb.py lint
+
+      - name: Build the static overview
+        run: python3 scripts/build_site.py --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
