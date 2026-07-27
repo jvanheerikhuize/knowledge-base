@@ -422,5 +422,51 @@ class TestMutationLog(KbTestCase):
             self.assertIn(action, log)
 
 
+class TestWriteBody(KbTestCase):
+    """write_body() backs browser edits, so it must never touch frontmatter."""
+
+    def load(self):
+        """Import kb.py rooted at the temp KB, without leaving it cached for
+        other test modules that import the real one."""
+        cached = sys.modules.pop("kb", None)
+        sys.path.insert(0, str(self.root / "scripts"))
+        try:
+            import kb
+        finally:
+            sys.path.pop(0)
+            sys.modules.pop("kb", None)
+            if cached is not None:
+                sys.modules["kb"] = cached
+        return kb
+
+    def test_replaces_body_and_preserves_frontmatter(self):
+        self.run_kb("new", "body-target", "--type", "semantic")
+        path = self.entry_path("semantic", "body-target")
+        kb = self.load()
+        kb.write_body(path, "Completely new prose.")
+        text = path.read_text()
+        self.assertIn("name: body-target", text)
+        self.assertIn("type: semantic", text)
+        self.assertIn("Completely new prose.", text)
+        self.assertNotIn("Body content", text)
+
+    def test_empty_body_leaves_a_valid_entry(self):
+        self.run_kb("new", "emptied", "--type", "semantic")
+        path = self.entry_path("semantic", "emptied")
+        kb = self.load()
+        kb.write_body(path, "   ")
+        self.assertTrue(path.read_text().startswith("---\n"))
+        self.assertEqual(path.read_text().count("---"), 2)
+
+    def test_rejects_a_file_without_frontmatter(self):
+        path = self.root / "memory" / "semantic"
+        path.mkdir(parents=True, exist_ok=True)
+        stray = path / "no-frontmatter.md"
+        stray.write_text("just prose\n")
+        kb = self.load()
+        with self.assertRaises(ValueError):
+            kb.write_body(stray, "x")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -143,6 +143,17 @@ def write_frontmatter(path: pathlib.Path, changes: dict):
     path.write_text("---\n" + "\n".join(out) + "\n---\n" + body, encoding="utf-8")
 
 
+def write_body(path: pathlib.Path, body: str):
+    """Replace an entry's body, leaving its frontmatter block untouched."""
+    text = path.read_text(encoding="utf-8")
+    m = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.DOTALL)
+    if not m:
+        raise ValueError(f"{path} has no frontmatter block")
+    body = body.strip()
+    path.write_text(f"---\n{m.group(1)}\n---\n\n{body}\n" if body else f"---\n{m.group(1)}\n---\n",
+                    encoding="utf-8")
+
+
 def resolve(name):
     """Find one entry by frontmatter name or filename stem."""
     for t, path in iter_entries():
