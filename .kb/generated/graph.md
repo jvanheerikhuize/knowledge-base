@@ -14,6 +14,7 @@ flowchart LR
     n_asdlc_governed_change_rules["asdlc-governed-change-rules<br/>(high)"]:::semantic
     n_kb_agent_entrypoint_is_agent_md["kb-agent-entrypoint-is-agent-md<br/>(verified)"]:::semantic
     n_kb_is_file_based["kb-is-file-based<br/>(verified)"]:::semantic
+    n_memory_overview_site["memory-overview-site<br/>(verified)"]:::semantic
     n_twin_sovereignty_constraint["twin-sovereignty-constraint<br/>(verified)"]:::semantic
     n_workspace_repo_inventory_drift["workspace-repo-inventory-drift<br/>(verified)"]:::semantic
     n_workspace_audit_2026_07_27["workspace-audit-2026-07-27<br/>(verified)"]:::episodic
@@ -26,6 +27,9 @@ flowchart LR
     n_kb_agent_entrypoint_is_agent_md --> n_kb_is_file_based
     n_kb_agent_entrypoint_is_agent_md --> n_persist_insight_to_knowledge_base
     n_kb_is_file_based --> n_distill_session_into_memory
+    n_kb_is_file_based --> n_memory_overview_site
+    n_memory_overview_site --> n_kb_is_file_based
+    n_memory_overview_site --> n_persist_insight_to_knowledge_base
     n_twin_sovereignty_constraint --> n_workspace_audit_2026_07_27
     n_workspace_repo_inventory_drift --> n_persist_insight_to_knowledge_base
     n_workspace_audit_2026_07_27 --> n_workspace_repo_inventory_drift
