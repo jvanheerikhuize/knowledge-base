@@ -5,6 +5,8 @@ Each test copies kb.py plus the real template/schema into a fresh temp
 directory (so kb.py's module-level ROOT/MEMORY resolve there, not into the
 real repo) and drives it as a subprocess, the same way a user would.
 """
+import datetime
+import json
 import shutil
 import subprocess
 import sys
@@ -254,6 +256,170 @@ class TestNewDueAndLog(KbTestCase):
         log_text = (self.root / ".kb" / "log.md").read_text()
         self.assertIn("first-entry", log_text)
         self.assertIn("second-entry", log_text)
+
+
+class TestTriage(KbTestCase):
+    def test_clean_kb_reports_nothing(self):
+        self.run_kb("new", "a-entry", "--type", "semantic")
+        self.run_kb("new", "b-entry", "--type", "semantic")
+        self.run_kb("link", "a-entry", "b-entry")
+        self.run_kb("link", "b-entry", "a-entry")
+        result = self.run_kb("triage")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("triage clean", result.stdout)
+
+    def test_flags_stale_and_orphan_entries(self):
+        self.run_kb("new", "old-entry", "--type", "semantic")
+        self.edit_frontmatter("semantic", "old-entry", last_verified="2000-01-01")
+        result = self.run_kb("triage")
+        self.assertIn("stale", result.stdout)
+        self.assertIn("orphan", result.stdout)
+        self.assertIn("unlinked", result.stdout)
+
+    def test_flags_overdue_prospective(self):
+        self.run_kb("new", "past-task", "--type", "prospective", "--due", "2000-01-01")
+        result = self.run_kb("triage")
+        self.assertIn("overdue", result.stdout)
+
+    def test_json_output_is_parseable_and_sorted_by_severity(self):
+        self.run_kb("new", "due-task", "--type", "prospective", "--due", "2000-01-01")
+        self.run_kb("new", "lonely", "--type", "semantic")
+        result = self.run_kb("triage", "--json")
+        report = json.loads(result.stdout)
+        self.assertEqual(len(report), 2)
+        self.assertEqual(report[0]["name"], "due-task")
+        self.assertLessEqual(report[0]["severity"], report[1]["severity"])
+
+    def test_filters_by_type_and_reason(self):
+        self.run_kb("new", "due-task", "--type", "prospective", "--due", "2000-01-01")
+        self.run_kb("new", "lonely", "--type", "semantic")
+        by_type = json.loads(self.run_kb("triage", "--type", "semantic", "--json").stdout)
+        self.assertEqual([r["name"] for r in by_type], ["lonely"])
+        by_reason = json.loads(self.run_kb("triage", "--reason", "overdue", "--json").stdout)
+        self.assertEqual([r["name"] for r in by_reason], ["due-task"])
+
+
+class TestVerify(KbTestCase):
+    def test_stamps_today_and_optional_confidence(self):
+        self.run_kb("new", "stale-fact", "--type", "semantic")
+        self.edit_frontmatter("semantic", "stale-fact", last_verified="2000-01-01")
+        result = self.run_kb("verify", "stale-fact", "--confidence", "high")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = self.entry_path("semantic", "stale-fact").read_text()
+        self.assertIn(f"last_verified: {datetime.date.today().isoformat()}", text)
+        self.assertIn("confidence: high", text)
+
+    def test_unknown_entry_fails(self):
+        result = self.run_kb("verify", "nope")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no entry named", result.stderr)
+
+    def test_body_survives_the_rewrite(self):
+        self.run_kb("new", "keep-body", "--type", "semantic")
+        path = self.entry_path("semantic", "keep-body")
+        before = path.read_text().split("---\n", 2)[2]
+        self.run_kb("verify", "keep-body")
+        self.assertEqual(path.read_text().split("---\n", 2)[2], before)
+
+
+class TestSet(KbTestCase):
+    def test_sets_an_arbitrary_field(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        result = self.run_kb("set", "some-fact", "description", "a better summary")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("description: a better summary",
+                      self.entry_path("semantic", "some-fact").read_text())
+
+    def test_adds_a_field_that_was_absent(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        path = self.entry_path("semantic", "some-fact")
+        path.write_text(path.read_text().replace("source: where this came from\n", ""))
+        self.run_kb("set", "some-fact", "source", "an-origin")
+        self.assertIn("source: an-origin", path.read_text())
+
+    def test_refuses_identity_fields(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        for field in ("name", "type"):
+            result = self.run_kb("set", "some-fact", field, "whatever")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("refusing", result.stderr)
+
+    def test_validates_dates_and_confidence(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        self.assertNotEqual(self.run_kb("set", "some-fact", "created", "nope").returncode, 0)
+        self.assertNotEqual(
+            self.run_kb("set", "some-fact", "confidence", "sorta").returncode, 0)
+
+
+class TestLink(KbTestCase):
+    def setUp(self):
+        super().setUp()
+        self.run_kb("new", "from-entry", "--type", "semantic")
+        self.run_kb("new", "to-entry", "--type", "semantic")
+
+    def test_adds_and_removes_a_link(self):
+        self.run_kb("link", "from-entry", "to-entry")
+        path = self.entry_path("semantic", "from-entry")
+        self.assertIn("links: [to-entry]", path.read_text())
+        self.run_kb("link", "from-entry", "to-entry", "--remove")
+        self.assertIn("links: []", path.read_text())
+
+    def test_refuses_dangling_target(self):
+        result = self.run_kb("link", "from-entry", "ghost")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("dangling", result.stderr)
+
+    def test_refuses_self_link_and_is_idempotent(self):
+        self.assertNotEqual(
+            self.run_kb("link", "from-entry", "from-entry").returncode, 0)
+        self.run_kb("link", "from-entry", "to-entry")
+        result = self.run_kb("link", "from-entry", "to-entry")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("already links", result.stdout)
+        self.assertIn("links: [to-entry]", self.entry_path("semantic", "from-entry").read_text())
+
+    def test_linked_kb_still_lints_clean(self):
+        self.run_kb("link", "from-entry", "to-entry")
+        self.run_kb("link", "to-entry", "from-entry")
+        self.assertEqual(self.run_kb("lint").returncode, 0)
+
+
+class TestRm(KbTestCase):
+    def setUp(self):
+        super().setUp()
+        self.run_kb("new", "doomed", "--type", "semantic")
+        self.run_kb("new", "referrer", "--type", "semantic")
+
+    def test_deletes_an_unreferenced_entry(self):
+        result = self.run_kb("rm", "doomed")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.entry_path("semantic", "doomed").exists())
+
+    def test_refuses_when_referenced(self):
+        self.run_kb("link", "referrer", "doomed")
+        result = self.run_kb("rm", "doomed")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("still linked from", result.stderr)
+        self.assertTrue(self.entry_path("semantic", "doomed").exists())
+
+    def test_force_strips_inbound_links_leaving_no_dangling_refs(self):
+        self.run_kb("link", "referrer", "doomed")
+        result = self.run_kb("rm", "doomed", "--force")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.entry_path("semantic", "doomed").exists())
+        self.assertIn("links: []", self.entry_path("semantic", "referrer").read_text())
+        self.assertEqual(self.run_kb("lint").returncode, 0)
+
+
+class TestMutationLog(KbTestCase):
+    def test_mutations_are_recorded(self):
+        self.run_kb("new", "tracked", "--type", "semantic")
+        self.run_kb("verify", "tracked")
+        self.run_kb("set", "tracked", "description", "changed")
+        self.run_kb("rm", "tracked")
+        log = (self.root / ".kb" / "log.md").read_text()
+        for action in ("created", "verified", "updated", "deleted"):
+            self.assertIn(action, log)
 
 
 if __name__ == "__main__":
