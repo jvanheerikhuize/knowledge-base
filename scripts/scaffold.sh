@@ -38,7 +38,6 @@ cp -R "$SELF_DIR/.kb" "$KB_DEST"
 SCRIPTS_DEST="$TARGET_REPO/scripts"
 mkdir -p "$SCRIPTS_DEST"
 cp "$SELF_DIR/scripts/kb.py" "$SCRIPTS_DEST/kb.py"
-cp "$SELF_DIR/scripts/visualize.py" "$SCRIPTS_DEST/visualize.py"
 
 if [ "$SUBFOLDER" != "memory" ]; then
   echo "$SUBFOLDER" > "$SCRIPTS_DEST/.kb-config"
@@ -52,4 +51,4 @@ echo "scaffolded knowledge base into $DEST"
 echo "scripts copied into $SCRIPTS_DEST"
 echo "CI workflow copied into $WORKFLOW_DEST"
 echo "next: read $DEST/AGENT.md"
-echo "to pick up future fixes to kb.py/visualize.py, see 'Keeping a scaffolded copy in sync' in README.md"
+echo "to pick up future fixes to kb.py, see 'Keeping a scaffolded copy in sync' in README.md"

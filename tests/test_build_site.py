@@ -133,5 +133,73 @@ class BuildTests(unittest.TestCase):
         self.assertIn(target["backlinks"][0], html)
 
 
+class TriageAndEditingTests(unittest.TestCase):
+    """The affordances that let the site be triaged and edited, not just read."""
+
+    slug = "someone/some-repo"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = pathlib.Path(self.tmp.name) / "site"
+        build_site.build(self.out, self.slug)
+        self.entry = sorted((self.out / "entry").glob("*.html"))[0]
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_triage_page_and_client_script_are_built(self):
+        self.assertTrue((self.out / "triage.html").exists())
+        self.assertTrue((self.out / "app.js").exists())
+
+    def test_index_links_to_triage(self):
+        self.assertIn('href="triage.html"', (self.out / "index.html").read_text())
+
+    def test_entry_page_links_into_github(self):
+        html = self.entry.read_text()
+        self.assertIn(f"https://github.com/{self.slug}/edit/", html)
+        self.assertIn(f"https://github.com/{self.slug}/issues/new?", html)
+
+    def test_local_editing_controls_ship_hidden(self):
+        # the same file is served by Pages (read-only) and serve.py (editable),
+        # so the editor must start hidden and be revealed by app.js
+        html = self.entry.read_text()
+        self.assertIn('id="edit-toggle"', html)
+        self.assertIn('class="editor" id="editor" hidden', html)
+        self.assertIn('id="entry-data"', html)
+
+    def test_pages_declare_the_api_base_for_the_client(self):
+        self.assertIn("window.KB_API", self.entry.read_text())
+        self.assertIn("app.js", self.entry.read_text())
+
+    def test_client_stays_read_only_without_an_api(self):
+        js = (self.out / "app.js").read_text()
+        self.assertIn("capabilities", js)
+        self.assertIn("editable", js)
+
+    def test_without_a_repo_slug_no_github_links_are_emitted(self):
+        out = pathlib.Path(self.tmp.name) / "anon"
+        build_site.build(out, None)
+        self.assertNotIn("https://github.com/None", (out / "index.html").read_text())
+
+    def test_data_json_carries_repo_and_triage(self):
+        data = json.loads((self.out / "data.json").read_text())
+        self.assertEqual(data["repo"], self.slug)
+        self.assertIsInstance(data["triage"], list)
+
+
+class RepoSlugTests(unittest.TestCase):
+    def test_explicit_slug_wins_and_is_normalized(self):
+        self.assertEqual(build_site.repo_slug("owner/name/"), "owner/name")
+
+    def test_edit_and_issue_urls_are_none_without_a_slug(self):
+        self.assertIsNone(build_site.edit_url(None, "memory/semantic/x.md"))
+        self.assertIsNone(build_site.issue_url(None, "t", "b"))
+
+    def test_issue_url_escapes_its_query(self):
+        url = build_site.issue_url("o/n", "a title", "a body")
+        self.assertIn("title=a+title", url)
+        self.assertIn("labels=triage", url)
+
+
 if __name__ == "__main__":
     unittest.main()

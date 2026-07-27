@@ -13,16 +13,33 @@ overview interactive later without changing the builder.
 import argparse
 import html
 import json
+import os
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
+import urllib.parse
 from datetime import date
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from kb import ROOT, TYPES, iter_entries, parse_frontmatter  # noqa: E402
+from kb import ROOT, TYPES, iter_entries, parse_frontmatter, triage_report  # noqa: E402
 
 DEFAULT_OUT = ROOT / "site"
+
+# Branch the "edit on GitHub" deep links point at.
+EDIT_BRANCH = os.environ.get("KB_BRANCH", "main")
+
+TRIAGE_BLURB = {
+    "overdue": "past its <code>due</code> date",
+    "invalid-due": "unparseable <code>due</code> date",
+    "invalid-date": "unparseable <code>last_verified</code> date",
+    "stale": "not verified recently",
+    "unverified": "still <code>unverified</code> well after it was written",
+    "never-verified": "never verified",
+    "orphan": "nothing links to it",
+    "unlinked": "links to nothing",
+}
 
 TYPE_COLORS = {
     "semantic": "#2e7d32",
@@ -45,6 +62,62 @@ TYPE_BLURB = {
 }
 
 CONFIDENCE_ORDER = ["verified", "high", "medium", "low", "unverified"]
+
+
+# --------------------------------------------------------------------------
+# GitHub deep links — the zero-infrastructure half of "interact with the site"
+# --------------------------------------------------------------------------
+
+def repo_slug(explicit=None):
+    """owner/name for this repo, so pages can link into GitHub's own editor.
+
+    Explicit flag wins, then $KB_REPO, then the origin remote. Returns None
+    when nothing resolves, and every GitHub affordance is then omitted rather
+    than rendered broken.
+    """
+    if explicit:
+        return explicit.strip().strip("/")
+    env = os.environ.get("KB_REPO")
+    if env:
+        return env.strip().strip("/")
+    try:
+        url = subprocess.run(
+            ["git", "-C", str(ROOT), "config", "--get", "remote.origin.url"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"(?:github\.com[:/])([^/]+/[^/]+?)(?:\.git)?$", url)
+    return m.group(1) if m else None
+
+
+def edit_url(slug, path):
+    return f"https://github.com/{slug}/edit/{EDIT_BRANCH}/{path}" if slug else None
+
+
+def issue_url(slug, title, body):
+    if not slug:
+        return None
+    q = urllib.parse.urlencode({"title": title, "body": body, "labels": "triage"})
+    return f"https://github.com/{slug}/issues/new?{q}"
+
+
+def entry_actions(e, slug, depth=0) -> str:
+    """Action bar shown on every entry: GitHub links always, live editing when
+    served by scripts/serve.py (which answers /api/, unlike GitHub Pages)."""
+    links = []
+    eu = edit_url(slug, e["path"])
+    if eu:
+        links.append(f'<a class="btn" href="{eu}" rel="noopener">Edit on GitHub</a>')
+    iu = issue_url(
+        slug,
+        f"triage: {e['name']}",
+        f"Entry: `{e['path']}`\n\nWhat should change and why:\n\n",
+    )
+    if iu:
+        links.append(f'<a class="btn" href="{iu}" rel="noopener">Raise an issue</a>')
+    links.append('<button class="btn local" id="edit-toggle" hidden>Edit here</button>')
+    return f'<div class="actions" data-name="{html.escape(e["name"])}">' + "".join(links) + "</div>"
 
 
 # --------------------------------------------------------------------------
@@ -258,6 +331,120 @@ pre code{background:none;padding:0}
 footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);
 color:var(--muted);font-size:.85rem}
 .empty{color:var(--muted);font-style:italic}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;margin:-.5rem 0 1.5rem}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--card);color:var(--fg);
+border-radius:.5rem;padding:.35rem .8rem;font-size:.85rem;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.editor{background:var(--card);border:1px solid var(--line);border-radius:.6rem;
+padding:1rem;margin-bottom:1.75rem}
+.editor label{display:block;font-size:.8rem;color:var(--muted);margin:.6rem 0 .2rem}
+.editor input,.editor select,.editor textarea{width:100%;padding:.5rem;border-radius:.4rem;
+border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:.95rem}
+.editor textarea{min-height:16rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+font-size:.85rem}
+.editor .row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem;align-items:center}
+.status{font-size:.85rem;color:var(--muted)}
+.reasons{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.reason{border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem;font-size:.75rem;
+color:var(--muted)}
+.sev-0 .reason,.sev-1 .reason{border-color:#ef6c00;color:#ef6c00}
+"""
+
+
+APP_JS = r"""
+// Progressive enhancement: the generated site is read-only on GitHub Pages and
+// becomes an editor when it is served by scripts/serve.py, which answers /api/.
+(async function () {
+  const api = window.KB_API || "api/";
+  let caps = null;
+  try {
+    const r = await fetch(api + "capabilities", { cache: "no-store" });
+    if (r.ok) caps = await r.json();
+  } catch (e) { /* static host: stay read-only */ }
+  if (!caps || !caps.editable) return;
+  document.body.classList.add("editable");
+  for (const b of document.querySelectorAll(".btn.local")) b.hidden = false;
+
+  async function post(path, payload) {
+    const r = await fetch(api + path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || r.statusText);
+    return data;
+  }
+  window.kbPost = post;
+
+  // --- triage page: verify in place
+  for (const btn of document.querySelectorAll("[data-verify]")) {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try { await post("verify/" + encodeURIComponent(btn.dataset.verify), {}); location.reload(); }
+      catch (e) { btn.disabled = false; alert(e.message); }
+    });
+  }
+
+  // --- entry page: full editor
+  const holder = document.getElementById("editor");
+  const raw = document.getElementById("entry-data");
+  const toggle = document.getElementById("edit-toggle");
+  if (!holder || !raw || !toggle) return;
+  const e = JSON.parse(raw.textContent);
+  const opts = caps.confidence
+    .map((c) => `<option${c === e.confidence ? " selected" : ""}>${c}</option>`).join("");
+  holder.innerHTML = `
+    <label for="f-desc">description</label>
+    <input id="f-desc" value="${e.description.replace(/"/g, "&quot;")}">
+    <label for="f-conf">confidence</label>
+    <select id="f-conf">${opts}</select>
+    <label for="f-links">links (comma separated)</label>
+    <input id="f-links" value="${e.links.join(", ")}">
+    <label for="f-body">body</label>
+    <textarea id="f-body" spellcheck="false">${e.body.replace(/</g, "&lt;")}</textarea>
+    <div class="row">
+      <button class="btn" id="f-save">Save</button>
+      <button class="btn" id="f-verify">Mark verified today</button>
+      <button class="btn" id="f-delete">Delete</button>
+      <span class="status" id="f-status"></span>
+    </div>`;
+  const status = holder.querySelector("#f-status");
+  const say = (m) => { status.textContent = m; };
+
+  toggle.addEventListener("click", () => {
+    holder.hidden = !holder.hidden;
+    toggle.textContent = holder.hidden ? "Edit here" : "Close editor";
+  });
+  holder.querySelector("#f-save").addEventListener("click", async () => {
+    say("saving…");
+    try {
+      await post("entry/" + encodeURIComponent(e.name), {
+        description: holder.querySelector("#f-desc").value,
+        confidence: holder.querySelector("#f-conf").value,
+        links: holder.querySelector("#f-links").value.split(",")
+          .map((s) => s.trim()).filter(Boolean),
+        body: holder.querySelector("#f-body").value,
+      });
+      location.reload();
+    } catch (err) { say(err.message); }
+  });
+  holder.querySelector("#f-verify").addEventListener("click", async () => {
+    say("verifying…");
+    try {
+      await post("verify/" + encodeURIComponent(e.name),
+                 { confidence: holder.querySelector("#f-conf").value });
+      location.reload();
+    } catch (err) { say(err.message); }
+  });
+  holder.querySelector("#f-delete").addEventListener("click", async () => {
+    if (!confirm(`Delete ${e.name}? Inbound links are stripped too.`)) return;
+    try {
+      await post("delete/" + encodeURIComponent(e.name), { force: true });
+      location.href = (window.KB_API || "api/").replace(/api\/$/, "") + "index.html";
+    } catch (err) { say(err.message); }
+  });
+})();
 """
 
 
@@ -279,6 +466,8 @@ def page(title: str, body: str, depth: int = 0, extra_head: str = "") -> str:
 <code>memory/</code> on {date.today().isoformat()}.
 Structured data: <a href="{up}data.json">data.json</a>.</footer>
 </div>
+<script>window.KB_API={json.dumps(up + "api/")};</script>
+<script src="{up}app.js"></script>
 </body>
 </html>
 """
@@ -301,7 +490,8 @@ def card(e, depth=0) -> str:
     )
 
 
-def build_index(entries) -> str:
+def build_index(entries, triage=(), slug=None) -> str:
+    triage_count = len(triage)
     by_type = {t: [e for e in entries if e["type"] == t] for t in TYPES}
     chips = "".join(
         f'<button class="chip" data-filter="{t}" aria-pressed="false">{t} ({len(by_type[t])})</button>'
@@ -324,7 +514,7 @@ def build_index(entries) -> str:
 <div><b>{conf['verified'] + conf['high']}</b> verified or high confidence</div>
 </div>
 <p><a href="graph.html">Memory graph</a> · <a href="types.html">Memory types</a>
- · <a href="data.json">Raw data</a></p>
+ · <a href="triage.html">Triage ({triage_count})</a> · <a href="data.json">Raw data</a></p>
 <div class="controls">
 <input id="q" type="search" placeholder="Search names, descriptions, and bodies…"
  autocomplete="off">
@@ -401,7 +591,65 @@ def build_graph(entries) -> str:
     return page("Memory graph", body, extra_head=head)
 
 
-def build_entry(e, entries) -> str:
+def build_triage(entries, triage, slug=None) -> str:
+    """Human-facing queue: what needs attention, most urgent first.
+
+    Same data the `kb.py triage` command prints, so the site and the CLI can
+    never disagree about what is outstanding.
+    """
+    by_name = {e["name"]: e for e in entries}
+    cards = []
+    for rec in triage:
+        e = by_name.get(rec["name"], {})
+        reasons = "".join(
+            f'<span class="reason" title="{html.escape(r["detail"])}">'
+            f'{TRIAGE_BLURB.get(r["code"], r["code"])}</span>'
+            for r in rec["reasons"]
+        )
+        actions = []
+        eu = edit_url(slug, rec["path"])
+        if eu:
+            actions.append(f'<a class="btn" href="{eu}" rel="noopener">Edit on GitHub</a>')
+        iu = issue_url(
+            slug,
+            f"triage: {rec['name']}",
+            "Flagged by `kb.py triage` for: "
+            + ", ".join(r["code"] for r in rec["reasons"])
+            + f"\n\nEntry: `{rec['path']}`\n\n",
+        )
+        if iu:
+            actions.append(f'<a class="btn" href="{iu}" rel="noopener">Raise an issue</a>')
+        actions.append(
+            f'<button class="btn local" data-verify="{html.escape(rec["name"])}" hidden>'
+            "Mark verified</button>"
+        )
+        cards.append(
+            f'<article class="card sev-{rec["severity"]}">'
+            f'<h3><a href="entry/{rec["name"]}.html">{html.escape(rec["name"])}</a></h3>'
+            f'<p>{html.escape(e.get("description", rec.get("description", "")))}</p>'
+            f'<div class="meta">{tag(rec["type"])}'
+            f'<span class="tag conf">{html.escape(rec["confidence"])}</span></div>'
+            f'<div class="reasons">{reasons}</div>'
+            f'<div class="actions">{"".join(actions)}</div>'
+            "</article>"
+        )
+
+    intro = (
+        "<p>Every entry the linter would warn about, most urgent first. "
+        "Editing links go to GitHub's own editor; run "
+        "<code>python3 scripts/serve.py</code> to edit and verify in place.</p>"
+    )
+    body = (
+        '<nav class="crumbs"><a href="index.html">← all memory</a></nav>'
+        '<header class="top"><h1>Triage</h1>'
+        f"<p>{len(triage)} of {len(entries)} entries need attention.</p></header>"
+        + intro
+        + ("".join(cards) or '<p class="empty">Nothing needs attention.</p>')
+    )
+    return page("Triage", body)
+
+
+def build_entry(e, entries, slug=None) -> str:
     known = {o["name"] for o in entries}
     rows = [("type", tag(e["type"])), ("confidence", html.escape(e["confidence"]))]
     for key in ("created", "last_verified", "due", "source"):
@@ -419,9 +667,15 @@ def build_entry(e, entries) -> str:
             + "</ul>"
         )
 
+    payload = json.dumps(
+        {k: e[k] for k in ("name", "type", "description", "confidence", "links", "body")}
+    )
     body = f"""<nav class="crumbs"><a href="../index.html">← all memory</a></nav>
 <header class="top"><h1>{html.escape(e["name"])}</h1>
 <p>{html.escape(e["description"])}</p></header>
+{entry_actions(e, slug, depth=1)}
+<div class="editor" id="editor" hidden></div>
+<script type="application/json" id="entry-data">{payload}</script>
 <table class="fm">{fm}</table>
 <div class="entry">{render_markdown(e["body"], known)}</div>
 <h2>Links out</h2>{linklist(e["links"])}
@@ -430,8 +684,9 @@ def build_entry(e, entries) -> str:
     return page(e["name"], body, depth=1)
 
 
-def build(out_dir: pathlib.Path) -> int:
+def build(out_dir: pathlib.Path, slug=None) -> int:
     entries = collect()
+    triage = triage_report()
     for e in entries:
         e["hay"] = " ".join(
             [e["name"], e["description"], e["type"], e["confidence"], e["body"]]
@@ -442,15 +697,23 @@ def build(out_dir: pathlib.Path) -> int:
     (out_dir / "entry").mkdir(parents=True, exist_ok=True)
 
     (out_dir / "style.css").write_text(CSS.strip() + "\n", encoding="utf-8")
-    (out_dir / "index.html").write_text(build_index(entries), encoding="utf-8")
+    (out_dir / "app.js").write_text(APP_JS.strip() + "\n", encoding="utf-8")
+    (out_dir / "index.html").write_text(build_index(entries, triage, slug), encoding="utf-8")
     (out_dir / "types.html").write_text(build_types(entries), encoding="utf-8")
     (out_dir / "graph.html").write_text(build_graph(entries), encoding="utf-8")
+    (out_dir / "triage.html").write_text(build_triage(entries, triage, slug), encoding="utf-8")
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
     payload = [{k: v for k, v in e.items() if k != "hay"} for e in entries]
     (out_dir / "data.json").write_text(
         json.dumps(
-            {"generated": date.today().isoformat(), "count": len(payload), "entries": payload},
+            {
+                "generated": date.today().isoformat(),
+                "count": len(payload),
+                "repo": slug,
+                "triage": triage,
+                "entries": payload,
+            },
             indent=2,
         )
         + "\n",
@@ -459,7 +722,7 @@ def build(out_dir: pathlib.Path) -> int:
 
     for e in entries:
         (out_dir / "entry" / f"{e['name']}.html").write_text(
-            build_entry(e, entries), encoding="utf-8"
+            build_entry(e, entries, slug), encoding="utf-8"
         )
 
     return len(entries)
@@ -468,9 +731,13 @@ def build(out_dir: pathlib.Path) -> int:
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Render memory/ into a static site.")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="output directory (default: site/)")
+    ap.add_argument(
+        "--repo",
+        help="owner/name for GitHub edit links (default: $KB_REPO, else the origin remote)",
+    )
     args = ap.parse_args(argv)
     out = pathlib.Path(args.out)
-    count = build(out)
+    count = build(out, repo_slug(args.repo))
     print(f"wrote {out} ({count} entries)")
     return 0
 

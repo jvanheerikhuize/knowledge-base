@@ -7,8 +7,8 @@ base, regardless of which agent or framework is operating on it.
 
 A file-based, human-readable/editable memory store organized around the 7
 types of agent memory (CoALA-derived taxonomy). No database, no vector
-store, no server — just markdown files with YAML frontmatter, plus scripts
-in `../scripts/` to search, audit, and visualize them.
+store — just markdown files with YAML frontmatter, plus scripts in
+`../scripts/` to search, audit, triage, and edit them.
 
 ## Folder-per-memory-type
 
@@ -56,18 +56,27 @@ scripts/kb.py search "<query>"           # keyword search across all entries
 scripts/kb.py show <name>                # print one entry
 scripts/kb.py new --type TYPE "<name>"   # scaffold a new entry
 scripts/kb.py lint                       # schema, duplicate-slug, dangling-link, and staleness checks
+
+scripts/kb.py triage                     # what needs attention, most urgent first
+scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
+scripts/kb.py set <name> <field> <value> # edit one frontmatter field
+scripts/kb.py link <name> <target> [--remove]      # manage links: safely
+scripts/kb.py edit <name>                # open the file in $EDITOR
+scripts/kb.py rm <name> [--force]        # delete, refusing while still linked
 ```
 
-## Visualizing the knowledge base
+Mutations are appended to `../.kb/log.md`, so the history of the store is
+readable without reading git.
 
-```
-scripts/visualize.py    # regenerates .kb/generated/graph.{mmd,md}
-```
+## Browsing the knowledge base
 
-`graph.mmd` is the raw Mermaid source, for IDEs and tools that read `.mmd`
-directly. GitHub does not render standalone `.mmd` files — view
-`../.kb/generated/graph.md` instead, which wraps the same diagram in a
-` ```mermaid ` fence that GitHub (and Claude artifacts) render inline.
+The whole store is published as a browsable site — index, per-entry pages,
+and a link graph colored by memory type:
+
+https://jvanheerikhuize.github.io/knowledge-base/
+
+Build it locally with `scripts/build_site.py`, or run `scripts/serve.py` to
+browse and edit it in a browser. Nothing generated is committed.
 
 ## Further reading
 

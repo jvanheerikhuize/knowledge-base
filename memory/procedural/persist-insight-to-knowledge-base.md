@@ -33,8 +33,9 @@ Steps:
    `verified`; anything taken on a single unconfirmed report is at most
    `high`.
 5. **Validate before committing.** `scripts/kb.py lint` must be clean, and
-   `scripts/visualize.py` regenerates `.kb/generated/graph.{mmd,md}` after a
-   batch of additions.
+   `scripts/kb.py triage` should surface nothing new after a batch of
+   additions. The published overview rebuilds itself from `memory/` on push —
+   there is no generated file to refresh by hand.
 
 Do not persist what the repo already records (code structure, git history)
 or what matters only to one conversation. Prefer updating an existing entry
