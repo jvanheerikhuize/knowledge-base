@@ -25,3 +25,6 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-27 — linked `semantic/memory-overview-site.md` — -> kb-entry-status-model
 - 2026-07-27 — created `semantic/kb-ranked-retrieval.md`
 - 2026-07-27 — linked `semantic/kb-agent-entrypoint-is-agent-md.md` — -> kb-ranked-retrieval
+- 2026-07-27 — created `prospective/holiday-autonomy-mandate.md`
+- 2026-07-27 — created `semantic/routines-ui-not-api-for-prompts.md`
+- 2026-07-27 — linked `semantic/kb-agent-entrypoint-is-agent-md.md` — -> holiday-autonomy-mandate
