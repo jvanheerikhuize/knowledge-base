@@ -23,7 +23,17 @@ import urllib.parse
 from datetime import date
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from kb import ROOT, TYPES, iter_entries, parse_frontmatter, triage_report  # noqa: E402
+from kb import (  # noqa: E402
+    ROOT,
+    STATUS_BY_KEY,
+    STATUS_MODEL,
+    STATUS_ORDER,
+    TYPES,
+    iter_entries,
+    parse_frontmatter,
+    status_report,
+    triage_report,
+)
 
 DEFAULT_OUT = ROOT / "site"
 
@@ -62,6 +72,17 @@ TYPE_BLURB = {
 }
 
 CONFIDENCE_ORDER = ["verified", "high", "medium", "low", "unverified"]
+
+STATUS_COLORS = {
+    "broken": "#b71c1c",
+    "overdue": "#c62828",
+    "stale": "#ef6c00",
+    "unverified": "#f9a825",
+    "provisional": "#f9a825",
+    "isolated": "#6a1b9a",
+    "ageing": "#0277bd",
+    "current": "#2e7d32",
+}
 
 
 # --------------------------------------------------------------------------
@@ -313,6 +334,12 @@ padding:.9rem 1rem;margin-bottom:.7rem}
 .meta{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.55rem;font-size:.75rem}
 .tag{border-radius:999px;padding:.1rem .55rem;color:#fff}
 .tag.conf{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.tag.status{font-weight:600;letter-spacing:.02em}
+.legend{margin-bottom:2.5rem}
+.legend th{padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+.legend td{padding:.5rem .75rem .5rem 0;vertical-align:top}
+.legend td.num{text-align:right;padding-right:0;color:var(--muted)}
+h2 .tag.status{vertical-align:middle;font-size:.6em}
 .stats{display:flex;flex-wrap:wrap;gap:1.5rem;margin-bottom:1.5rem;font-size:.9rem;color:var(--muted)}
 .stats b{display:block;font-size:1.5rem;color:var(--fg)}
 .entry h2{margin-top:1.8rem}
@@ -477,21 +504,97 @@ def tag(t: str) -> str:
     return f'<span class="tag" style="background:{TYPE_COLORS.get(t, "#555")}">{t}</span>'
 
 
+def status_tag(key: str) -> str:
+    s = STATUS_BY_KEY[key]
+    return (
+        f'<span class="tag status" style="background:{STATUS_COLORS.get(key, "#555")}" '
+        f'title="{html.escape(s["meaning"])}">{html.escape(s["label"].lower())}</span>'
+    )
+
+
 def card(e, depth=0) -> str:
     up = "../" * depth
+    status = e.get("status", "current")
     return (
-        f'<article class="card" data-type="{e["type"]}" data-hay="{html.escape(e["hay"])}">'
+        f'<article class="card" data-type="{e["type"]}" data-status="{status}" '
+        f'data-hay="{html.escape(e["hay"])}">'
         f'<h3><a href="{up}entry/{e["name"]}.html">{html.escape(e["name"])}</a></h3>'
         f'<p>{html.escape(e["description"])}</p>'
-        f'<div class="meta">{tag(e["type"])}'
+        f'<div class="meta">{tag(e["type"])}{status_tag(status)}'
         f'<span class="tag conf">{html.escape(e["confidence"])}</span>'
         f'<span class="tag conf">{html.escape(e["created"])}</span></div>'
         "</article>"
     )
 
 
-def build_index(entries, triage=(), slug=None) -> str:
+def build_status(entries, statuses, slug=None) -> str:
+    """The status board: where every entry stands and what moves it.
+
+    Triage lists only what is wrong. This lists everything, grouped by the
+    one status that applies, with the exact command that changes it — the
+    same model `kb.py status` prints.
+    """
+    by_name = {e["name"]: e for e in entries}
+    counts = {k: sum(1 for r in statuses if r["status"] == k) for k in STATUS_ORDER}
+
+    legend = "".join(
+        f'<tr><td>{status_tag(s["key"])}</td><td>{html.escape(s["meaning"])}</td>'
+        f'<td><code>{html.escape(s["action"])}</code></td>'
+        f'<td class="num">{counts[s["key"]]}</td></tr>'
+        for s in STATUS_MODEL
+    )
+
+    sections = []
+    for key in STATUS_ORDER:
+        rows = [r for r in statuses if r["status"] == key]
+        if not rows:
+            continue
+        s = STATUS_BY_KEY[key]
+        items = []
+        for r in rows:
+            e = by_name.get(r["name"], {})
+            when = (
+                f'verified {r["age_days"]}d ago, review by {html.escape(r["review_by"])}'
+                if r["age_days"] is not None
+                else "never verified"
+            )
+            items.append(
+                f'<article class="card">'
+                f'<h3><a href="entry/{r["name"]}.html">{html.escape(r["name"])}</a></h3>'
+                f'<p>{html.escape(e.get("description", r["description"]))}</p>'
+                f'<div class="meta">{tag(r["type"])}'
+                f'<span class="tag conf">{html.escape(r["confidence"])}</span>'
+                f'<span class="tag conf">{when}</span></div>'
+                f'<div class="reasons"><code>{html.escape(r["action"])}</code></div>'
+                "</article>"
+            )
+        sections.append(
+            f'<h2>{status_tag(key)} {html.escape(s["label"])} '
+            f"<span class='empty'>({len(rows)})</span></h2>"
+            f"<p>{html.escape(s['meaning'])} "
+            f"To change it: <code>{html.escape(s['action'])}</code></p>"
+            + "".join(items)
+        )
+
+    body = (
+        '<nav class="crumbs"><a href="index.html">← all memory</a></nav>'
+        '<header class="top"><h1>Status</h1>'
+        f"<p>Every entry sits in exactly one status. "
+        f"{counts['current']} of {len(statuses)} are current.</p></header>"
+        "<p>An entry that qualifies for several statuses shows the most urgent one, "
+        "so the action below is always the single next thing to do about it. "
+        "Run <code>python3 scripts/kb.py status</code> for the same board in the "
+        "terminal, or <code>python3 scripts/serve.py</code> to act on it in place.</p>"
+        f'<table class="fm legend"><thead><tr><th>Status</th><th>What it means</th>'
+        f"<th>How to change it</th><th>Now</th></tr></thead><tbody>{legend}</tbody></table>"
+        + "".join(sections)
+    )
+    return page("Status", body)
+
+
+def build_index(entries, triage=(), statuses=(), slug=None) -> str:
     triage_count = len(triage)
+    current = sum(1 for r in statuses if r["status"] == "current")
     by_type = {t: [e for e in entries if e["type"] == t] for t in TYPES}
     chips = "".join(
         f'<button class="chip" data-filter="{t}" aria-pressed="false">{t} ({len(by_type[t])})</button>'
@@ -512,8 +615,10 @@ def build_index(entries, triage=(), slug=None) -> str:
 <div><b>{link_count}</b> links</div>
 <div><b>{html.escape(newest)}</b> newest</div>
 <div><b>{conf['verified'] + conf['high']}</b> verified or high confidence</div>
+<div><b>{current}/{len(statuses)}</b> current</div>
 </div>
-<p><a href="graph.html">Memory graph</a> · <a href="types.html">Memory types</a>
+<p><a href="status.html">Status board</a> · <a href="graph.html">Memory graph</a>
+ · <a href="types.html">Memory types</a>
  · <a href="triage.html">Triage ({triage_count})</a> · <a href="data.json">Raw data</a></p>
 <div class="controls">
 <input id="q" type="search" placeholder="Search names, descriptions, and bodies…"
@@ -652,9 +757,20 @@ def build_triage(entries, triage, slug=None) -> str:
 def build_entry(e, entries, slug=None) -> str:
     known = {o["name"] for o in entries}
     rows = [("type", tag(e["type"])), ("confidence", html.escape(e["confidence"]))]
+    if e.get("status"):
+        s = STATUS_BY_KEY[e["status"]]
+        rows.append(
+            (
+                "status",
+                f'{status_tag(e["status"])} {html.escape(s["meaning"])}<br>'
+                f'To change it: <code>{html.escape(e.get("action", s["action"]))}</code>',
+            )
+        )
     for key in ("created", "last_verified", "due", "source"):
         if e.get(key):
             rows.append((key.replace("_", " "), html.escape(e[key])))
+    if e.get("review_by"):
+        rows.append(("review by", html.escape(e["review_by"])))
     rows.append(("file", f'<code>{html.escape(e["path"])}</code>'))
     fm = "".join(f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in rows)
 
@@ -687,7 +803,14 @@ def build_entry(e, entries, slug=None) -> str:
 def build(out_dir: pathlib.Path, slug=None) -> int:
     entries = collect()
     triage = triage_report()
+    statuses = status_report()
+    by_name = {r["name"]: r for r in statuses}
     for e in entries:
+        r = by_name.get(e["name"])
+        if r:
+            e["status"] = r["status"]
+            e["action"] = r["action"]
+            e["review_by"] = r["review_by"]
         e["hay"] = " ".join(
             [e["name"], e["description"], e["type"], e["confidence"], e["body"]]
         ).lower()
@@ -698,10 +821,15 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
 
     (out_dir / "style.css").write_text(CSS.strip() + "\n", encoding="utf-8")
     (out_dir / "app.js").write_text(APP_JS.strip() + "\n", encoding="utf-8")
-    (out_dir / "index.html").write_text(build_index(entries, triage, slug), encoding="utf-8")
+    (out_dir / "index.html").write_text(
+        build_index(entries, triage, statuses, slug), encoding="utf-8"
+    )
     (out_dir / "types.html").write_text(build_types(entries), encoding="utf-8")
     (out_dir / "graph.html").write_text(build_graph(entries), encoding="utf-8")
     (out_dir / "triage.html").write_text(build_triage(entries, triage, slug), encoding="utf-8")
+    (out_dir / "status.html").write_text(
+        build_status(entries, statuses, slug), encoding="utf-8"
+    )
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
     payload = [{k: v for k, v in e.items() if k != "hay"} for e in entries]
@@ -712,6 +840,8 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
                 "count": len(payload),
                 "repo": slug,
                 "triage": triage,
+                "status_model": STATUS_MODEL,
+                "status": statuses,
                 "entries": payload,
             },
             indent=2,

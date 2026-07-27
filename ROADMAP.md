@@ -126,7 +126,9 @@ tells you whether retrieval got better or worse as the store grew.
 ## Phase 9 — Cross-repo integration · `someday`
 
 Named as this repo's role in the workspace: keep wikilinks consistent across
-`knowledge-base`, `knowledge`, and `digital-twin`.
+`knowledge-base`, the workspace wiki, and `digital-twin`. (The workspace
+CLAUDE.md still calls that wiki `knowledge`; no such directory exists — the
+live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
 
 - Export a portable bundle (`data.json` plus `memory/`) that another repo can
   read without importing this tooling.

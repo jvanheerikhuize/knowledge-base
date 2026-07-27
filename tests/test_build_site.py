@@ -1,4 +1,5 @@
 """Tests for scripts/build_site.py — the static overview builder."""
+import html as html_mod
 import json
 import pathlib
 import sys
@@ -131,6 +132,49 @@ class BuildTests(unittest.TestCase):
         self.assertIn("confidence", html)
         self.assertIn("Linked from", html)
         self.assertIn(target["backlinks"][0], html)
+
+
+class StatusPageTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = pathlib.Path(self.tmp.name) / "site"
+        self.count = build_site.build(self.out)
+        self.html = (self.out / "status.html").read_text()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_page_is_built_and_linked_from_the_index(self):
+        self.assertIn('href="status.html"', (self.out / "index.html").read_text())
+
+    def test_legend_names_every_status_and_its_remedy(self):
+        for status in build_site.STATUS_MODEL:
+            self.assertIn(status["label"].lower(), self.html)
+            self.assertIn(html_mod.escape(status["meaning"]), self.html)
+            self.assertIn(html_mod.escape(status["action"]), self.html)
+
+    def test_every_entry_appears_on_the_board(self):
+        for page in (self.out / "entry").glob("*.html"):
+            self.assertIn(f'entry/{page.name}"', self.html)
+
+    def test_cards_carry_a_status_for_filtering(self):
+        index = (self.out / "index.html").read_text()
+        self.assertEqual(index.count("data-status="), self.count)
+
+    def test_entry_page_states_its_status_and_review_date(self):
+        entries = build_site.collect()
+        page = (self.out / "entry" / f"{entries[0]['name']}.html").read_text()
+        self.assertIn("status", page)
+        self.assertIn("review by", page)
+
+    def test_data_json_carries_the_status_board_and_model(self):
+        data = json.loads((self.out / "data.json").read_text())
+        self.assertEqual(len(data["status"]), self.count)
+        self.assertEqual(
+            [s["key"] for s in data["status_model"]], build_site.STATUS_ORDER
+        )
+        for record in data["status"]:
+            self.assertIn(record["status"], build_site.STATUS_ORDER)
 
 
 class TriageAndEditingTests(unittest.TestCase):

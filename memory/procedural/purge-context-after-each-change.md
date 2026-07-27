@@ -2,7 +2,7 @@
 name: purge-context-after-each-change
 type: procedural
 description: clear accumulated agent context after every completed change — Jerry's standing working preference, backed by lead/cycle-time evidence
-confidence: high
+confidence: verified
 source: Jerry, 2026-07-14; settings verified in ~/.claude/settings.json on 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27

@@ -2,7 +2,7 @@
 name: asdlc-governed-change-rules
 type: semantic
 description: hard rules for working in asdlc and asdlc-verify — protected main, generated docs that must never be hand-edited, and Change Record id conventions
-confidence: high
+confidence: verified
 source: distilled from session memory 2026-07-14; paths and CR-id format re-checked against the repo 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27

@@ -6,7 +6,7 @@ confidence: high
 source: plan authored 2026-07-24; completion status verified by direct inspection 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27
-links: [workspace-audit-2026-07-27, workspace-repo-inventory-drift]
+links: [workspace-audit-2026-07-27, workspace-repo-inventory-drift, kb-roadmap]
 ---
 
 Standing backlog for the workspace, ordered by priority. Statuses below come
@@ -24,8 +24,10 @@ actively wrong (see [[kb-agent-entrypoint-is-agent-md]]).
 **P2 — Knowledge consolidation.** *In progress — the current phase.*
 - P2.1 digital-twin: finish collector patterns, validate wikilinks, integrate
   with this KB — under the constraint in [[twin-sovereignty-constraint]].
-- P2.2 knowledge-base: 7-type taxonomy is formalized and linted; remaining
-  work is an automated staleness audit.
+- P2.2 knowledge-base: *done.* 7-type taxonomy formalized and linted, and the
+  staleness audit shipped — `kb.py triage`, `lint --strict`, and a weekly cron
+  in `.github/workflows/kb-lint.yml`. Further work is tracked in its own
+  ROADMAP.md via [[kb-roadmap]], not here.
 - P2.3 the `knowledge` repo: the plan asks whether it merges with
   knowledge-base. It no longer exists under that name — resolve against
   `llm-wiki` first, see [[workspace-repo-inventory-drift]].

@@ -2,10 +2,10 @@
 name: distill-session-into-memory
 type: procedural
 description: how an agent should turn a finished session into persisted memory
-confidence: high
+confidence: verified
 source: memory/working/distill.template.md
 created: 2026-07-22
-last_verified: 2026-07-22
+last_verified: 2026-07-27
 links: [kb-is-file-based]
 ---
 
