@@ -172,6 +172,7 @@ sequenceDiagram
 | Agent-native access | MCP over stdio (`scripts/mcp_server.py`), stdlib-only — an agent calls `context`/`search` as tools instead of shelling out to the CLI and parsing printed text. Writes are staged in the working tree, never committed |
 | Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
+| Forgetting | Confidence decays one level per 90-day period at read time (never rewriting the file), and `kb.py archive` retires an entry from retrieval while keeping it readable and in the graph — so a store that grows does not drown its current facts in old ones |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
 
 **Deliberate non-goals (v1):** no embeddings/vector search (grep-based
@@ -195,6 +196,7 @@ python3 scripts/kb.py status           # where every entry stands, and what move
 python3 scripts/kb.py status --legend  # what each status means and how to leave it
 python3 scripts/kb.py triage           # only what needs attention, worst first
 python3 scripts/kb.py verify <name> --confidence high
+python3 scripts/kb.py archive <name> [--undo]   # retire from retrieval, keep the file
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -217,6 +219,38 @@ enters an agent's context unattributed.
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
 dangling links, and warns on stale, unverified, orphaned, or overdue
 entries (`--strict` turns warnings fatal; CI runs that weekly).
+
+## Forgetting
+
+A memory store does not fail by losing facts. It fails by keeping all of them,
+until stale claims outrank current ones and an agent that remembers everything
+remembers nothing useful. Two mechanisms push back, and neither one rewrites
+what an author wrote.
+
+**Confidence decays with age.** `confidence` records how well a fact was checked
+*when it was checked*; on its own it says nothing about how long ago that was.
+So ranking uses an aged value — one level down per 90-day staleness period, so
+a `verified` fact untouched for a year is not verified. The decay is computed at
+read time and reversed by `kb.py verify`; the file on disk keeps the level its
+author recorded. Where both numbers matter, both are shown:
+
+```
+1.  4.21  [semantic   ] some-fact  [verified -> medium, aged]
+```
+
+Context packs carry it into an agent's context the same way —
+`confidence: medium (recorded as verified, aged)` — because a claim's age is
+part of its provenance, not a detail to quietly drop.
+
+**Archiving retires without destroying.** `kb.py archive <name>` stamps an
+`archived` date. The entry leaves the retrieval set — searches, context packs,
+and the triage queue all skip it — but the file stays, the links stay, and it
+stays in the graph, so the record of what was once believed survives. `status`
+still accounts for it, under its own `archived` state. `--undo` reverses it, and
+`rm` is still there for the cases where an entry should genuinely be gone.
+
+The distinction matters: deleting an entry destroys the evidence that anyone
+ever thought it. Archiving is the operation you want almost every time.
 
 `kb.py status` answers the complementary question. Where `triage` lists only
 what is already wrong, `status` places *every* entry in exactly one of eight
@@ -243,7 +277,7 @@ no process to keep running — the client spawns it.
 | `get` | one entry in full: raw markdown plus parsed frontmatter |
 | `triage` | the queue of entries that are wrong or ageing, worst first |
 | `status` | every entry in exactly one status, with the command that moves it |
-| `propose_update` | stage an edit to an entry in the working tree — **never commits** |
+| `propose_update` | stage an edit to an entry in the working tree — **never commits**; also archives and un-archives |
 
 Entries are also published as MCP *resources* (`kb://entry/<name>`, plus
 `kb://agent` for the entry-point doc), so a client can attach one directly

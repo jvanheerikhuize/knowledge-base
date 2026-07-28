@@ -67,7 +67,7 @@ ten-week validation window, would trade a working server for a hypothetical one.
   touches this server — the tool and resource surfaces are unaffected — so the
   migration is a lifecycle change, not a rewrite.
 
-## Phase 3 — Consolidation and forgetting · `next`
+## Phase 3 — Consolidation and forgetting · `in progress`
 
 **Gap.** `memory/AGENT.md` states plainly that lint "does not detect
 content-level contradictions between entries — no such checker exists yet."
@@ -84,11 +84,24 @@ nothing useful.
 - **Contradiction detection** — start mechanical: same subject, conflicting
   frontmatter, or an entry whose body negates one it links to. Report as a
   triage reason code rather than a lint failure.
-- **`kb.py archive <name>`** — invalidate rather than delete. Archived entries
-  leave the retrieval set but stay readable and stay in the graph, so the audit
-  trail survives. Deletion remains available via `rm`.
-- **Confidence decay** — `last_verified` ageing should demote confidence, not
-  just print a warning. A `verified` fact untouched for a year is not verified.
+- ✅ **`kb.py archive <name>`** — invalidate rather than delete. Archived entries
+  leave the retrieval set (search, context packs, triage) but stay readable,
+  stay linked, and stay in the graph, so the audit trail survives. `status`
+  accounts for them under an `archived` state; `--undo` reverses it; deletion
+  remains available via `rm`.
+- ✅ **Confidence decay** — `last_verified` ageing now demotes confidence in
+  ranking rather than only printing a warning: one level per staleness period,
+  so a `verified` fact untouched for a year is not verified. Applied at read
+  time and reversed by `verify`, so the file keeps the level its author
+  recorded — decay is never a silent rewrite. Both numbers are surfaced
+  wherever they differ, including in context packs, because a claim's age is
+  part of its provenance.
+
+**What is left in this phase** is the consolidation half: `dupes`,
+`consolidate`, and contradiction detection. The forgetting half above shipped
+first because it is what stops a growing store from burying its current facts,
+and because it needs no similarity metric to be correct — decay and archiving
+are decisions about a single entry, while merging is a claim about two.
 
 ## Phase 4 — Temporal validity · `planned`
 
@@ -178,6 +191,8 @@ does not cover it.
   ([[editing-the-kb-without-a-cms]]).
 - Mutation log in `.kb/log.md`.
 - MCP server over stdio with staged, never-committed writes ([[kb-over-mcp]]).
+- Read-time confidence decay and `kb.py archive` — the forgetting half of
+  Phase 3 ([[kb-forgetting-model]]).
 
 ---
 

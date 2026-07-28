@@ -34,3 +34,7 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-28 — linked `semantic/kb-is-file-based.md` — -> kb-over-mcp
 - 2026-07-28 — linked `prospective/holiday-autonomy-mandate.md` — -> sibling-repo-access-denied-in-routines
 - 2026-07-28 — linked `semantic/workspace-repo-inventory-drift.md` — -> sibling-repo-access-denied-in-routines
+- 2026-07-28 — created `semantic/kb-forgetting-model.md`
+- 2026-07-28 — linked `semantic/kb-entry-status-model.md` — -> kb-forgetting-model
+- 2026-07-28 — linked `semantic/kb-ranked-retrieval.md` — -> kb-forgetting-model
+- 2026-07-28 — linked `prospective/kb-roadmap.md` — -> kb-forgetting-model

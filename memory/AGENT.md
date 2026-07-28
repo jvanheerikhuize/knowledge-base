@@ -40,6 +40,13 @@ store — just markdown files with YAML frontmatter, plus scripts in
 | `low` | Speculative or inferred, not directly sourced |
 | `unverified` | Just captured, not yet assessed |
 
+**Confidence ages.** The level above says how well a fact was checked when it
+was checked. Retrieval demotes it one level per 90 days since `last_verified`,
+so a `verified` fact nobody has revisited in a year competes as `unverified`.
+The file is never rewritten — `kb.py verify <name>` is what resets the clock.
+When you see `medium (recorded as verified, aged)` in a context pack, that is
+this: trust the first number, and treat the gap as a prompt to re-check.
+
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
@@ -68,6 +75,7 @@ Run `scripts/kb.py status` for the board, `--legend` for this table, or open
 | `isolated` | Nothing links to it, or it links to nothing; unreachable by following the graph | `kb.py link <other-entry> <name>` |
 | `ageing` | Still fresh, but past two-thirds of the way to the staleness cutoff | nothing now; re-verify before the review date |
 | `current` | Verified recently, trusted, and connected. Nothing to do | nothing; re-verify by the review date to stay here |
+| `archived` | Retired from retrieval on purpose; still readable and still in the graph | nothing; `kb.py archive <name> --undo` puts it back |
 
 `review_by` is `last_verified` + 90 days — the date an entry falls to `stale`
 if left alone. This is what keeps "clean" from quietly meaning "unexamined":
@@ -103,6 +111,7 @@ scripts/kb.py lint                       # schema, duplicate-slug, dangling-link
 scripts/kb.py status [--type T] [--status S] [--legend]   # where every entry stands, and what moves it
 scripts/kb.py triage                     # what needs attention, most urgent first
 scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
+scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and its links stay
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR

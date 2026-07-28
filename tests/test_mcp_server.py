@@ -334,6 +334,68 @@ class TestProposeUpdate(McpTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
+class TestArchiveOverMcp(McpTestCase):
+    def test_archiving_is_staged_like_any_other_proposal(self):
+        self.handshake()
+        result = self.result_of(self.call(
+            "propose_update", {"name": "second-fact", "archive": True}))
+        self.assertFalse(result["isError"])
+        self.assertIn("archived", result["structuredContent"]["changed"])
+        self.assertFalse(result["structuredContent"]["committed"])
+        self.assertRegex(self.entry_text("second-fact"), r"archived: \d{4}-\d{2}-\d{2}")
+
+    def test_an_archived_entry_drops_out_of_search(self):
+        self.kb("set", "first-fact", "description", "shared subject matter")
+        self.kb("set", "second-fact", "description", "shared subject matter")
+        self.handshake()
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.call("search", {"query": "shared subject"}))
+        names = [h["name"] for h in result["structuredContent"]["hits"]]
+        self.assertIn("first-fact", names)
+        self.assertNotIn("second-fact", names)
+
+    def test_archived_entries_can_be_searched_on_request(self):
+        self.kb("set", "second-fact", "description", "shared subject matter")
+        self.handshake()
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.call(
+            "search", {"query": "shared subject", "include_archived": True}))
+        names = [h["name"] for h in result["structuredContent"]["hits"]]
+        self.assertIn("second-fact", names)
+
+    def test_unarchiving_puts_it_back(self):
+        self.handshake()
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.call(
+            "propose_update", {"name": "second-fact", "archive": False}))
+        self.assertFalse(result["isError"])
+        self.assertNotIn("archived:", self.entry_text("second-fact"))
+
+    def test_archiving_twice_is_a_tool_error(self):
+        self.handshake()
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.call(
+            "propose_update", {"name": "second-fact", "archive": True}))
+        self.assertTrue(result["isError"])
+        self.assertIn("already archived", result["content"][0]["text"])
+
+    def test_unarchiving_a_live_entry_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call(
+            "propose_update", {"name": "first-fact", "archive": False}))
+        self.assertTrue(result["isError"])
+        self.assertIn("not archived", result["content"][0]["text"])
+
+    def test_the_archived_status_is_offered_by_the_status_tool(self):
+        self.handshake()
+        tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertIn("archived", tools["status"]["inputSchema"]["properties"]["status"]["enum"])
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.call("status", {"status": "archived"}))
+        names = [r["name"] for r in result["structuredContent"]["entries"]]
+        self.assertEqual(names, ["second-fact"])
+
+
 class TestReadOnlyMode(McpTestCase):
     read_only = True
 

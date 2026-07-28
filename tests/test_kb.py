@@ -665,5 +665,175 @@ class TestWriteBody(KbTestCase):
             kb.write_body(stray, "x")
 
 
+class TestArchive(KbTestCase):
+    """Archiving retires an entry from retrieval without losing it."""
+
+    def setUp(self):
+        super().setUp()
+        self.run_kb("new", "kept-fact", "--type", "semantic")
+        self.run_kb("new", "retired-fact", "--type", "semantic")
+        for slug in ("kept-fact", "retired-fact"):
+            self.run_kb("set", slug, "description", "shared subject matter")
+
+    def test_archive_stamps_a_date_and_leaves_the_file_in_place(self):
+        result = self.run_kb("archive", "retired-fact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        path = self.entry_path("semantic", "retired-fact")
+        self.assertTrue(path.is_file())
+        self.assertRegex(path.read_text(), r"archived: \d{4}-\d{2}-\d{2}")
+
+    def test_archived_entries_drop_out_of_search(self):
+        self.run_kb("archive", "retired-fact")
+        hits = json.loads(self.run_kb("search", "shared subject", "--json").stdout)
+        names = [h["name"] for h in hits]
+        self.assertIn("kept-fact", names)
+        self.assertNotIn("retired-fact", names)
+
+    def test_archived_entries_can_still_be_searched_on_request(self):
+        self.run_kb("archive", "retired-fact")
+        hits = json.loads(
+            self.run_kb("search", "shared subject", "--archived", "--json").stdout)
+        names = [h["name"] for h in hits]
+        self.assertIn("retired-fact", names)
+        self.assertTrue(next(h for h in hits if h["name"] == "retired-fact")["archived"])
+
+    def test_archived_entries_stay_readable(self):
+        self.run_kb("archive", "retired-fact")
+        result = self.run_kb("show", "retired-fact")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("name: retired-fact", result.stdout)
+
+    def test_archived_entries_leave_the_triage_queue(self):
+        self.edit_frontmatter("semantic", "retired-fact", last_verified="2000-01-01")
+        before = json.loads(self.run_kb("triage", "--json").stdout)
+        self.assertIn("retired-fact", [r["name"] for r in before])
+        self.run_kb("archive", "retired-fact")
+        after = json.loads(self.run_kb("triage", "--json").stdout)
+        self.assertNotIn("retired-fact", [r["name"] for r in after])
+
+    def test_status_still_accounts_for_archived_entries(self):
+        self.run_kb("archive", "retired-fact")
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        row = next(r for r in report if r["name"] == "retired-fact")
+        self.assertEqual(row["status"], "archived")
+        self.assertIn("retired-fact", [r["name"] for r in report])
+
+    def test_lint_stops_nagging_about_an_archived_entry(self):
+        self.edit_frontmatter("semantic", "retired-fact", last_verified="2000-01-01")
+        self.run_kb("archive", "retired-fact")
+        out = self.run_kb("lint").stdout
+        self.assertNotIn("retired-fact.md: stale", out)
+        self.assertNotIn("retired-fact.md: orphan", out)
+
+    def test_undo_puts_it_back_in_the_retrieval_set(self):
+        self.run_kb("archive", "retired-fact")
+        result = self.run_kb("archive", "retired-fact", "--undo")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("archived:", self.entry_path("semantic", "retired-fact").read_text())
+        hits = json.loads(self.run_kb("search", "shared subject", "--json").stdout)
+        self.assertIn("retired-fact", [h["name"] for h in hits])
+
+    def test_undo_on_a_live_entry_fails(self):
+        result = self.run_kb("archive", "kept-fact", "--undo")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not archived", result.stderr)
+
+    def test_archiving_twice_is_a_no_op(self):
+        self.run_kb("archive", "retired-fact")
+        first = self.entry_path("semantic", "retired-fact").read_text()
+        result = self.run_kb("archive", "retired-fact")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("already archived", result.stdout)
+        self.assertEqual(first, self.entry_path("semantic", "retired-fact").read_text())
+
+    def test_archiving_is_recorded_in_the_mutation_log(self):
+        self.run_kb("archive", "retired-fact")
+        self.run_kb("archive", "retired-fact", "--undo")
+        log = (self.root / ".kb" / "log.md").read_text()
+        self.assertIn("archived `semantic/retired-fact.md`", log)
+        self.assertIn("unarchived `semantic/retired-fact.md`", log)
+
+    def test_an_unparseable_archived_date_is_a_lint_error(self):
+        self.run_kb("archive", "retired-fact")
+        self.edit_frontmatter("semantic", "retired-fact", archived="soon")
+        result = self.run_kb("lint")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("archived is not a valid date", result.stdout)
+
+
+class TestConfidenceDecay(KbTestCase):
+    """Age demotes confidence at read time; the file on disk is never rewritten."""
+
+    def setUp(self):
+        super().setUp()
+        self.run_kb("new", "aged-fact", "--type", "semantic")
+        self.run_kb("set", "aged-fact", "confidence", "verified")
+
+    def age(self, days, slug="aged-fact"):
+        stamp = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+        self.edit_frontmatter("semantic", slug, last_verified=stamp, created=stamp)
+
+    def status_row(self, slug="aged-fact"):
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        return next(r for r in report if r["name"] == slug)
+
+    def test_a_fresh_entry_is_not_demoted(self):
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "verified")
+        self.assertEqual(row["decayed_by"], 0)
+
+    def test_one_staleness_period_drops_one_level(self):
+        self.age(95)
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "high")
+        self.assertEqual(row["decayed_by"], 1)
+
+    def test_a_year_untouched_is_no_longer_verified(self):
+        self.age(365)
+        self.assertEqual(self.status_row()["effective_confidence"], "unverified")
+
+    def test_decay_bottoms_out_rather_than_running_off_the_scale(self):
+        self.age(5000)
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "unverified")
+        self.assertEqual(row["decayed_by"], 4)
+
+    def test_the_stored_confidence_is_never_rewritten(self):
+        self.age(365)
+        self.run_kb("status")
+        self.run_kb("search", "aged")
+        self.assertIn("confidence: verified", self.entry_path("semantic", "aged-fact").read_text())
+        self.assertEqual(self.status_row()["confidence"], "verified")
+
+    def test_verifying_undoes_the_decay(self):
+        self.age(365)
+        self.run_kb("verify", "aged-fact")
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "verified")
+        self.assertEqual(row["decayed_by"], 0)
+
+    def test_an_aged_entry_ranks_below_an_equal_fresh_one(self):
+        self.run_kb("new", "fresh-fact", "--type", "semantic")
+        self.run_kb("set", "fresh-fact", "confidence", "verified")
+        for slug in ("aged-fact", "fresh-fact"):
+            self.run_kb("set", slug, "description", "identical wording for ranking")
+        self.age(400)
+        hits = json.loads(self.run_kb("search", "identical wording", "--json").stdout)
+        names = [h["name"] for h in hits]
+        self.assertLess(names.index("fresh-fact"), names.index("aged-fact"))
+
+    def test_the_context_pack_reports_both_numbers(self):
+        self.age(365)
+        self.run_kb("set", "aged-fact", "description", "a claim about ageing")
+        out = self.run_kb("context", "ageing claim").stdout
+        self.assertIn("recorded as verified, aged", out)
+
+    def test_search_flags_a_decayed_hit(self):
+        self.age(365)
+        self.run_kb("set", "aged-fact", "description", "a claim about ageing")
+        out = self.run_kb("search", "ageing claim").stdout
+        self.assertIn("verified -> unverified, aged", out)
+
+
 if __name__ == "__main__":
     unittest.main()
