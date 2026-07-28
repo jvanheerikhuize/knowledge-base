@@ -35,22 +35,39 @@ store passes a few dozen entries.
   the single command an agent should need at the start of a task, and it is the
   literal shape of the success metric.
 
-## Phase 2 — Expose the KB over MCP · `next`
+## Phase 2 — Expose the KB over MCP · `done`
 
-**Gap.** Every consumer has to shell out to `kb.py` and parse text. The
+**Gap.** Every consumer had to shell out to `kb.py` and parse text. The
 near-neighbour projects (Basic Memory, brain.md, kb-mcp, Agent Memory) have all
 converged on the same answer: serve the store over MCP so any agent can use it
 as a tool.
 
-- `scripts/mcp_server.py`, stdio JSON-RPC, stdlib-only — the same dependency
-  posture as the rest of the tooling.
-- Tools: `search`, `get`, `context`, `triage`, `status`, and `propose_update`.
-- **Writes are proposals by default.** `propose_update` stages a change in the
-  working tree for review rather than committing it, mirroring how
-  `scripts/serve.py` already works. Git stays the durable write path, per
-  [[editing-the-kb-without-a-cms]].
+- ✅ `scripts/mcp_server.py`, stdio JSON-RPC, stdlib-only — the same dependency
+  posture as the rest of the tooling. Tools call kb.py's *library* functions,
+  never its `cmd_*` handlers, because the stdio transport forbids anything on
+  stdout that is not an MCP message and those handlers print.
+- ✅ Tools: `context`, `search`, `get`, `triage`, `status`, `propose_update`.
+  Entries are also published as resources under `kb://entry/<name>`, which is
+  the MCP-native way to hand an agent a document it can attach directly.
+- ✅ **Writes are proposals.** `propose_update` stages a change in the working
+  tree and never commits, mirroring `scripts/serve.py`. Git stays the durable
+  write path and the review gate, per [[editing-the-kb-without-a-cms]].
+  `--read-only` drops the tool from `tools/list` altogether.
 
-## Phase 3 — Consolidation and forgetting · `planned`
+**The version decision, and what is left.** The server speaks `2025-11-25` and
+negotiates down to `2025-06-18` / `2025-03-26`. It deliberately does not
+implement `2026-07-28`, which landed the day this shipped: that revision deletes
+the `initialize` handshake in favour of per-request `_meta`, adds `server/discover`,
+and states outright that there is no automatic compatibility with `2025-11-25`.
+Implementing a spec no client speaks yet, against SDKs still inside their
+ten-week validation window, would trade a working server for a hypothetical one.
+
+- **Open:** re-evaluate `2026-07-28` once the reference SDKs and at least one
+  client ship it. The handshake removal is the only structural change that
+  touches this server — the tool and resource surfaces are unaffected — so the
+  migration is a lifecycle change, not a rewrite.
+
+## Phase 3 — Consolidation and forgetting · `next`
 
 **Gap.** `memory/AGENT.md` states plainly that lint "does not detect
 content-level contradictions between entries — no such checker exists yet."
@@ -160,3 +177,30 @@ does not cover it.
 - Local editing via `scripts/serve.py` with full CLI parity
   ([[editing-the-kb-without-a-cms]]).
 - Mutation log in `.kb/log.md`.
+- MCP server over stdio with staged, never-committed writes ([[kb-over-mcp]]).
+
+---
+
+## Sources consulted
+
+Only what was actually read, with the date it was read. Claims in this roadmap
+that are not backed by a line here are judgement, not citation.
+
+- MCP specification `2025-11-25` — [lifecycle](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/basic/lifecycle.mdx),
+  [transports](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/basic/transports.mdx),
+  [tools](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/server/tools.mdx),
+  [resources](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/server/resources.mdx),
+  and [schema.json](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/schema/2025-11-25/schema.json)
+  (2026-07-28) — protocol version string, stdio framing rules, tool/resource
+  message shapes, `ToolAnnotations` fields.
+- [The 2026-07-28 MCP Specification Release Candidate](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)
+  (2026-07-28) — the stateless core, removal of the initialize handshake, and
+  the explicit "no automatic compatibility with 2025-11-25" statement that
+  Phase 2's version decision rests on.
+- [CoALA](https://arxiv.org/abs/2309.02427) — the memory taxonomy the folder
+  layout follows.
+
+**Still outstanding:** the near-neighbour projects named in Phase 2 (Basic
+Memory, brain.md, kb-mcp, Agent Memory) are cited from prior reading, not from
+sources re-checked here. Verify or drop them before treating that sentence as
+evidence.

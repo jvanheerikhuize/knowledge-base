@@ -6,7 +6,7 @@ confidence: verified
 source: directly enumerated ~/Repos on 2026-07-27 and diffed against CLAUDE.md
 created: 2026-07-27
 last_verified: 2026-07-27
-links: [persist-insight-to-knowledge-base]
+links: [persist-insight-to-knowledge-base, sibling-repo-access-denied-in-routines]
 ---
 
 `~/Repos/CLAUDE.md` claims "20 active repositories" and lists them in a

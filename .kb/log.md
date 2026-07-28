@@ -28,3 +28,9 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-27 — created `prospective/holiday-autonomy-mandate.md`
 - 2026-07-27 — created `semantic/routines-ui-not-api-for-prompts.md`
 - 2026-07-27 — linked `semantic/kb-agent-entrypoint-is-agent-md.md` — -> holiday-autonomy-mandate
+- 2026-07-28 — created `semantic/kb-over-mcp.md`
+- 2026-07-28 — created `semantic/sibling-repo-access-denied-in-routines.md`
+- 2026-07-28 — linked `prospective/kb-roadmap.md` — -> kb-over-mcp
+- 2026-07-28 — linked `semantic/kb-is-file-based.md` — -> kb-over-mcp
+- 2026-07-28 — linked `prospective/holiday-autonomy-mandate.md` — -> sibling-repo-access-denied-in-routines
+- 2026-07-28 — linked `semantic/workspace-repo-inventory-drift.md` — -> sibling-repo-access-denied-in-routines

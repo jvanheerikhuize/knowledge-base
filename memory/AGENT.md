@@ -112,6 +112,32 @@ scripts/kb.py rm <name> [--force]        # delete, refusing while still linked
 Mutations are appended to `../.kb/log.md`, so the history of the store is
 readable without reading git.
 
+## Using this store as MCP tools
+
+If your client speaks MCP, prefer it over the CLI — no shelling out, no parsing
+printed text. `../.mcp.json` registers the server, or run it directly:
+
+```
+python3 scripts/mcp_server.py [--read-only]
+```
+
+| Tool | Use it for |
+|---|---|
+| `context` | the first call of a task — a budgeted brief with provenance |
+| `search` | ranked hits without the packaging |
+| `get` | one entry in full |
+| `triage` | what is wrong or ageing, worst first |
+| `status` | where every entry stands and what moves it |
+| `propose_update` | stage an edit — **it does not commit** |
+
+Entries are also resources (`kb://entry/<name>`, plus `kb://agent` for this
+file), so a client can attach one without a tool call.
+
+**What `propose_update` does and does not do.** It writes to the working tree
+and stops. Nothing you change through it is committed, published, or visible to
+anyone else until a human reads `git diff` and commits. Say so when you use it:
+report the change as *proposed*, not as done.
+
 ## Browsing the knowledge base
 
 The whole store is published as a browsable site — index, per-entry pages,

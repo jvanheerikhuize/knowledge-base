@@ -38,6 +38,9 @@ cp -R "$SELF_DIR/.kb" "$KB_DEST"
 SCRIPTS_DEST="$TARGET_REPO/scripts"
 mkdir -p "$SCRIPTS_DEST"
 cp "$SELF_DIR/scripts/kb.py" "$SCRIPTS_DEST/kb.py"
+# mcp_server.py is the agent-facing half of the same interface and depends on
+# nothing but kb.py, so a scaffolded copy is usable as a tool, not only a CLI.
+cp "$SELF_DIR/scripts/mcp_server.py" "$SCRIPTS_DEST/mcp_server.py"
 
 if [ "$SUBFOLDER" != "memory" ]; then
   echo "$SUBFOLDER" > "$SCRIPTS_DEST/.kb-config"
@@ -51,4 +54,5 @@ echo "scaffolded knowledge base into $DEST"
 echo "scripts copied into $SCRIPTS_DEST"
 echo "CI workflow copied into $WORKFLOW_DEST"
 echo "next: read $DEST/AGENT.md"
+echo "to serve it to an agent, register scripts/mcp_server.py in the target repo's .mcp.json"
 echo "to pick up future fixes to kb.py, see 'Keeping a scaffolded copy in sync' in README.md"
