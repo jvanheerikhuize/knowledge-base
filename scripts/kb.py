@@ -121,6 +121,13 @@ STATUS_MODEL = [
                    "Nothing to do.",
         "action": "nothing; re-verify by the review date to keep it here",
     },
+    {
+        "key": "archived",
+        "label": "Archived",
+        "meaning": "Retired from retrieval on purpose. Still readable and "
+                   "still in the graph; it just no longer answers queries.",
+        "action": "nothing; kb.py archive <name> --undo puts it back",
+    },
 ]
 STATUS_BY_KEY = {s["key"]: s for s in STATUS_MODEL}
 STATUS_ORDER = [s["key"] for s in STATUS_MODEL]
@@ -181,6 +188,47 @@ def tokenize(text):
             if len(t.strip(".-_")) > 1]
 
 
+def is_archived(fm):
+    """Archived entries stay on disk and in the graph, but leave retrieval."""
+    return bool(fm.get("archived"))
+
+
+def effective_confidence(fm, today=None):
+    """Stored confidence demoted one level per staleness period elapsed.
+
+    `confidence` records how well a fact was checked *when it was checked*.
+    On its own it says nothing about how long ago that was, so an entry can
+    sit at `verified` forever while nobody looks at it — which is exactly the
+    failure this store is supposed to avoid. Ranking therefore uses a decayed
+    level: a `verified` fact untouched for a year is not verified.
+
+    Nothing here rewrites the file. Decay is applied at read time and undone
+    by `kb.py verify`, so the recorded claim stays exactly as its author wrote
+    it and the ageing is never a silent edit.
+
+    Returns (level, steps_demoted).
+    """
+    stored = fm.get("confidence", "")
+    if stored not in CONFIDENCE_LEVELS:
+        return stored, 0
+    today = today or datetime.date.today()
+    for key in ("last_verified", "created"):
+        value = fm.get(key)
+        if not value:
+            continue
+        try:
+            age = (today - datetime.date.fromisoformat(str(value))).days
+        except ValueError:
+            continue
+        steps = max(age, 0) // STALE_DAYS
+        if not steps:
+            return stored, 0
+        start = CONFIDENCE_LEVELS.index(stored)
+        end = min(start + steps, len(CONFIDENCE_LEVELS) - 1)
+        return CONFIDENCE_LEVELS[end], end - start
+    return stored, 0
+
+
 def entry_documents():
     """Every entry as (type, path, frontmatter, body, weighted token list)."""
     docs = []
@@ -222,7 +270,8 @@ def _recency_factor(fm, today):
     return 1.0
 
 
-def rank(query, types=None, include_episodic=True, docs=None):
+def rank(query, types=None, include_episodic=True, docs=None,
+         include_archived=False):
     """Score every entry against a query with BM25 plus type-aware weighting.
 
     BM25 supplies relevance. On top of it, three signals that are specific to
@@ -230,6 +279,11 @@ def rank(query, types=None, include_episodic=True, docs=None):
     a working-memory scratch file), *recency* for episodic entries only
     (a log entry decays in usefulness, a fact does not), and *confidence*
     (a nudge — it can reorder near-ties, never outrank a real match).
+
+    Confidence enters as its *aged* value, not the value on disk, so an entry
+    nobody has re-checked in a year stops competing as though it were fresh.
+    Archived entries are out of the retrieval set entirely — that is what
+    archiving means — but remain readable and remain in the graph.
 
     Returns hits scoring above zero, best first.
     """
@@ -256,6 +310,8 @@ def rank(query, types=None, include_episodic=True, docs=None):
             continue
         if not include_episodic and t == "episodic":
             continue
+        if not include_archived and is_archived(fm):
+            continue
         dl = len(tokens) or 1
         base = 0.0
         matched = []
@@ -270,8 +326,9 @@ def rank(query, types=None, include_episodic=True, docs=None):
             )
         if base <= 0:
             continue
+        effective, decayed_by = effective_confidence(fm, today)
         score = base * TYPE_WEIGHTS.get(t, 1.0)
-        score *= CONFIDENCE_WEIGHTS.get(fm.get("confidence", ""), 1.0)
+        score *= CONFIDENCE_WEIGHTS.get(effective, 1.0)
         if t == "episodic":
             score *= _recency_factor(fm, today)
         hits.append({
@@ -280,6 +337,9 @@ def rank(query, types=None, include_episodic=True, docs=None):
             "path": str(path.relative_to(ROOT)),
             "description": fm.get("description", ""),
             "confidence": fm.get("confidence", ""),
+            "effective_confidence": effective,
+            "decayed_by": decayed_by,
+            "archived": fm.get("archived", ""),
             "last_verified": fm.get("last_verified", ""),
             "score": round(score, 3),
             "bm25": round(base, 3),
@@ -326,10 +386,16 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
 
     sections, used, included, trimmed = [], 0, [], []
     for hit in hits:
+        # An aged entry reports both numbers: what its author claimed, and
+        # what that claim is worth now. Hiding either would be the kind of
+        # unattributed context this pack exists to prevent.
+        confidence = hit["confidence"] or "unknown"
+        if hit.get("decayed_by"):
+            confidence = f"{hit['effective_confidence']} (recorded as {hit['confidence']}, aged)"
         header = (
             f"### {hit['name']}  ({hit['type']})\n"
             f"> {hit['description']}\n"
-            f"> confidence: {hit['confidence'] or 'unknown'} · "
+            f"> confidence: {confidence} · "
             f"last verified: {hit['last_verified'] or 'never'} · "
             f"source: {hit['path']} · relevance: {hit['score']}\n\n"
         )
@@ -519,6 +585,10 @@ def triage_report():
 
     report = []
     for t, path, fm in entries:
+        # Archiving is the decision that an entry no longer needs attention.
+        # Continuing to flag it as stale would make the queue un-clearable.
+        if is_archived(fm):
+            continue
         name = fm.get("name", path.stem)
         confidence = fm.get("confidence", "")
         reasons = []
@@ -595,19 +665,26 @@ def status_report():
             except ValueError:
                 pass
 
+        effective, decayed_by = effective_confidence(fm, today)
         candidates = {_REASON_STATUS[x["code"]] for x in reasons
                       if x["code"] in _REASON_STATUS}
         if confidence in ("low", "medium"):
             candidates.add("provisional")
         if not candidates and age is not None and age > STALE_DAYS * AGEING_RATIO:
             candidates.add("ageing")
-        status = min(candidates, key=STATUS_ORDER.index) if candidates else "current"
+        if is_archived(fm):
+            status = "archived"
+        else:
+            status = min(candidates, key=STATUS_ORDER.index) if candidates else "current"
 
         report.append({
             "name": name,
             "type": t,
             "path": str(path.relative_to(ROOT)),
             "confidence": confidence,
+            "effective_confidence": effective,
+            "decayed_by": decayed_by,
+            "archived": fm.get("archived", ""),
             "description": fm.get("description", ""),
             "status": status,
             "label": STATUS_BY_KEY[status]["label"],
@@ -652,7 +729,10 @@ def cmd_status(args):
         print(f"  action: {s['action']}")
         for r in rows:
             age = f"{r['age_days']}d ago" if r["age_days"] is not None else "never"
-            print(f"    [{r['type']:11}] {r['name']:34} {r['confidence']:10} verified {age}")
+            conf = r["confidence"]
+            if r["decayed_by"]:
+                conf = f"{r['effective_confidence']}<-{r['confidence']}"
+            print(f"    [{r['type']:11}] {r['name']:34} {conf:22} verified {age}")
 
     summary = "  ".join(f"{STATUS_BY_KEY[k]['label'].lower()}: {counts[k]}"
                         for k in STATUS_ORDER if counts[k])
@@ -712,6 +792,35 @@ def cmd_set(args):
     _append_log(t, path.stem, datetime.date.today().isoformat(), "updated",
                 f"{args.field}={args.value}")
     print(f"set {args.field}={args.value} on {path.relative_to(ROOT)}")
+
+
+def cmd_archive(args):
+    """Retire an entry from retrieval without destroying it.
+
+    Deletion loses the audit trail: you can no longer see that a thing was
+    once believed, or what linked to it. Archiving keeps the file, the links,
+    and the graph position, and only takes the entry out of the set that
+    answers queries. `rm` is still there when the entry should genuinely go.
+    """
+    t, path, fm, _ = _require(args.name)
+    today = datetime.date.today().isoformat()
+    rel = path.relative_to(ROOT)
+
+    if args.undo:
+        if not is_archived(fm):
+            print(f"'{args.name}' is not archived", file=sys.stderr)
+            sys.exit(1)
+        write_frontmatter(path, {"archived": None})
+        _append_log(t, path.stem, today, "unarchived")
+        print(f"unarchived {rel} — back in the retrieval set")
+        return
+
+    if is_archived(fm):
+        print(f"'{args.name}' is already archived (since {fm['archived']})")
+        return
+    write_frontmatter(path, {"archived": today})
+    _append_log(t, path.stem, today, "archived")
+    print(f"archived {rel} — out of the retrieval set, still readable and still linked")
 
 
 def cmd_link(args):
@@ -799,7 +908,8 @@ def cmd_list(args):
 
 
 def cmd_search(args):
-    hits = rank(args.query, types=[args.type] if args.type else None)
+    hits = rank(args.query, types=[args.type] if args.type else None,
+                include_archived=args.archived)
     if args.json:
         payload = [{k: v for k, v in h.items() if k != "body"} for h in hits]
         print(json.dumps(payload[: args.limit] if args.limit else payload, indent=2))
@@ -809,7 +919,12 @@ def cmd_search(args):
         return
     shown = hits[: args.limit] if args.limit else hits
     for i, h in enumerate(shown, 1):
-        print(f"{i:2}. {h['score']:6.2f}  [{h['type']:11}] {h['name']}")
+        flags = ""
+        if h["archived"]:
+            flags += "  [archived]"
+        if h["decayed_by"]:
+            flags += f"  [{h['confidence']} -> {h['effective_confidence']}, aged]"
+        print(f"{i:2}. {h['score']:6.2f}  [{h['type']:11}] {h['name']}{flags}")
         if h["description"]:
             print(f"           {h['description']}")
         if h["snippet"]:
@@ -908,6 +1023,7 @@ def cmd_lint(args):
     problems = []  # always fatal
     warnings = []  # fatal only with --strict
     seen_names = {}
+    archived_names = set()
     today = datetime.date.today()
 
     schema = _load_schema()
@@ -967,14 +1083,24 @@ def cmd_lint(args):
             except ValueError:
                 problems.append(f"{rel}: created is not a valid date: {created!r}")
 
+        archived = fm.get("archived")
+        if archived:
+            archived_names.add(name)
+            try:
+                datetime.date.fromisoformat(str(archived))
+            except ValueError:
+                problems.append(f"{rel}: archived is not a valid date: {archived!r}")
+
         lv = fm.get("last_verified")
         if lv:
             try:
                 lv_date = datetime.date.fromisoformat(lv)
                 age = (today - lv_date).days
-                if age > STALE_DAYS:
+                # Freshness warnings are noise on an entry that was retired on
+                # purpose — archiving already answered "what about this one".
+                if age > STALE_DAYS and not archived:
                     warnings.append(f"{rel}: stale, last_verified {age}d ago (>{STALE_DAYS}d)")
-                if confidence == "unverified" and age > UNVERIFIED_DAYS:
+                if confidence == "unverified" and age > UNVERIFIED_DAYS and not archived:
                     warnings.append(f"{rel}: unverified for {age}d (>{UNVERIFIED_DAYS}d) — verify or discard")
             except ValueError:
                 problems.append(f"{rel}: last_verified is not a valid date: {lv!r}")
@@ -998,7 +1124,7 @@ def cmd_lint(args):
                 inbound.add(link)
 
     for name, rel in seen_names.items():
-        if name not in inbound:
+        if name not in inbound and name not in archived_names:
             warnings.append(f"{rel}: orphan entry, no other entry links to it")
 
     if not problems and not warnings:
@@ -1030,6 +1156,8 @@ def main():
     p_search.add_argument("--limit", type=int, default=10,
                           help="how many hits to show (0 for all; default 10)")
     p_search.add_argument("--type", choices=TYPES, help="only this memory type")
+    p_search.add_argument("--archived", action="store_true",
+                          help="also search archived entries, excluded by default")
     p_search.add_argument("--json", action="store_true", help="machine-readable output")
     p_search.set_defaults(func=cmd_search)
 
@@ -1088,6 +1216,13 @@ def main():
     p_set.add_argument("field")
     p_set.add_argument("value")
     p_set.set_defaults(func=cmd_set)
+
+    p_archive = sub.add_parser(
+        "archive", help="retire an entry from retrieval without deleting it")
+    p_archive.add_argument("name")
+    p_archive.add_argument("--undo", action="store_true",
+                           help="put an archived entry back in the retrieval set")
+    p_archive.set_defaults(func=cmd_archive)
 
     p_link = sub.add_parser("link", help="add or remove a link between entries")
     p_link.add_argument("name")

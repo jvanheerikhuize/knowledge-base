@@ -82,6 +82,9 @@ STATUS_COLORS = {
     "isolated": "#6a1b9a",
     "ageing": "#0277bd",
     "current": "#2e7d32",
+    # Retired on purpose — greyed rather than coloured, so it reads as
+    # "out of play" instead of as another thing needing attention.
+    "archived": "#616161",
 }
 
 

@@ -144,7 +144,8 @@ def tool_search(args):
         raise ToolError("query is required")
     limit = _int(args, "limit", 10)
     hits = kb.rank(query, types=[_optional_type(args)] if args.get("type") else None,
-                   include_episodic=args.get("include_episodic", True))
+                   include_episodic=args.get("include_episodic", True),
+                   include_archived=bool(args.get("include_archived", False)))
     hits = _strip_body(hits[:limit] if limit > 0 else hits)
     if not hits:
         return "(no matches)", {"query": query, "hits": []}
@@ -266,6 +267,16 @@ def tool_propose_update(args):
     if args.get("verify"):
         changes["last_verified"] = date.today().isoformat()
 
+    if "archive" in args:
+        if args["archive"]:
+            if kb.is_archived(fm):
+                raise ToolError(f"'{resolved}' is already archived (since {fm['archived']})")
+            changes["archived"] = date.today().isoformat()
+        else:
+            if not kb.is_archived(fm):
+                raise ToolError(f"'{resolved}' is not archived")
+            changes["archived"] = None
+
     body = args.get("body")
     if body is not None and not str(body).strip():
         raise ToolError("body cannot be emptied — omit it to leave the body alone")
@@ -341,6 +352,8 @@ READ_TOOLS = [
                          "description": "restrict to one memory type"},
                 "include_episodic": {"type": "boolean",
                                      "description": "include episodic logs (default true)"},
+                "include_archived": {"type": "boolean",
+                                     "description": "include entries retired from retrieval (default false)"},
             },
             "required": ["query"],
         },
@@ -418,6 +431,9 @@ WRITE_TOOLS = [
                 "body": {"type": "string", "description": "replacement body markdown"},
                 "verify": {"type": "boolean",
                            "description": "stamp last_verified as today"},
+                "archive": {"type": "boolean",
+                            "description": "true retires the entry from retrieval (it stays "
+                                           "readable and linked); false puts it back"},
             },
             "required": ["name"],
         },

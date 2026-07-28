@@ -75,11 +75,14 @@ already configured this way; inside a session just do the work you were given.
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
   broken or stale; regenerate if the store changed.
-- [ ] **ROADMAP Phase 3 — consolidation and forgetting.** Now the top research
-  item: `kb.py dupes` (token shingling), `kb.py consolidate` (propose merges),
-  mechanical contradiction detection, `kb.py archive`, confidence decay. This is
+- [ ] **ROADMAP Phase 3 — the consolidation half.** The *forgetting* half
+  shipped 2026-07-28 (`kb.py archive` + read-time confidence decay, see
+  `kb-forgetting-model`). Still open: `kb.py dupes` (token shingling),
+  `kb.py consolidate` (propose merges), and mechanical contradiction detection —
   the answer to the sentence in `memory/AGENT.md` admitting no contradiction
-  checker exists.
+  checker exists. Unlike decay and archiving, these are claims about *pairs* of
+  entries, so they need a similarity metric that earns its false positives;
+  design it before building it.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

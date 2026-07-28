@@ -19,6 +19,9 @@ Set up 2026-07-27 before you left.
 - [ ] 2026-07-28 ROADMAP gained a **Sources consulted** section with real URLs and read-dates, and an explicit note that the near-neighbour projects cited in Phase 2 are *not* yet re-verified — flagged rather than papered over.
 - [ ] 2026-07-28 Two KB entries: `kb-over-mcp` (the design and its constraints) and `sibling-repo-access-denied-in-routines` (see below).
 
+- [ ] 2026-07-28 **The KB now forgets** (ROADMAP Phase 3, forgetting half). Confidence decays one level per 90 days at read time, so a `verified` fact untouched for a year competes as `unverified` — computed on read, reversed by `kb.py verify`, and *never* written back, so your recorded claim survives. Both numbers show wherever they differ (`[verified -> unverified, aged]` in search, `confidence: unverified (recorded as verified, aged)` in context packs).
+- [ ] 2026-07-28 **`kb.py archive <name>`** retires an entry from retrieval without deleting it — out of search, context packs, and triage; still readable, still linked, still in the graph, with its own `archived` status on the board and the site. `--undo` reverses it; `rm` still exists for entries that should genuinely go. Also reachable over MCP through `propose_update`. 28 new tests (194 total, green).
+
 ## Blockers / notes
 
 - **2026-07-28 — the session started read-only; you fixed it mid-run.** For most

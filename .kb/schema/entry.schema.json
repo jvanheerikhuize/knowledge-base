@@ -42,6 +42,11 @@
       "type": "string",
       "format": "date",
       "description": "prospective entries only: when this intention should fire"
+    },
+    "archived": {
+      "type": "string",
+      "format": "date",
+      "description": "when this entry was retired from retrieval; it stays readable and stays in the graph"
     }
   }
 }
