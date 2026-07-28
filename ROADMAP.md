@@ -38,9 +38,9 @@ store passes a few dozen entries.
 ## Phase 2 — Expose the KB over MCP · `done`
 
 **Gap.** Every consumer had to shell out to `kb.py` and parse text. The
-near-neighbour projects (Basic Memory, brain.md, kb-mcp, Agent Memory) have all
-converged on the same answer: serve the store over MCP so any agent can use it
-as a tool.
+near-neighbour projects that were re-checked ([Basic Memory](https://basicmemory.com/),
+brain.md — see Sources consulted) have converged on the same answer: serve the
+store over MCP so any agent can use it as a tool.
 
 - ✅ `scripts/mcp_server.py`, stdio JSON-RPC, stdlib-only — the same dependency
   posture as the rest of the tooling. Tools call kb.py's *library* functions,
@@ -76,11 +76,33 @@ failure mode of memory systems is exactly this: stale contradictory facts
 outranking current ones until an agent that remembers everything remembers
 nothing useful.
 
-- **`kb.py dupes`** — near-duplicate detection via token shingling, flagging
-  pairs of entries that say the same thing in different words.
-- **`kb.py consolidate`** — propose merges for near-duplicates, and propose
-  distilling repeated `episodic` observations into one `semantic` fact.
-  Proposals, never silent rewrites.
+- ✅ **`kb.py dupes`** — shipped, but **not** doing what this line originally
+  promised, and the gap is the finding. Shingling was measured against a
+  hand-written paraphrase of an existing entry: it ranked **#14 of 210 pairs**,
+  below thirteen pairs of entries that merely share a subject. On raw 5-word
+  shingles it scored 0.000. Lexical similarity ranks topical neighbours above
+  actual restatements on hand-written prose, so any threshold low enough to
+  catch a paraphrase admits a dozen false positives first.
+
+  So `dupes` is scoped honestly to **near-verbatim** overlap — an entry
+  recorded twice, a scaffolded copy drifting back, an agent re-adding its own
+  work — at a threshold ~70× the store's observed maximum, and it prints the
+  sentence naming its own limit so a clean result is never read as "no
+  duplicates". It also reports *containment*, which catches the asymmetric case
+  Jaccard scores lowest: a short entry wholly absorbed into a longer one.
+  MinHash/LSH were rejected as approximations of a computation that is free at
+  this scale. Full write-up: [[kb-duplicate-detection-limits]].
+
+- **Semantic duplicate detection** — still open, and now known to be the hard
+  part rather than a threshold tweak. Two routes: embeddings, which break the
+  no-infrastructure premise of [[kb-is-file-based]] and the no-vendor-model rule
+  of [[twin-sovereignty-constraint]]; or an agent reading candidate pairs and
+  judging them, which is exactly how classification already works for `kb.py new`
+  and is therefore the consistent choice. Design the second before building it.
+- **`kb.py consolidate`** — propose merges, and propose distilling repeated
+  `episodic` observations into one `semantic` fact. Proposals, never silent
+  rewrites. Blocked on the line above: merging is only as good as the candidate
+  set feeding it, and `dupes` currently supplies only the near-verbatim ones.
 - **Contradiction detection** — start mechanical: same subject, conflicting
   frontmatter, or an entry whose body negates one it links to. Report as a
   triage reason code rather than a lint failure.
@@ -97,11 +119,11 @@ nothing useful.
   wherever they differ, including in context packs, because a claim's age is
   part of its provenance.
 
-**What is left in this phase** is the consolidation half: `dupes`,
-`consolidate`, and contradiction detection. The forgetting half above shipped
-first because it is what stops a growing store from burying its current facts,
-and because it needs no similarity metric to be correct — decay and archiving
-are decisions about a single entry, while merging is a claim about two.
+**Why the forgetting half shipped first.** Decay and archiving are decisions
+about a *single* entry and cannot really be wrong. Merging is a claim about a
+*pair*, and the measurement above shows how hard that claim is to make from text
+alone. That ordering turned out to be right for a reason that was not obvious
+when it was chosen.
 
 ## Phase 4 — Temporal validity · `planned`
 
@@ -215,7 +237,26 @@ that are not backed by a line here are judgement, not citation.
 - [CoALA](https://arxiv.org/abs/2309.02427) — the memory taxonomy the folder
   layout follows.
 
-**Still outstanding:** the near-neighbour projects named in Phase 2 (Basic
-Memory, brain.md, kb-mcp, Agent Memory) are cited from prior reading, not from
-sources re-checked here. Verify or drop them before treating that sentence as
-evidence.
+- Near-duplicate detection background (2026-07-28) — [Broder, *Identifying and
+  Filtering Near-Duplicate Documents*](https://cs.brown.edu/courses/cs253/papers/nearduplicate.pdf),
+  [Stanford IR, *Near-duplicates and shingling*](https://nlp.stanford.edu/IR-book/html/htmledition/near-duplicates-and-shingling-1.html).
+  Source of the shingling construction, the standard threshold bands
+  (0.7–0.8 conservative, 0.5–0.6 aggressive), and the warning that shingle
+  estimates degrade on very short documents — which is why `dupes` skips
+  entries under 20 shingles and says which ones it skipped.
+
+**Near-neighbour projects — re-checked 2026-07-28.** The Phase 2 sentence
+originally named four; two are confirmed, two are dropped as uncited.
+
+- [Basic Memory](https://basicmemory.com/) — confirmed. Markdown files plus a
+  SQLite index and a knowledge graph, served over MCP. Its
+  [skills repo](https://github.com/basicmachines-co/basic-memory-skills) ships a
+  "memory-defrag" skill that merges duplicates and removes stale information —
+  direct prior art for Phase 3 — but publishes no similarity metric and does not
+  say whether merges are automatic or proposed, so it settles nothing about the
+  hard part.
+- **brain.md** — confirmed. Local-first markdown vault with an MCP server, and
+  notably a `context_for_query` token-budgeted chunk-packing tool that is the
+  same idea as this repo's `kb.py context`, arrived at independently.
+- **kb-mcp, "Agent Memory"** — could not be confirmed as distinct projects.
+  Dropped rather than left as plausible-looking filler.

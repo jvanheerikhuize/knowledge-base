@@ -75,14 +75,17 @@ already configured this way; inside a session just do the work you were given.
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
   broken or stale; regenerate if the store changed.
-- [ ] **ROADMAP Phase 3 — the consolidation half.** The *forgetting* half
-  shipped 2026-07-28 (`kb.py archive` + read-time confidence decay, see
-  `kb-forgetting-model`). Still open: `kb.py dupes` (token shingling),
-  `kb.py consolidate` (propose merges), and mechanical contradiction detection —
-  the answer to the sentence in `memory/AGENT.md` admitting no contradiction
-  checker exists. Unlike decay and archiving, these are claims about *pairs* of
-  entries, so they need a similarity metric that earns its false positives;
-  design it before building it.
+- [ ] **ROADMAP Phase 3 — semantic duplicates and consolidation.** Forgetting
+  shipped 2026-07-28 (`kb-forgetting-model`); `kb.py dupes` shipped the same day
+  but only for **near-verbatim** overlap. The design question was answered by
+  measurement and the answer was negative: lexical similarity cannot find
+  paraphrases in this store (a real paraphrase ranked #14 of 210, below thirteen
+  merely-related pairs — see `kb-duplicate-detection-limits`). **Do not attempt
+  to fix this by lowering the threshold**; a regression test will fail and the
+  next thing found is a false positive. The open route is an agent judging
+  candidate pairs, consistent with how `kb.py new` already delegates
+  classification. Design that before building it. `consolidate` and
+  contradiction detection are downstream of it.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

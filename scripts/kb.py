@@ -193,6 +193,79 @@ def is_archived(fm):
     return bool(fm.get("archived"))
 
 
+# --- Near-verbatim duplicate detection --------------------------------------
+# Word shingles plus Jaccard, the classic Broder construction. Deliberately
+# *not* MinHash/LSH: those approximate Jaccard to make O(n^2) tractable at web
+# scale, and this store is a few dozen files, where the exact computation is
+# free and an approximation would only add error.
+#
+# What this catches is near-verbatim overlap — the same text recorded twice.
+# What it does not catch is two entries making the same claim in different
+# words, which was measured rather than assumed: a hand-written paraphrase of
+# an existing entry scored below thirteen pairs of merely-related entries on
+# this corpus. See [[kb-duplicate-detection-limits]] before raising the
+# sensitivity to "find more" — the next thing found will be a false positive.
+SHINGLE_K = 5
+DUPES_THRESHOLD = 0.5
+# Below this, a document has too few shingles for the score to mean anything;
+# the estimate's error swamps the signal on very short texts.
+MIN_SHINGLES = 20
+
+
+def shingles(text, k=SHINGLE_K):
+    """Overlapping k-word sequences — the unit near-duplicate detection uses."""
+    toks = tokenize(text)
+    if len(toks) < k:
+        return set()
+    return {" ".join(toks[i:i + k]) for i in range(len(toks) - k + 1)}
+
+
+def dupe_pairs(threshold=DUPES_THRESHOLD):
+    """Entry pairs whose text overlaps near-verbatim, most similar first.
+
+    Reports two numbers because they answer different questions. *Jaccard* is
+    symmetric and asks "are these the same entry twice". *Containment* is
+    asymmetric and asks "is the smaller one already wholly inside the larger" —
+    the case where one entry has been superseded rather than duplicated, which
+    Jaccard scores low precisely when the sizes differ most.
+
+    Returns (pairs, skipped) — skipped entries were too short to judge.
+    """
+    docs, skipped = [], []
+    for t, path in iter_entries():
+        try:
+            fm, body = parse_frontmatter(path)
+        except OSError:
+            continue
+        name = fm.get("name", path.stem)
+        s = shingles(f"{fm.get('description', '')} {body}")
+        if len(s) < MIN_SHINGLES:
+            skipped.append(name)
+            continue
+        docs.append((name, t, fm, s))
+
+    pairs = []
+    for i, (n1, t1, fm1, s1) in enumerate(docs):
+        for n2, t2, fm2, s2 in docs[i + 1:]:
+            inter = len(s1 & s2)
+            if not inter:
+                continue
+            jaccard = inter / len(s1 | s2)
+            containment = inter / min(len(s1), len(s2))
+            if jaccard < threshold and containment < threshold:
+                continue
+            linked = n2 in (fm1.get("links") or []) or n1 in (fm2.get("links") or [])
+            pairs.append({
+                "a": n1, "b": n2, "a_type": t1, "b_type": t2,
+                "jaccard": round(jaccard, 3),
+                "containment": round(containment, 3),
+                "shared_shingles": inter,
+                "linked": linked,
+            })
+    pairs.sort(key=lambda p: (-max(p["jaccard"], p["containment"]), p["a"], p["b"]))
+    return pairs, skipped
+
+
 def effective_confidence(fm, today=None):
     """Stored confidence demoted one level per staleness period elapsed.
 
@@ -794,6 +867,30 @@ def cmd_set(args):
     print(f"set {args.field}={args.value} on {path.relative_to(ROOT)}")
 
 
+def cmd_dupes(args):
+    pairs, skipped = dupe_pairs(threshold=args.threshold)
+    if args.json:
+        print(json.dumps({"threshold": args.threshold, "pairs": pairs,
+                          "too_short": skipped}, indent=2))
+        return
+    if not pairs:
+        print(f"no near-duplicate pairs above {args.threshold}")
+    for p in pairs:
+        flag = " (already linked)" if p["linked"] else ""
+        print(f"{max(p['jaccard'], p['containment']):.2f}  "
+              f"{p['a']} <-> {p['b']}{flag}")
+        print(f"      jaccard {p['jaccard']}  containment {p['containment']}  "
+              f"({p['shared_shingles']} shared {SHINGLE_K}-word sequences)")
+    if pairs:
+        print(f"\n{len(pairs)} pair(s) above {args.threshold} — read both, then "
+              f"merge by hand and 'kb.py archive' the loser.")
+    if skipped:
+        print(f"\n{len(skipped)} entr(ies) too short to compare "
+              f"(<{MIN_SHINGLES} shingles): {', '.join(sorted(skipped))}")
+    print("\nThis finds text recorded twice, not the same claim written twice —"
+          "\nsee the 'kb-duplicate-detection-limits' entry for why.")
+
+
 def cmd_archive(args):
     """Retire an entry from retrieval without destroying it.
 
@@ -1216,6 +1313,13 @@ def main():
     p_set.add_argument("field")
     p_set.add_argument("value")
     p_set.set_defaults(func=cmd_set)
+
+    p_dupes = sub.add_parser(
+        "dupes", help="entry pairs whose text overlaps near-verbatim")
+    p_dupes.add_argument("--threshold", type=float, default=DUPES_THRESHOLD,
+                         help=f"minimum jaccard or containment (default {DUPES_THRESHOLD})")
+    p_dupes.add_argument("--json", action="store_true", help="machine-readable output")
+    p_dupes.set_defaults(func=cmd_dupes)
 
     p_archive = sub.add_parser(
         "archive", help="retire an entry from retrieval without deleting it")

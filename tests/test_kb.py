@@ -761,6 +761,92 @@ class TestArchive(KbTestCase):
         self.assertIn("archived is not a valid date", result.stdout)
 
 
+class TestDupes(KbTestCase):
+    """Near-verbatim detection: it must fire on copied text and stay quiet
+    on entries that merely share a subject. The second half is the hard one,
+    and the reason the default threshold is where it is."""
+
+    PROSE_A = (
+        "The knowledge base stores every memory as a markdown file with a "
+        "small block of YAML frontmatter at the top. There is no database and "
+        "no vector store anywhere in the design, and git is the only durable "
+        "write path that the system relies on for its history."
+    )
+    # Same subject, no shared phrasing — this is what must NOT be flagged.
+    PROSE_B = (
+        "Each note here lives on disk as ordinary text, carrying a short "
+        "header of structured fields. Nothing relational is involved, no "
+        "embedding index exists, and version control alone provides the "
+        "lasting record of how things changed over time."
+    )
+
+    def write_body(self, slug, prose, entry_type="semantic"):
+        path = self.entry_path(entry_type, slug)
+        head, _, _ = path.read_text().partition("---\n")[2].partition("\n---\n")
+        path.write_text(f"---\n{head}\n---\n\n{prose}\n")
+
+    def setUp(self):
+        super().setUp()
+        for slug in ("original-entry", "copied-entry", "paraphrased-entry"):
+            self.run_kb("new", slug, "--type", "semantic")
+        self.write_body("original-entry", self.PROSE_A)
+        self.write_body("copied-entry", self.PROSE_A)
+        self.write_body("paraphrased-entry", self.PROSE_B)
+
+    def dupes(self, *args):
+        return json.loads(self.run_kb("dupes", "--json", *args).stdout)
+
+    def pair_names(self, report):
+        return {frozenset((p["a"], p["b"])) for p in report["pairs"]}
+
+    def test_a_copied_entry_is_flagged(self):
+        pairs = self.pair_names(self.dupes())
+        self.assertIn(frozenset(("original-entry", "copied-entry")), pairs)
+
+    def test_a_copy_scores_at_the_top_of_the_scale(self):
+        report = self.dupes()
+        pair = next(p for p in report["pairs"]
+                    if {p["a"], p["b"]} == {"original-entry", "copied-entry"})
+        self.assertGreater(pair["jaccard"], 0.9)
+        self.assertGreater(pair["containment"], 0.9)
+
+    def test_a_paraphrase_is_not_flagged(self):
+        pairs = self.pair_names(self.dupes())
+        self.assertNotIn(frozenset(("original-entry", "paraphrased-entry")), pairs)
+
+    def test_a_clean_store_reports_nothing(self):
+        self.write_body("copied-entry", self.PROSE_B.replace("note", "record"))
+        self.run_kb("rm", "paraphrased-entry")
+        self.assertEqual(self.dupes()["pairs"], [])
+
+    def test_containment_catches_an_entry_wholly_inside_another(self):
+        self.write_body("copied-entry", self.PROSE_A + " " + self.PROSE_B)
+        pair = next(p for p in self.dupes()["pairs"]
+                    if {p["a"], p["b"]} == {"original-entry", "copied-entry"})
+        self.assertGreater(pair["containment"], 0.9)
+        self.assertLess(pair["jaccard"], pair["containment"])
+
+    def test_the_threshold_is_adjustable(self):
+        loose = self.dupes("--threshold", "0.001")
+        strict = self.dupes("--threshold", "0.99")
+        self.assertGreaterEqual(len(loose["pairs"]), len(strict["pairs"]))
+
+    def test_short_entries_are_reported_rather_than_silently_skipped(self):
+        self.run_kb("new", "stub-entry", "--type", "semantic")
+        self.write_body("stub-entry", "Too short to judge.")
+        self.assertIn("stub-entry", self.dupes()["too_short"])
+
+    def test_existing_links_between_a_pair_are_surfaced(self):
+        self.run_kb("link", "original-entry", "copied-entry")
+        pair = next(p for p in self.dupes()["pairs"]
+                    if {p["a"], p["b"]} == {"original-entry", "copied-entry"})
+        self.assertTrue(pair["linked"])
+
+    def test_human_output_names_its_own_limit(self):
+        out = self.run_kb("dupes").stdout
+        self.assertIn("not the same claim written twice", out)
+
+
 class TestConfidenceDecay(KbTestCase):
     """Age demotes confidence at read time; the file on disk is never rewritten."""
 

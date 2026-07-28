@@ -38,3 +38,7 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-28 — linked `semantic/kb-entry-status-model.md` — -> kb-forgetting-model
 - 2026-07-28 — linked `semantic/kb-ranked-retrieval.md` — -> kb-forgetting-model
 - 2026-07-28 — linked `prospective/kb-roadmap.md` — -> kb-forgetting-model
+- 2026-07-28 — created `semantic/kb-duplicate-detection-limits.md`
+- 2026-07-28 — linked `semantic/kb-forgetting-model.md` — -> kb-duplicate-detection-limits
+- 2026-07-28 — linked `prospective/kb-roadmap.md` — -> kb-duplicate-detection-limits
+- 2026-07-28 — linked `semantic/kb-ranked-retrieval.md` — -> kb-duplicate-detection-limits

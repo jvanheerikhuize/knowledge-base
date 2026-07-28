@@ -230,6 +230,34 @@ def tool_status(args):
     return "\n".join(lines), {"entries": report, "counts": counts}
 
 
+def tool_dupes(args):
+    threshold = args.get("threshold", kb.DUPES_THRESHOLD)
+    try:
+        threshold = float(threshold)
+    except (TypeError, ValueError):
+        raise ToolError(f"threshold must be a number, got {args.get('threshold')!r}")
+    pairs, skipped = kb.dupe_pairs(threshold=threshold)
+    limit = (
+        "This finds text recorded twice, not the same claim written twice — "
+        "a paraphrase of an existing entry measured below thirteen pairs of "
+        "merely-related entries on this store. A clean result does not mean "
+        "there are no duplicates."
+    )
+    if not pairs:
+        text = f"no near-duplicate pairs above {threshold}\n\n{limit}"
+    else:
+        lines = []
+        for p in pairs:
+            flag = " (already linked)" if p["linked"] else ""
+            lines.append(f"{max(p['jaccard'], p['containment']):.2f}  "
+                         f"{p['a']} <-> {p['b']}{flag}")
+            lines.append(f"      jaccard {p['jaccard']}  containment {p['containment']}")
+        lines.append(f"\n{len(pairs)} pair(s) above {threshold}. Read both, merge by "
+                     f"hand, then archive the loser.\n\n{limit}")
+        text = "\n".join(lines)
+    return text, {"threshold": threshold, "pairs": pairs, "too_short": skipped}
+
+
 def tool_propose_update(args):
     """Stage an edit in the working tree. Never commits — that is the point."""
     name = str(args.get("name") or "").strip()
@@ -406,6 +434,29 @@ READ_TOOLS = [
             },
         },
         "handler": tool_status,
+    },
+    {
+        "name": "dupes",
+        "title": "Near-verbatim duplicate pairs",
+        "description": (
+            "Entry pairs whose text overlaps near-verbatim — the same text "
+            "recorded twice. It does NOT find two entries making the same claim "
+            "in different words: that was measured and lexical similarity ranks "
+            "topical neighbours above real restatements. Treat a clean result as "
+            "'no copies found', never as 'no duplicates'."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "threshold": {"type": "number",
+                              "description": f"minimum jaccard or containment "
+                                             f"(default {kb.DUPES_THRESHOLD}); lowering it "
+                                             f"yields false positives before it yields "
+                                             f"paraphrases"},
+            },
+        },
+        "handler": tool_dupes,
     },
 ]
 
