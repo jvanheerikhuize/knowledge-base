@@ -40,8 +40,9 @@ on every push that changes memory content.
 ```
 memory/       the knowledge base itself, one folder per memory type (human-readable)
 .kb/          fixed tooling machinery: templates/, schema/, log.md
-scripts/      kb.py (CLI), build_site.py (static overview), serve.py (local editor), scaffold.sh
-tests/        stdlib unittest suites for kb.py and build_site.py
+scripts/      kb.py (CLI), mcp_server.py (MCP over stdio), build_site.py (static overview), serve.py (local editor), scaffold.sh
+tests/        stdlib unittest suites for kb.py, mcp_server.py, serve.py, and build_site.py
+.mcp.json     registers the MCP server with any client that reads project config
 .github/      CI workflows: lint on change, publish the overview to Pages
 site/         generated static overview (git-ignored; built in CI, published to Pages)
 ```
@@ -79,6 +80,7 @@ flowchart TB
 
     subgraph Interface["Interaction Interface"]
         CLI["scripts/kb.py<br/>search / context / list / show<br/>new / status / triage / verify<br/>set / link / rm / lint"]
+        MCP["scripts/mcp_server.py<br/>MCP over stdio<br/>context / search / get<br/>triage / status / propose_update"]
     end
 
     subgraph Viz["Overview / Editing"]
@@ -94,6 +96,7 @@ flowchart TB
     Sources --> Ingestion --> KB
     ENTRY -.orients.-> SEM & EPI & PRO & WRK & RET & PAR & PRS
     KB --> CLI
+    KB <--> MCP
     KB --> SITE
     KB <--> SERVE
     GHA --> SITE
@@ -165,7 +168,8 @@ sequenceDiagram
 | Industry-standard alignment | CoALA memory taxonomy + `AGENTS.md` convention + frontmatter style used by Jekyll/Obsidian tooling; maintenance follows Karpathy's LLM-wiki pattern (immutable sources, an incrementally curated linked layer, periodic lint) |
 | Ingestion layer | `scripts/kb.py new` scaffolds a typed entry from a template; the operating agent (not a bespoke model call) does the classification, keeping the system model-agnostic |
 | Visualization layer | `scripts/build_site.py` renders a Mermaid link graph, colored by memory type, as one page of the published overview — no committed generated files to keep in sync |
-| Interaction interface | `scripts/kb.py` CLI: `search`, `context`, `list`, `show`, `new`, `status`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser |
+| Interaction interface | `scripts/kb.py` CLI: `search`, `context`, `list`, `show`, `new`, `status`, `triage`, `verify`, `set`, `link`, `edit`, `rm`, `lint`; `scripts/serve.py` exposes the same mutations from the browser; `scripts/mcp_server.py` exposes them to any MCP client as tools |
+| Agent-native access | MCP over stdio (`scripts/mcp_server.py`), stdlib-only — an agent calls `context`/`search` as tools instead of shelling out to the CLI and parsing printed text. Writes are staged in the working tree, never committed |
 | Overview site | `scripts/build_site.py` renders `memory/` into a static, navigable site (type filters, client-side search, per-entry pages with backlinks, graph); published to GitHub Pages on every push that changes memory content |
 | Fact-checking / confidence | Every entry carries `confidence` (verified/high/medium/low/unverified) + `last_verified`; `kb.py lint` flags stale entries, duplicate slugs, dangling links, and schema violations |
 | Scaffolding via pipeline/action | `scripts/scaffold.sh` copies `memory/` + `.kb/` + `scripts/` into a target repo; `.github/workflows/kb-lint.yml` shows the CI trigger pattern |
@@ -222,6 +226,50 @@ it out, plus a `review_by` date (`last_verified` + 90 days). That is what stops
 "clean" from quietly meaning "unexamined". The full table lives in
 [`memory/AGENT.md`](memory/AGENT.md#entry-status).
 
+## MCP server
+
+```
+python3 scripts/mcp_server.py [--read-only]
+```
+
+The same store, served to any MCP client over stdio so an agent calls it as a
+tool instead of shelling out to the CLI and parsing printed text. Stdlib-only,
+no process to keep running — the client spawns it.
+
+| Tool | What it does |
+|---|---|
+| `context` | the budgeted, provenance-carrying brief for a task — the one call to make at the start of a task |
+| `search` | BM25 hits, best first, with the same type/recency/confidence weighting as the CLI |
+| `get` | one entry in full: raw markdown plus parsed frontmatter |
+| `triage` | the queue of entries that are wrong or ageing, worst first |
+| `status` | every entry in exactly one status, with the command that moves it |
+| `propose_update` | stage an edit to an entry in the working tree — **never commits** |
+
+Entries are also published as MCP *resources* (`kb://entry/<name>`, plus
+`kb://agent` for the entry-point doc), so a client can attach one directly
+rather than going through a tool call.
+
+**Writes are proposals.** `propose_update` edits the working tree and stops
+there. Git stays the review gate and the only durable write path, exactly as
+`serve.py` settled it for the browser — an agent can suggest a change, a human
+reads `git diff` and commits it. `--read-only` drops the tool from `tools/list`
+entirely, which is the right mode when the client is not yours.
+
+**Protocol.** Speaks MCP `2025-11-25` and negotiates down to `2025-06-18` or
+`2025-03-26`. It does **not** implement `2026-07-28`: that revision removes the
+initialize handshake in favour of per-request `_meta`, is a documented breaking
+change with no automatic compatibility, and was published the same day this
+server was written — nothing that would connect to it speaks that version yet.
+Revisit when the SDKs land (ROADMAP Phase 2).
+
+`.mcp.json` in the repo root registers the server, so a client that reads
+project-scoped MCP config picks it up with no setup. Registering it by hand:
+
+```json
+{"mcpServers": {"knowledge-base": {"command": "python3",
+                                   "args": ["/abs/path/to/scripts/mcp_server.py"]}}}
+```
+
 ## Overview site
 
 `scripts/build_site.py` renders `memory/` into a static site under `site/`:
@@ -261,9 +309,12 @@ python3 -m unittest discover tests
 scripts/scaffold.sh /path/to/target-repo [subfolder-name]
 ```
 
-Copies `memory/`, `scripts/kb.py`, and the CI workflow
-into the target repo. Solution- and agent-agnostic — no dependency on this repo
-at runtime.
+Copies `memory/`, `.kb/`, `scripts/kb.py`, `scripts/mcp_server.py`, and the CI
+workflow into the target repo. Solution- and agent-agnostic — no dependency on
+this repo at runtime. The site builder and local editor are deliberately not
+copied; the CLI and the MCP server are, because those are the two ways an agent
+actually uses the store. Register the server in the target repo's `.mcp.json`
+to turn it on.
 
 ### Keeping a scaffolded copy in sync
 

@@ -6,7 +6,7 @@ confidence: verified
 source: README.md design rationale
 created: 2026-07-22
 last_verified: 2026-07-27
-links: [distill-session-into-memory, memory-overview-site, kb-roadmap]
+links: [distill-session-into-memory, memory-overview-site, kb-roadmap, kb-over-mcp]
 ---
 
 This knowledge base stores every memory type as a markdown file with YAML

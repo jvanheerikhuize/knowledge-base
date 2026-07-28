@@ -1,0 +1,637 @@
+#!/usr/bin/env python3
+"""Serve the knowledge base to any MCP client over stdio.
+
+    python3 scripts/mcp_server.py [--read-only]
+
+Speaks the Model Context Protocol so an agent can query this memory store as a
+tool instead of shelling out to `kb.py` and parsing its printed output. Every
+tool is a thin wrapper over the same functions the CLI and `serve.py` call, so
+all three agree by construction.
+
+Transport is stdio, framed as newline-delimited JSON-RPC: the spec requires
+that nothing but MCP messages reach stdout, so this module logs to stderr and
+never prints. That is also why the tools call kb.py's *library* functions
+(`rank`, `context_pack`, `triage_report`) rather than its `cmd_*` handlers,
+which print and sometimes call sys.exit.
+
+Writes are proposals. `propose_update` edits the working tree and stops there —
+it never commits — so git stays the review gate and the durable write path,
+exactly as `serve.py` settled it for the browser. Run with `--read-only` to
+drop the tool entirely.
+
+No third-party dependencies — stdlib only, same as the rest of the KB tooling.
+"""
+import argparse
+import json
+import pathlib
+import sys
+from datetime import date
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import kb  # noqa: E402
+
+SERVER_NAME = "knowledge-base"
+SERVER_VERSION = "1.0.0"
+
+# Newest first. The client's requested version is echoed back when we know it;
+# otherwise the spec says to answer with the latest we support and let the
+# client decide whether to continue.
+#
+# 2026-07-28 is deliberately absent. It removes the initialize handshake in
+# favour of per-request `_meta` and is a documented breaking change with no
+# automatic compatibility, published the same day this server was written and
+# still inside its SDK validation window. Nothing that would connect to this
+# server speaks it yet. See ROADMAP.md Phase 2.
+PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"]
+LATEST_PROTOCOL = PROTOCOL_VERSIONS[0]
+
+INSTRUCTIONS = (
+    "A file-based agent memory store, organised by memory type "
+    "(semantic, episodic, procedural, prospective, retrieval, parametric, working).\n\n"
+    "Start a task with `context` — it returns a budgeted, provenance-carrying brief "
+    "of the most relevant entries, which is what this store exists to produce. "
+    "Use `search` when you want ranked hits without the packaging, `get` to read one "
+    "entry in full, and `triage`/`status` to see what needs attention.\n\n"
+    "Every entry carries a confidence level and a `last_verified` date; trust them "
+    "rather than assuming an entry is current. Writes via `propose_update` are staged "
+    "in the working tree for human review and are never committed."
+)
+
+RESOURCE_PREFIX = "kb://entry/"
+AGENT_URI = "kb://agent"
+
+# JSON-RPC error codes. The last one is MCP's own.
+PARSE_ERROR = -32700
+INVALID_REQUEST = -32600
+METHOD_NOT_FOUND = -32601
+INVALID_PARAMS = -32602
+INTERNAL_ERROR = -32603
+RESOURCE_NOT_FOUND = -32002
+
+
+class ToolError(Exception):
+    """A tool that failed for a reason the model should see and can act on.
+
+    Reported inside the result with `isError`, not as a JSON-RPC error: protocol
+    errors are for malformed requests, tool errors are feedback to the caller.
+    """
+
+
+class RpcError(Exception):
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+def log(message):
+    """stderr is the only channel a stdio MCP server may talk on."""
+    print(f"[{SERVER_NAME}] {message}", file=sys.stderr, flush=True)
+
+
+# --- shared helpers ---------------------------------------------------------
+
+def _all_entries():
+    out = []
+    for t, path in kb.iter_entries():
+        try:
+            fm, body = kb.parse_frontmatter(path)
+        except OSError as e:
+            log(f"skipping {path}: {e}")
+            continue
+        out.append((t, path, fm, body))
+    return out
+
+
+def _entry_name(path, fm):
+    return fm.get("name", path.stem)
+
+
+def _require_entry(name):
+    hit = kb.resolve(name)
+    if hit is None:
+        raise ToolError(f"no entry named '{name}' — run the `search` tool to find the right one")
+    return hit
+
+
+def _strip_body(hits):
+    return [{k: v for k, v in h.items() if k != "body"} for h in hits]
+
+
+def _optional_type(args):
+    t = args.get("type")
+    if t is None:
+        return None
+    if t not in kb.TYPES:
+        raise ToolError(f"type must be one of: {', '.join(kb.TYPES)}")
+    return t
+
+
+def _int(args, key, default):
+    value = args.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, int):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            raise ToolError(f"{key} must be an integer, got {args.get(key)!r}")
+    return value
+
+
+# --- tools ------------------------------------------------------------------
+
+def tool_search(args):
+    query = str(args.get("query") or "").strip()
+    if not query:
+        raise ToolError("query is required")
+    limit = _int(args, "limit", 10)
+    hits = kb.rank(query, types=[_optional_type(args)] if args.get("type") else None,
+                   include_episodic=args.get("include_episodic", True))
+    hits = _strip_body(hits[:limit] if limit > 0 else hits)
+    if not hits:
+        return "(no matches)", {"query": query, "hits": []}
+    lines = []
+    for i, h in enumerate(hits, 1):
+        lines.append(f"{i:2}. {h['score']:6.2f}  [{h['type']}] {h['name']} — {h['description']}")
+        lines.append(f"      {h['path']}  ·  confidence: {h['confidence'] or 'unknown'}"
+                     f"  ·  last verified: {h['last_verified'] or 'never'}")
+        if h["snippet"]:
+            lines.append(f"      … {h['snippet']}")
+    return "\n".join(lines), {"query": query, "hits": hits}
+
+
+def tool_get(args):
+    name = str(args.get("name") or "").strip()
+    if not name:
+        raise ToolError("name is required")
+    entry_type, path, fm, body = _require_entry(name)
+    return path.read_text(encoding="utf-8"), {
+        "name": _entry_name(path, fm),
+        "type": entry_type,
+        "path": str(path.relative_to(kb.ROOT)),
+        "frontmatter": fm,
+        "body": body,
+    }
+
+
+def tool_context(args):
+    query = str(args.get("query") or "").strip()
+    if not query:
+        raise ToolError("query is required — describe the task you are about to work on")
+    pack = kb.context_pack(
+        query,
+        budget=_int(args, "budget", kb.DEFAULT_CONTEXT_BUDGET),
+        types=[_optional_type(args)] if args.get("type") else None,
+        include_episodic=bool(args.get("include_episodic", False)),
+        limit=_int(args, "limit", 0),
+    )
+    return pack["text"], {k: v for k, v in pack.items() if k != "text"}
+
+
+def tool_triage(args):
+    report = kb.triage_report()
+    entry_type = _optional_type(args)
+    if entry_type:
+        report = [r for r in report if r["type"] == entry_type]
+    reason = args.get("reason")
+    if reason:
+        report = [r for r in report if any(x["code"] == reason for x in r["reasons"])]
+    if not report:
+        return "triage clean — nothing needs attention", {"triage": []}
+    lines = []
+    for r in report:
+        lines.append(f"[{r['type']}] {r['name']} — {', '.join(x['code'] for x in r['reasons'])}")
+        for x in r["reasons"]:
+            lines.append(f"    - {x['code']}: {x['detail']}")
+    lines.append(f"\n{len(report)} entr(ies) need attention")
+    return "\n".join(lines), {"triage": report}
+
+
+def tool_status(args):
+    report = kb.status_report()
+    entry_type = _optional_type(args)
+    if entry_type:
+        report = [r for r in report if r["type"] == entry_type]
+    wanted = args.get("status")
+    if wanted:
+        if wanted not in kb.STATUS_ORDER:
+            raise ToolError(f"status must be one of: {', '.join(kb.STATUS_ORDER)}")
+        report = [r for r in report if r["status"] == wanted]
+    if not report:
+        return "no entries match", {"entries": [], "counts": {}}
+    counts = {}
+    lines = []
+    for r in report:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+        age = f"{r['age_days']}d ago" if r["age_days"] is not None else "never verified"
+        lines.append(f"[{r['label']}] {r['name']} ({r['type']}) — {age}; → {r['action']}")
+    summary = "  ".join(f"{kb.STATUS_BY_KEY[k]['label'].lower()}: {counts[k]}"
+                        for k in kb.STATUS_ORDER if counts.get(k))
+    lines.append(f"\n{len(report)} entries — {summary}")
+    return "\n".join(lines), {"entries": report, "counts": counts}
+
+
+def tool_propose_update(args):
+    """Stage an edit in the working tree. Never commits — that is the point."""
+    name = str(args.get("name") or "").strip()
+    if not name:
+        raise ToolError("name is required")
+    entry_type, path, fm, _ = _require_entry(name)
+    resolved = _entry_name(path, fm)
+    changes = {}
+
+    if "description" in args:
+        desc = str(args["description"]).strip()
+        if not desc:
+            raise ToolError("description cannot be empty")
+        changes["description"] = desc
+
+    if "confidence" in args:
+        conf = str(args["confidence"]).strip()
+        if conf not in kb.CONFIDENCE_LEVELS:
+            raise ToolError(f"confidence must be one of: {', '.join(kb.CONFIDENCE_LEVELS)}")
+        changes["confidence"] = conf
+
+    if "links" in args:
+        links = args["links"]
+        if not isinstance(links, list):
+            raise ToolError("links must be a list of entry names")
+        links = [str(x).strip() for x in links if str(x).strip()]
+        known = {_entry_name(p, f) for _, p, f, _ in _all_entries()}
+        for target in links:
+            if target == resolved:
+                raise ToolError("an entry cannot link to itself")
+            if target not in known:
+                raise ToolError(f"no entry named '{target}' — refusing to create a dangling link")
+        changes["links"] = links
+
+    if args.get("verify"):
+        changes["last_verified"] = date.today().isoformat()
+
+    body = args.get("body")
+    if body is not None and not str(body).strip():
+        raise ToolError("body cannot be emptied — omit it to leave the body alone")
+
+    if not changes and body is None:
+        raise ToolError("nothing to change — pass description, confidence, links, body, or verify")
+
+    if changes:
+        kb.write_frontmatter(path, changes)
+    if body is not None:
+        kb.write_body(path, str(body))
+
+    changed = sorted(set(changes) | ({"body"} if body is not None else set()))
+    kb._append_log(entry_type, path.stem, date.today().isoformat(), "updated",
+                   ", ".join(changed))
+    rel = str(path.relative_to(kb.ROOT))
+    log(f"staged {', '.join(changed)} on {rel}")
+    text = (
+        f"Staged {', '.join(changed)} on {rel}.\n\n"
+        "The change is in the working tree and has NOT been committed. Review it with\n"
+        f"    git diff -- {rel}\n"
+        "and commit it yourself if it is right."
+    )
+    return text, {"name": resolved, "path": rel, "changed": changed,
+                  "committed": False, "review": f"git diff -- {rel}"}
+
+
+READ_TOOLS = [
+    {
+        "name": "context",
+        "title": "Context pack for a task",
+        "description": (
+            "The one call to make at the start of a task. Returns a budgeted, "
+            "paste-ready brief of the most relevant memory entries, each with its "
+            "confidence, last-verified date, and source file. Episodic logs are "
+            "excluded by default because they describe one past run."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "the task you are about to work on"},
+                "budget": {"type": "integer",
+                           "description": f"approximate token budget (default {kb.DEFAULT_CONTEXT_BUDGET})"},
+                "limit": {"type": "integer",
+                          "description": "cap on entries considered (0 for no cap)"},
+                "type": {"type": "string", "enum": kb.TYPES,
+                         "description": "restrict to one memory type"},
+                "include_episodic": {"type": "boolean",
+                                     "description": "include episodic logs (default false)"},
+            },
+            "required": ["query"],
+        },
+        "handler": tool_context,
+    },
+    {
+        "name": "search",
+        "title": "Ranked search",
+        "description": (
+            "BM25 search across the whole store, best first. Ranking is type-aware: "
+            "a term in an entry's name counts for more than one in the body, "
+            "procedures and facts outrank scratch files, recency applies to episodic "
+            "entries only, and confidence nudges near-ties."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "what to look for"},
+                "limit": {"type": "integer", "description": "hits to return (0 for all; default 10)"},
+                "type": {"type": "string", "enum": kb.TYPES,
+                         "description": "restrict to one memory type"},
+                "include_episodic": {"type": "boolean",
+                                     "description": "include episodic logs (default true)"},
+            },
+            "required": ["query"],
+        },
+        "handler": tool_search,
+    },
+    {
+        "name": "get",
+        "title": "Read one entry",
+        "description": "Return one entry in full — raw markdown plus parsed frontmatter.",
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "entry name or filename stem"}},
+            "required": ["name"],
+        },
+        "handler": tool_get,
+    },
+    {
+        "name": "triage",
+        "title": "What needs attention",
+        "description": (
+            "The queue of entries that are wrong or ageing — overdue reminders, stale "
+            "facts, unverified claims, broken dates, orphans — worst first."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": kb.TYPES},
+                "reason": {"type": "string", "enum": sorted(kb.TRIAGE_SEVERITY),
+                           "description": "only entries flagged for this reason"},
+            },
+        },
+        "handler": tool_triage,
+    },
+    {
+        "name": "status",
+        "title": "Where every entry stands",
+        "description": (
+            "Every entry with the one status that describes it and the single command "
+            "that moves it on. Triage lists what is already wrong; status accounts for "
+            "everything, so 'clean' cannot quietly mean 'unexamined'."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "enum": kb.TYPES},
+                "status": {"type": "string", "enum": kb.STATUS_ORDER},
+            },
+        },
+        "handler": tool_status,
+    },
+]
+
+WRITE_TOOLS = [
+    {
+        "name": "propose_update",
+        "title": "Propose an edit (staged, not committed)",
+        "description": (
+            "Stage an edit to an existing entry in the working tree for human review. "
+            "This never commits: git remains the durable write path and the review "
+            "gate. Links are checked so a proposal cannot dangle."
+        ),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False,
+                        "idempotentHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "entry to edit"},
+                "description": {"type": "string", "description": "new one-line description"},
+                "confidence": {"type": "string", "enum": kb.CONFIDENCE_LEVELS},
+                "links": {"type": "array", "items": {"type": "string"},
+                          "description": "replacement link list; every target must exist"},
+                "body": {"type": "string", "description": "replacement body markdown"},
+                "verify": {"type": "boolean",
+                           "description": "stamp last_verified as today"},
+            },
+            "required": ["name"],
+        },
+        "handler": tool_propose_update,
+    },
+]
+
+
+def tool_table(read_only):
+    tools = READ_TOOLS if read_only else READ_TOOLS + WRITE_TOOLS
+    return {t["name"]: t for t in tools}
+
+
+# --- resources --------------------------------------------------------------
+
+def list_resources():
+    resources = []
+    agent_md = kb.MEMORY / "AGENT.md"
+    if agent_md.is_file():
+        resources.append({
+            "uri": AGENT_URI,
+            "name": "AGENT.md",
+            "title": "Agent entry point",
+            "description": "How this memory store is organised and how to write to it.",
+            "mimeType": "text/markdown",
+        })
+    for t, path, fm, _ in _all_entries():
+        name = _entry_name(path, fm)
+        resources.append({
+            "uri": RESOURCE_PREFIX + name,
+            "name": name,
+            "title": f"{name} ({t})",
+            "description": fm.get("description", ""),
+            "mimeType": "text/markdown",
+        })
+    return resources
+
+
+def read_resource(uri):
+    if uri == AGENT_URI:
+        path = kb.MEMORY / "AGENT.md"
+        if not path.is_file():
+            raise RpcError(RESOURCE_NOT_FOUND, f"resource not found: {uri}")
+        return {"uri": uri, "mimeType": "text/markdown",
+                "text": path.read_text(encoding="utf-8")}
+    if not uri.startswith(RESOURCE_PREFIX):
+        raise RpcError(RESOURCE_NOT_FOUND, f"resource not found: {uri}")
+    name = uri[len(RESOURCE_PREFIX):]
+    hit = kb.resolve(name)
+    if hit is None:
+        raise RpcError(RESOURCE_NOT_FOUND, f"resource not found: {uri}")
+    _, path, _, _ = hit
+    return {"uri": uri, "mimeType": "text/markdown",
+            "text": path.read_text(encoding="utf-8")}
+
+
+RESOURCE_TEMPLATES = [
+    {
+        "uriTemplate": RESOURCE_PREFIX + "{name}",
+        "name": "Memory entry",
+        "title": "Memory entry by name",
+        "description": "One entry of the knowledge base, addressed by its name.",
+        "mimeType": "text/markdown",
+    },
+]
+
+
+# --- JSON-RPC ---------------------------------------------------------------
+
+class Server:
+    def __init__(self, read_only=False):
+        self.read_only = read_only
+        self.tools = tool_table(read_only)
+
+    def initialize(self, params):
+        requested = params.get("protocolVersion")
+        version = requested if requested in PROTOCOL_VERSIONS else LATEST_PROTOCOL
+        client = (params.get("clientInfo") or {}).get("name", "unknown client")
+        log(f"{client} connected, protocol {version}"
+            f"{' (read-only)' if self.read_only else ''}")
+        return {
+            "protocolVersion": version,
+            "capabilities": {
+                "tools": {},
+                "resources": {},
+            },
+            "serverInfo": {
+                "name": SERVER_NAME,
+                "title": "Agent memory knowledge base",
+                "version": SERVER_VERSION,
+            },
+            "instructions": INSTRUCTIONS,
+        }
+
+    def call_tool(self, params):
+        name = params.get("name")
+        tool = self.tools.get(name)
+        if tool is None:
+            if name in {t["name"] for t in WRITE_TOOLS}:
+                raise RpcError(INVALID_PARAMS,
+                               f"tool '{name}' is disabled: this server is running --read-only")
+            raise RpcError(INVALID_PARAMS, f"unknown tool: {name!r}")
+        arguments = params.get("arguments") or {}
+        if not isinstance(arguments, dict):
+            raise RpcError(INVALID_PARAMS, "arguments must be an object")
+        try:
+            text, structured = tool["handler"](arguments)
+        except ToolError as e:
+            return {"content": [{"type": "text", "text": str(e)}], "isError": True}
+        except (OSError, ValueError) as e:
+            log(f"{name} failed: {type(e).__name__}: {e}")
+            return {"content": [{"type": "text", "text": f"{type(e).__name__}: {e}"}],
+                    "isError": True}
+        return {
+            "content": [{"type": "text", "text": text}],
+            "structuredContent": structured,
+            "isError": False,
+        }
+
+    def handle(self, method, params):
+        if method == "initialize":
+            return self.initialize(params)
+        if method == "ping":
+            return {}
+        if method == "tools/list":
+            return {"tools": [{k: v for k, v in t.items() if k != "handler"}
+                              for t in self.tools.values()]}
+        if method == "tools/call":
+            return self.call_tool(params)
+        if method == "resources/list":
+            return {"resources": list_resources()}
+        if method == "resources/templates/list":
+            return {"resourceTemplates": RESOURCE_TEMPLATES}
+        if method == "resources/read":
+            uri = params.get("uri")
+            if not uri:
+                raise RpcError(INVALID_PARAMS, "uri is required")
+            return {"contents": [read_resource(uri)]}
+        raise RpcError(METHOD_NOT_FOUND, f"method not found: {method}")
+
+
+def _error(request_id, code, message):
+    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+
+
+def dispatch(server, message):
+    """One request in, one response out — or None for a notification."""
+    if not isinstance(message, dict) or message.get("jsonrpc") != "2.0":
+        return _error(None, INVALID_REQUEST, "expected a JSON-RPC 2.0 object")
+    method = message.get("method")
+    if not isinstance(method, str):
+        return _error(message.get("id"), INVALID_REQUEST, "missing method")
+    params = message.get("params") or {}
+    if not isinstance(params, dict):
+        return _error(message.get("id"), INVALID_PARAMS, "params must be an object")
+
+    is_notification = "id" not in message
+    try:
+        result = server.handle(method, params)
+    except RpcError as e:
+        if is_notification:
+            return None
+        return _error(message["id"], e.code, str(e))
+    except Exception as e:  # never let one bad request kill the connection
+        log(f"{method} raised {type(e).__name__}: {e}")
+        if is_notification:
+            return None
+        return _error(message["id"], INTERNAL_ERROR, f"{type(e).__name__}: {e}")
+
+    if is_notification:
+        return None
+    return {"jsonrpc": "2.0", "id": message["id"], "result": result}
+
+
+def serve(stdin=None, stdout=None, read_only=False):
+    stdin = stdin or sys.stdin
+    stdout = stdout or sys.stdout
+    server = Server(read_only=read_only)
+    log(f"serving {kb.MEMORY} over stdio "
+        f"({len(server.tools)} tools, protocol {LATEST_PROTOCOL})")
+    for line in stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            message = json.loads(line)
+        except json.JSONDecodeError as e:
+            response = _error(None, PARSE_ERROR, f"invalid JSON: {e}")
+        else:
+            if isinstance(message, list):
+                # Batching was removed from the protocol in 2025-06-18.
+                response = _error(None, INVALID_REQUEST, "batch requests are not supported")
+            else:
+                response = dispatch(server, message)
+        if response is None:
+            continue
+        # json.dumps escapes newlines inside strings, so a message is always
+        # exactly one line — which the stdio transport requires.
+        stdout.write(json.dumps(response) + "\n")
+        stdout.flush()
+    log("stdin closed, exiting")
+    return 0
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Serve the knowledge base over MCP (stdio).")
+    ap.add_argument("--read-only", action="store_true",
+                    help="expose only the read tools; drop propose_update entirely")
+    args = ap.parse_args(argv)
+    try:
+        return serve(read_only=args.read_only)
+    except KeyboardInterrupt:
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

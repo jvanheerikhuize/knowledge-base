@@ -54,16 +54,20 @@ already configured this way; inside a session just do the work you were given.
 
 ## Backlog (top item first — keep this list current)
 
-- [ ] **Probe sibling-repo access.** From a routine session, check whether
-  other `jvanheerikhuize/*` repos can be cloned/pushed (try `gh repo clone` /
-  `git clone`). Record the result as a KB entry. If yes, expand this backlog
-  with per-repo items from the workspace ROADMAP (P2 knowledge consolidation
-  is next); if no, all work stays in this repo.
-- [ ] **ROADMAP Phase 2 — expose the KB over MCP.** Design first (research
-  session), then implement stdlib-only if feasible; otherwise document the
-  chosen approach in the ROADMAP with real trade-offs.
-- [ ] **Real source URLs in ROADMAP.md.** Replace placeholder references with
-  the actual sources consulted.
+- [x] **Probe sibling-repo access.** (2026-07-28) **No.** Routine sessions are
+  scoped to the one repo the routine was configured with; a sibling clone fails
+  on auth and the GitHub MCP tools refuse other repos. All work stays here.
+  Recorded as `sibling-repo-access-denied-in-routines`. To get autonomous work
+  in another repo, configure a separate routine pointed at it.
+- [x] **ROADMAP Phase 2 — expose the KB over MCP.** (2026-07-28) Designed and
+  shipped: `scripts/mcp_server.py`, stdio, stdlib-only, six tools plus entries
+  as resources, writes staged and never committed, `--read-only` mode. Speaks
+  MCP 2025-11-25; the version trade-off against 2026-07-28 is written up in the
+  ROADMAP. 39 new tests.
+- [x] **Real source URLs in ROADMAP.md.** (2026-07-28) Partly: a "Sources
+  consulted" section now lists what was actually read, with dates. The
+  near-neighbour projects named in Phase 2 are flagged as still unverified
+  rather than dressed up with plausible links — verify or drop them.
 - [ ] **Test consolidation & audit.** Review `tests/` for overlap and gaps
   (127 tests as of 2026-07-27); consolidate where LEAN, add coverage where a
   regression could hide.
@@ -71,9 +75,15 @@ already configured this way; inside a session just do the work you were given.
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
   broken or stale; regenerate if the store changed.
-- [ ] **Workspace docs drift** (needs sibling access): `~/Repos/CLAUDE.md`
-  lists 20 repos, disk has 22 — reconcile the table (see KB entry
-  `workspace-repo-inventory-drift`).
+- [ ] **ROADMAP Phase 3 — consolidation and forgetting.** Now the top research
+  item: `kb.py dupes` (token shingling), `kb.py consolidate` (propose merges),
+  mechanical contradiction detection, `kb.py archive`, confidence decay. This is
+  the answer to the sentence in `memory/AGENT.md` admitting no contradiction
+  checker exists.
+- [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
+  routine.** Needs sibling-repo access, which routine sessions do not have
+  (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`
+  needs either a local session or a routine configured against that repo.
 
 ## Debrief contract
 
