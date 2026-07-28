@@ -21,20 +21,18 @@ Set up 2026-07-27 before you left.
 
 ## Blockers / notes
 
-- **2026-07-28 — THIS SESSION COULD NOT PUSH. Read the note before anything
-  else.** The MCP work above is committed locally but **was never pushed** —
-  `git push` to `claude/wizardly-dijkstra-idh56e` returns 403 from the session's
-  git relay, and the GitHub API returns `403 Resource not accessible by
-  integration` for both `create_branch` and `push_files`. Reads work fine
-  (`git fetch`, `ls-remote`, all read APIs); only writes are denied, so the
-  session's GitHub credentials are read-only. The proxy README says not to retry
-  a 403 policy denial, and three attempts plus two API routes confirmed it.
-  The branch does not exist on the remote: `main` is still the only branch.
-  **The commit was delivered as a `git am`-able patch instead** — apply it with
-  `git checkout -b claude/wizardly-dijkstra-idh56e main && git am <patch>`.
-  **Fix before the next routine run:** give the routine's environment write
-  scope on `jvanheerikhuize/knowledge-base`, otherwise every future session
-  will do good work and lose it the same way.
+- **2026-07-28 — the session started read-only; you fixed it mid-run.** For most
+  of this session `git push` returned 403 from the git relay and the GitHub API
+  returned `403 Resource not accessible by integration`; reads worked
+  throughout, so the credential was read-only rather than absent. You
+  reconnected GitHub partway through and the push went straight out — the work
+  above is on `claude/wizardly-dijkstra-idh56e`, nothing was lost. Worth
+  remembering because the failure mode is quiet: a routine can do a full
+  session of work, pass every test, and only discover at the end that it cannot
+  push. Note for the record that the Claude GitHub App install is *not* what
+  controls this — per the web docs, App installation drives PR webhooks and
+  Auto-fix, while session git access comes from how the GitHub account is
+  connected (web onboarding or `/web-setup`).
 
 - **2026-07-28 — routine sessions cannot reach sibling repos.** Probed
   directly: cloning `jvanheerikhuize/digital-twin` fails on auth, and the
