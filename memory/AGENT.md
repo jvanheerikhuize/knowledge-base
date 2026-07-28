@@ -47,6 +47,14 @@ The file is never rewritten — `kb.py verify <name>` is what resets the clock.
 When you see `medium (recorded as verified, aged)` in a context pack, that is
 this: trust the first number, and treat the gap as a prompt to re-check.
 
+**Before you add an entry, check you are not restating one.** `kb.py dupes`
+catches text recorded twice, but it will *not* catch you making the same claim
+in different words — that was measured, and lexical similarity ranks topical
+neighbours above real restatements (see the `kb-duplicate-detection-limits`
+entry). So the check that matters is the one you do: `kb.py search` the claim
+first, read what comes back, and extend an existing entry rather than adding a
+near-twin. Nothing in the tooling will catch it if you skip this.
+
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
@@ -112,6 +120,7 @@ scripts/kb.py status [--type T] [--status S] [--legend]   # where every entry st
 scripts/kb.py triage                     # what needs attention, most urgent first
 scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
 scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and its links stay
+scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR

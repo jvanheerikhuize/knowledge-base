@@ -197,6 +197,7 @@ python3 scripts/kb.py status --legend  # what each status means and how to leave
 python3 scripts/kb.py triage           # only what needs attention, worst first
 python3 scripts/kb.py verify <name> --confidence high
 python3 scripts/kb.py archive <name> [--undo]   # retire from retrieval, keep the file
+python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not paraphrases)
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -252,6 +253,49 @@ still accounts for it, under its own `archived` state. `--undo` reverses it, and
 The distinction matters: deleting an entry destroys the evidence that anyone
 ever thought it. Archiving is the operation you want almost every time.
 
+## Duplicates, and the honest limit on finding them
+
+```
+python3 scripts/kb.py dupes [--threshold 0.5]
+```
+
+`dupes` finds **text recorded twice** — an entry added twice, a scaffolded copy
+drifting back in, an agent re-recording its own work. It reports Jaccard over
+5-word shingles *and* containment, because they answer different questions:
+Jaccard asks "are these the same entry twice", containment asks "is the smaller
+one already wholly inside the larger", which is the superseded-entry case
+Jaccard scores lowest exactly when the sizes differ most. Entries with fewer
+than 20 shingles are named as too short to judge rather than silently skipped.
+
+**It does not find two entries making the same claim in different words**, and
+that is measured, not assumed. A hand-written paraphrase of an existing entry
+ranked **#14 of 210 pairs** by token Jaccard and **#16** by tf-idf cosine —
+below thirteen pairs of entries that merely share a subject. On raw 5-word
+shingles it scored 0.000, against a whole-store maximum of 0.007.
+
+The reason is structural: shingling detects copy-paste, and hand-written prose
+about related topics shares vocabulary without sharing phrasing. Every lexical
+metric therefore ranks *topical neighbours* above *actual restatements*. Any
+threshold low enough to catch a paraphrase admits a dozen false positives first,
+and a tool whose top hits are all wrong is one people learn to ignore.
+
+So the default sits at ~70× the observed maximum, the command prints the
+sentence naming its own limit, and a clean result means *no copies found* —
+never *no duplicates*. Detecting semantic duplication needs embeddings (which
+break the no-infrastructure premise) or an agent judging candidate pairs (which
+is how classification already works for `kb.py new`); the second is the intended
+route and is not built. Full write-up in the `kb-duplicate-detection-limits`
+entry; `TestDupes.test_a_paraphrase_is_not_flagged` pins it as a regression test,
+so lowering the threshold to "catch more" fails loudly.
+
+One deliberate consequence: entries still holding the unfilled template body are
+identical to each other, so `dupes` flags them. That is a feature — it surfaces
+scaffolding nobody came back to finish.
+
+MinHash and LSH were considered and rejected: they approximate Jaccard to make
+O(n²) tractable at web scale, and this store is a few dozen files where the exact
+computation is free and an approximation would only add error.
+
 `kb.py status` answers the complementary question. Where `triage` lists only
 what is already wrong, `status` places *every* entry in exactly one of eight
 states — `broken`, `overdue`, `stale`, `unverified`, `provisional`, `isolated`,
@@ -277,6 +321,7 @@ no process to keep running — the client spawns it.
 | `get` | one entry in full: raw markdown plus parsed frontmatter |
 | `triage` | the queue of entries that are wrong or ageing, worst first |
 | `status` | every entry in exactly one status, with the command that moves it |
+| `dupes` | entry pairs whose text overlaps near-verbatim — copies, not paraphrases |
 | `propose_update` | stage an edit to an entry in the working tree — **never commits**; also archives and un-archives |
 
 Entries are also published as MCP *resources* (`kb://entry/<name>`, plus

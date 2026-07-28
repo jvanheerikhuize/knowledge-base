@@ -168,7 +168,7 @@ class TestToolListing(McpTestCase):
         tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertEqual(
             set(tools),
-            {"context", "search", "get", "triage", "status", "propose_update"},
+            {"context", "search", "get", "triage", "status", "dupes", "propose_update"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -332,6 +332,65 @@ class TestProposeUpdate(McpTestCase):
             cwd=self.root, capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+class TestDupesOverMcp(McpTestCase):
+    PROSE = (
+        "The knowledge base stores every memory as a markdown file with a "
+        "small block of YAML frontmatter at the top. There is no database and "
+        "no vector store anywhere in the design, and git is the only durable "
+        "write path that the system relies on for its history."
+    )
+
+    def set_body(self, slug, prose):
+        self.handshake()
+        self.call("propose_update", {"name": slug, "body": prose})
+
+    OTHER = (
+        "Each note here lives on disk as ordinary text, carrying a short "
+        "header of structured fields. Nothing relational is involved, no "
+        "embedding index exists, and version control alone provides the "
+        "lasting record of how things changed over time."
+    )
+
+    def test_a_clean_store_reports_none_and_still_names_the_limit(self):
+        self.handshake()
+        self.call("propose_update", {"name": "first-fact", "body": self.PROSE})
+        self.call("propose_update", {"name": "second-fact", "body": self.OTHER})
+        result = self.result_of(self.call("dupes"))
+        self.assertFalse(result["isError"])
+        self.assertEqual(result["structuredContent"]["pairs"], [])
+        self.assertIn("not the same claim written twice", result["content"][0]["text"])
+
+    def test_copied_text_is_reported(self):
+        self.handshake()
+        for slug in ("first-fact", "second-fact"):
+            self.call("propose_update", {"name": slug, "body": self.PROSE})
+        result = self.result_of(self.call("dupes"))
+        pairs = result["structuredContent"]["pairs"]
+        self.assertEqual(len(pairs), 1)
+        self.assertEqual({pairs[0]["a"], pairs[0]["b"]}, {"first-fact", "second-fact"})
+        self.assertGreater(pairs[0]["jaccard"], 0.9)
+
+    def test_entries_still_holding_the_template_are_flagged(self):
+        """Two scaffolded-but-unfilled entries are verbatim duplicates of each
+        other. Surfacing that is the point, not a false positive."""
+        self.handshake()
+        result = self.result_of(self.call("dupes"))
+        pairs = result["structuredContent"]["pairs"]
+        self.assertEqual({pairs[0]["a"], pairs[0]["b"]}, {"first-fact", "second-fact"})
+        self.assertEqual(pairs[0]["jaccard"], 1.0)
+
+    def test_a_non_numeric_threshold_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("dupes", {"threshold": "loose"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("must be a number", result["content"][0]["text"])
+
+    def test_dupes_is_read_only(self):
+        self.handshake()
+        tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertTrue(tools["dupes"]["annotations"]["readOnlyHint"])
 
 
 class TestArchiveOverMcp(McpTestCase):
