@@ -8,7 +8,9 @@ on:
       - "scripts/kb.py"
       - "scripts/build_site.py"
       - "scripts/serve.py"
+      - "scripts/mcp_server.py"
       - "tests/**"
+      - ".github/workflows/kb-lint.yml"
   push:
     branches: [main]
     paths:
@@ -17,7 +19,9 @@ on:
       - "scripts/kb.py"
       - "scripts/build_site.py"
       - "scripts/serve.py"
+      - "scripts/mcp_server.py"
       - "tests/**"
+      - ".github/workflows/kb-lint.yml"
   schedule:
     - cron: "0 6 * * 1"  # weekly, Mondays 06:00 UTC
   workflow_dispatch:
