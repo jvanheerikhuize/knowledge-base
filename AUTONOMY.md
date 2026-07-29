@@ -68,9 +68,24 @@ already configured this way; inside a session just do the work you were given.
   consulted" section now lists what was actually read, with dates. The
   near-neighbour projects named in Phase 2 are flagged as still unverified
   rather than dressed up with plausible links — verify or drop them.
-- [ ] **Test consolidation & audit.** Review `tests/` for overlap and gaps
-  (127 tests as of 2026-07-27); consolidate where LEAN, add coverage where a
-  regression could hide.
+- [x] **Test consolidation & audit.** (2026-07-29) Done. Read all 231 tests
+  against the four source files they cover. Consolidation was the smaller
+  win: trimmed a handful of tests re-asserting numbers already pinned
+  elsewhere, merged one strict-subset test, repurposed one confidence-decay
+  test whose two ages landed on the same clamp branch into a new
+  intermediate-step test. The gap half mattered more: it found two real,
+  silent bugs — `kb.py set <name> links <value>` wrote a bare string instead
+  of list syntax (frontmatter corruption, since e.g. `cmd_link` then iterates
+  the string's characters), and `kb.py dupes` had no archived-entry filter
+  where `kb.py candidates` did, so an archived entry could be flagged as a
+  live duplicate. Both fixed (`set` now refuses `links`, pointing at `kb.py
+  link`; `dupe_pairs` now skips archived entries like `_candidate_docs`
+  does), each with a regression test confirmed to fail pre-fix. Also added
+  tests for previously-uncovered error paths (MCP `propose_update`/`judge`
+  on a missing entry, malformed JSON-RPC params/method/`resources/read`,
+  `build_site`'s empty-KB rendering branches, `serve.py` malformed POST
+  bodies and a route missing its required name). 231 → 244 tests, all green.
+  Write-up: `kb-test-audit-2026-07-29`.
 - [ ] **KB hygiene pass.** `scripts/kb.py triage`; re-verify ageing entries,
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything

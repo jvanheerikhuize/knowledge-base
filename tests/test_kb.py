@@ -353,16 +353,12 @@ class TestNewDueAndLog(KbTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("not a valid date", result.stderr)
 
-    def test_new_appends_to_log(self):
-        self.run_kb("new", "logged-entry", "--type", "semantic")
-        log_path = self.root / ".kb" / "log.md"
-        self.assertTrue(log_path.is_file())
-        self.assertIn("logged-entry", log_path.read_text())
-
     def test_new_appends_multiple_log_lines(self):
         self.run_kb("new", "first-entry", "--type", "semantic")
         self.run_kb("new", "second-entry", "--type", "semantic")
-        log_text = (self.root / ".kb" / "log.md").read_text()
+        log_path = self.root / ".kb" / "log.md"
+        self.assertTrue(log_path.is_file())
+        log_text = log_path.read_text()
         self.assertIn("first-entry", log_text)
         self.assertIn("second-entry", log_text)
 
@@ -540,6 +536,14 @@ class TestSet(KbTestCase):
             result = self.run_kb("set", "some-fact", field, "whatever")
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("refusing", result.stderr)
+
+    def test_refuses_links_because_it_would_write_a_bare_string_not_a_list(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        result = self.run_kb("set", "some-fact", "links", "some-other-entry")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refusing", result.stderr)
+        self.assertNotIn("links: some-other-entry",
+                          self.entry_path("semantic", "some-fact").read_text())
 
     def test_validates_dates_and_confidence(self):
         self.run_kb("new", "some-fact", "--type", "semantic")
@@ -846,6 +850,11 @@ class TestDupes(KbTestCase):
         out = self.run_kb("dupes").stdout
         self.assertIn("not the same claim written twice", out)
 
+    def test_an_archived_copy_is_not_flagged(self):
+        self.run_kb("archive", "copied-entry")
+        pairs = self.pair_names(self.dupes())
+        self.assertNotIn(frozenset(("original-entry", "copied-entry")), pairs)
+
 
 class TestCandidates(KbTestCase):
     """The other half of duplicate detection: the pair `dupes` is built to miss.
@@ -1014,9 +1023,11 @@ class TestConfidenceDecay(KbTestCase):
         self.assertEqual(row["effective_confidence"], "high")
         self.assertEqual(row["decayed_by"], 1)
 
-    def test_a_year_untouched_is_no_longer_verified(self):
-        self.age(365)
-        self.assertEqual(self.status_row()["effective_confidence"], "unverified")
+    def test_two_staleness_periods_drop_two_levels(self):
+        self.age(200)
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "medium")
+        self.assertEqual(row["decayed_by"], 2)
 
     def test_decay_bottoms_out_rather_than_running_off_the_scale(self):
         self.age(5000)

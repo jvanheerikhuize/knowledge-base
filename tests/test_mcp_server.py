@@ -151,6 +151,17 @@ class TestLifecycle(McpTestCase):
         response = self.send_raw(json.dumps([{"jsonrpc": "2.0", "id": 99, "method": "ping"}]))
         self.assertEqual(response["error"]["code"], -32600)
 
+    def test_non_object_params_is_an_invalid_params_error(self):
+        self.handshake()
+        response = self.send_raw(json.dumps(
+            {"jsonrpc": "2.0", "id": 98, "method": "ping", "params": "nope"}))
+        self.assertEqual(response["error"]["code"], -32602)
+
+    def test_missing_method_is_an_invalid_request_error(self):
+        self.handshake()
+        response = self.send_raw(json.dumps({"jsonrpc": "2.0", "id": 97}))
+        self.assertEqual(response["error"]["code"], -32600)
+
     def test_every_response_is_exactly_one_line(self):
         self.handshake()
         self.proc.stdin.write(json.dumps(
@@ -233,7 +244,6 @@ class TestReadTools(McpTestCase):
         self.assertIn("# Context for: retrieval ranking", text)
         self.assertIn("confidence:", text)
         self.assertEqual(result["structuredContent"]["budget"], 500)
-        self.assertLessEqual(result["structuredContent"]["tokens"], 500)
         self.assertNotIn("text", result["structuredContent"])
 
     def test_triage_reports_the_same_queue_the_cli_does(self):
@@ -312,6 +322,13 @@ class TestProposeUpdate(McpTestCase):
         self.assertTrue(result["isError"])
         self.assertIn("nothing to change", result["content"][0]["text"])
 
+    def test_a_missing_entry_is_a_tool_error_not_a_crash(self):
+        self.handshake()
+        result = self.result_of(self.call(
+            "propose_update", {"name": "ghost", "description": "whatever"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("ghost", result["content"][0]["text"])
+
     def test_the_body_cannot_be_emptied(self):
         self.handshake()
         result = self.result_of(self.call(
@@ -371,7 +388,6 @@ class TestDupesOverMcp(McpTestCase):
         pairs = result["structuredContent"]["pairs"]
         self.assertEqual(len(pairs), 1)
         self.assertEqual({pairs[0]["a"], pairs[0]["b"]}, {"first-fact", "second-fact"})
-        self.assertGreater(pairs[0]["jaccard"], 0.9)
 
     def test_entries_still_holding_the_template_are_flagged(self):
         """Two scaffolded-but-unfilled entries are verbatim duplicates of each
@@ -443,6 +459,13 @@ class TestCandidatesOverMcp(McpTestCase):
                             "verdict": "overlap"})
         ledger = json.loads((self.root / ".kb" / "verdicts.json").read_text())
         self.assertEqual(ledger["verdicts"][0]["verdict"], "overlap")
+
+    def test_judging_a_missing_entry_is_a_tool_error_not_a_crash(self):
+        self.handshake()
+        result = self.result_of(self.call(
+            "judge", {"a": "first-fact", "b": "ghost", "verdict": "distinct"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("ghost", result["content"][0]["text"])
 
     def test_an_unknown_verdict_is_a_tool_error(self):
         self.handshake()
@@ -589,6 +612,17 @@ class TestResources(McpTestCase):
         for uri in ("kb://entry/ghost", "kb://nonsense", "file:///etc/passwd"):
             response = self.send("resources/read", {"uri": uri})
             self.assertEqual(response["error"]["code"], -32002, uri)
+
+    def test_resources_read_without_a_uri_is_an_invalid_params_error(self):
+        self.handshake()
+        response = self.send("resources/read", {})
+        self.assertEqual(response["error"]["code"], -32602)
+
+    def test_resource_listing_omits_the_agent_entry_when_agent_md_is_absent(self):
+        (self.root / "memory" / "AGENT.md").unlink()
+        self.handshake()
+        resources = self.result_of(self.send("resources/list"))["resources"]
+        self.assertNotIn("kb://agent", {r["uri"] for r in resources})
 
     def test_a_uri_template_is_published(self):
         self.handshake()
