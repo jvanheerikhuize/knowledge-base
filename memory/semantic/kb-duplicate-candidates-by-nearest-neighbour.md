@@ -74,6 +74,13 @@ future `consolidate`.
 at one neighbour, but two positives cleared their nearest rival by under 0.02,
 and seven positives is far too small a sample to spend that margin on.
 
+**The measurement harness was not kept**, deliberately — a research script that
+nothing runs rots, and `TestCandidates` already pins the claim that matters (the
+paraphrase `dupes` must stay quiet about is the one `candidates` must surface).
+The cost is real though: re-running the recall numbers means writing fresh
+paraphrases first, which is exactly what made correcting the 2026-07-28
+conclusion expensive. Budget for that before changing the blocker.
+
 **The transferable lesson.** A negative result can be real, reproducible, and
 correctly guarded by a test, and still point at the wrong conclusion — because
 what was measured was one *framing* of the question rather than the question.

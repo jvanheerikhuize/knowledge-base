@@ -159,7 +159,7 @@
       "b": "kb-duplicate-detection-limits",
       "verdict": "overlap",
       "judged": "2026-07-29",
-      "a_digest": "67d09896aa67",
+      "a_digest": "a37be1bfb423",
       "b_digest": "4dc736de7ec2",
       "note": "deliberately a pair: one records why the dupes threshold sits where it does, the other why a second command exists beside it. Both must survive \u2014 deleting either loses half the reasoning"
     },
@@ -168,7 +168,7 @@
       "b": "kb-forgetting-model",
       "verdict": "overlap",
       "judged": "2026-07-29",
-      "a_digest": "67d09896aa67",
+      "a_digest": "a37be1bfb423",
       "b_digest": "1a1d76b3f41d",
       "note": "consolidation and forgetting, the two halves of Phase 3"
     },
@@ -177,7 +177,7 @@
       "b": "kb-ranked-retrieval",
       "verdict": "overlap",
       "judged": "2026-07-29",
-      "a_digest": "67d09896aa67",
+      "a_digest": "a37be1bfb423",
       "b_digest": "702a697b8dea",
       "note": "both score text over this corpus, for opposite purposes"
     },
