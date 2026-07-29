@@ -53,7 +53,13 @@ in different words — that was measured, and lexical similarity ranks topical
 neighbours above real restatements (see the `kb-duplicate-detection-limits`
 entry). So the check that matters is the one you do: `kb.py search` the claim
 first, read what comes back, and extend an existing entry rather than adding a
-near-twin. Nothing in the tooling will catch it if you skip this.
+near-twin.
+
+After the fact, `kb.py candidates` will put your new entry's nearest neighbours
+in front of you — but only as pairs to *read*, never as a verdict. Judging them
+is your job, and `kb.py judge <a> <b> duplicate|overlap|distinct` is where you
+write the answer down so the next agent does not read the same pair again.
+A verdict survives re-verifying and relinking; rewriting either body reopens it.
 
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
@@ -121,6 +127,8 @@ scripts/kb.py triage                     # what needs attention, most urgent fir
 scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
 scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and its links stay
 scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
+scripts/kb.py candidates [-n 3] [--all]  # pairs that may restate each other — read them, then judge
+scripts/kb.py judge <a> <b> duplicate|overlap|distinct [--note "..."]   # record the call
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR

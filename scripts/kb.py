@@ -7,6 +7,7 @@ Run `kb.py --help` for usage.
 import argparse
 import collections
 import datetime
+import hashlib
 import json
 import math
 import pathlib
@@ -264,6 +265,203 @@ def dupe_pairs(threshold=DUPES_THRESHOLD):
             })
     pairs.sort(key=lambda p: (-max(p["jaccard"], p["containment"]), p["a"], p["b"]))
     return pairs, skipped
+
+
+# --- Semantic duplicate candidates: blocking, not deciding ------------------
+# `dupe_pairs` above answers "is this text recorded twice", and can answer it
+# alone. The harder question — do these two entries make the *same claim in
+# different words* — no lexical metric can answer, which was measured rather
+# than assumed: see [[kb-duplicate-detection-limits]].
+#
+# What was measured since is that the failure was in the framing, not in the
+# metric. A global threshold asks "is this pair similar in absolute terms", and
+# absolute similarity is dominated by how much vocabulary a *topic* happens to
+# share — which varies far more between topics than duplication does within
+# one. Asking instead "of everything here, which entries is this one MOST
+# like" cancels that per-entry baseline out. Over seven hand-written
+# paraphrases planted in this store: ranked globally, the worst of them sat at
+# #81 of 378 pairs; taken as each entry's single nearest neighbour, unioned in
+# both directions, all seven were caught inside 19 pairs — 5% of the space.
+#
+# So what follows is a *blocker*: the cheap, recall-oriented half of the
+# standard record-linkage pair. It narrows the pair space to a few dozen and
+# then stops, because deciding is a judgement someone makes by reading both
+# entries. `record_verdict` is where that judgement is written down.
+NEIGHBOURS = 3
+# Below this an entry has too few distinct words for overlap to mean anything.
+MIN_CANDIDATE_TOKENS = 20
+VERDICTS = ("duplicate", "overlap", "distinct")
+VERDICTS_FILE = KB_DIR / "verdicts.json"
+
+
+def _claim_text(fm, body):
+    """The part of an entry that carries its claim, and nothing else."""
+    return f"{fm.get('description', '')} {body}"
+
+
+def content_digest(fm, body):
+    """Fingerprint of the text a verdict was passed on.
+
+    Over description and body only, deliberately. Re-verifying an entry or
+    linking it elsewhere does not change what it *claims*, so it must not
+    expire a judgement about what it claims.
+    """
+    return hashlib.sha256(_claim_text(fm, body).encode("utf-8")).hexdigest()[:12]
+
+
+def _candidate_docs():
+    """Live entries with their token sets. Archived ones are already retired."""
+    docs, skipped = [], []
+    for t, path in iter_entries():
+        try:
+            fm, body = parse_frontmatter(path)
+        except OSError:
+            continue
+        if is_archived(fm):
+            continue
+        name = fm.get("name", path.stem)
+        tokens = set(tokenize(_claim_text(fm, body)))
+        if len(tokens) < MIN_CANDIDATE_TOKENS:
+            skipped.append(name)
+            continue
+        docs.append({"name": name, "type": t, "fm": fm, "body": body,
+                     "tokens": tokens})
+    return docs, skipped
+
+
+def neighbour_pairs(neighbours=NEIGHBOURS, docs=None):
+    """Each entry's most-similar others by token overlap, unioned both ways.
+
+    The union matters and is not a detail: a long entry's nearest neighbour is
+    often not the short entry that restates it, while the short one's nearest
+    neighbour is reliably the long one. Taking the pair if *either* side
+    nominates it — rather than requiring both — is what turned 6 of 7 planted
+    paraphrases into 7 of 7 at no extra cost.
+
+    Token-set Jaccard, not shingles: shingles measure shared *phrasing*, which
+    is exactly what a restatement does not share.
+
+    Returns (pairs, skipped), most similar first.
+    """
+    skipped = []
+    if docs is None:
+        docs, skipped = _candidate_docs()
+    sims = {}
+    for i, a in enumerate(docs):
+        for j in range(i + 1, len(docs)):
+            b = docs[j]
+            shared = len(a["tokens"] & b["tokens"])
+            if not shared:
+                continue
+            sims[(i, j)] = (shared / len(a["tokens"] | b["tokens"]), shared)
+
+    adjacent = collections.defaultdict(list)
+    for (i, j), (score, shared) in sims.items():
+        adjacent[i].append((score, j))
+        adjacent[j].append((score, i))
+
+    keep = set()
+    for i, neighbourhood in adjacent.items():
+        neighbourhood.sort(key=lambda t: (-t[0], docs[t[1]]["name"]))
+        for _, j in neighbourhood[:max(neighbours, 0)]:
+            keep.add((min(i, j), max(i, j)))
+
+    pairs = []
+    for i, j in keep:
+        a, b = docs[i], docs[j]
+        score, shared = sims[(i, j)]
+        pairs.append({
+            "a": a["name"], "b": b["name"],
+            "a_type": a["type"], "b_type": b["type"],
+            "a_description": a["fm"].get("description", ""),
+            "b_description": b["fm"].get("description", ""),
+            "similarity": round(score, 3),
+            "shared_tokens": shared,
+            "linked": (b["name"] in (a["fm"].get("links") or [])
+                       or a["name"] in (b["fm"].get("links") or [])),
+        })
+    pairs.sort(key=lambda p: (-p["similarity"], p["a"], p["b"]))
+    return pairs, skipped
+
+
+def _verdict_key(a, b):
+    """Order-independent identity for a pair."""
+    return " :: ".join(sorted((a, b)))
+
+
+def load_verdicts():
+    """Standing judgements, keyed by pair. Missing file means none yet."""
+    if not VERDICTS_FILE.is_file():
+        return {}
+    try:
+        data = json.loads(VERDICTS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"warning: ignoring unreadable {VERDICTS_FILE.name}: {e}",
+              file=sys.stderr)
+        return {}
+    return {_verdict_key(v["a"], v["b"]): v
+            for v in data.get("verdicts", [])
+            if isinstance(v, dict) and v.get("a") and v.get("b")}
+
+
+def save_verdicts(verdicts):
+    VERDICTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"version": 1,
+               "verdicts": [verdicts[k] for k in sorted(verdicts)]}
+    VERDICTS_FILE.write_text(json.dumps(payload, indent=2) + "\n",
+                             encoding="utf-8")
+
+
+def record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body, verdict, note=""):
+    """Write down a judgement about one pair, against the text it was made on."""
+    verdicts = load_verdicts()
+    a, b = sorted(((a_name, a_fm, a_body), (b_name, b_fm, b_body)),
+                  key=lambda e: e[0])
+    verdicts[_verdict_key(a_name, b_name)] = {
+        "a": a[0], "b": b[0],
+        "verdict": verdict,
+        "judged": datetime.date.today().isoformat(),
+        "a_digest": content_digest(a[1], a[2]),
+        "b_digest": content_digest(b[1], b[2]),
+        "note": note or "",
+    }
+    save_verdicts(verdicts)
+
+
+def candidate_pairs(neighbours=NEIGHBOURS, include_judged=False):
+    """Pairs worth judging, with any standing verdict attached.
+
+    A verdict is bound to the content it was passed on. If either entry has
+    been rewritten since, the pair returns marked `verdict_stale` and is
+    surfaced again — a judgement about text that no longer exists is not a
+    judgement.
+
+    Settled pairs drop out of the default view, with one exception: a pair
+    judged `duplicate` stays until somebody actually merges it. That is
+    outstanding work, not a closed question.
+
+    Returns (pairs, skipped).
+    """
+    docs, skipped = _candidate_docs()
+    pairs, _ = neighbour_pairs(neighbours=neighbours, docs=docs)
+    digests = {d["name"]: content_digest(d["fm"], d["body"]) for d in docs}
+    verdicts = load_verdicts()
+
+    out = []
+    for p in pairs:
+        v = verdicts.get(_verdict_key(p["a"], p["b"]))
+        p["verdict"] = v.get("verdict") if v else None
+        p["judged"] = v.get("judged", "") if v else ""
+        p["note"] = v.get("note", "") if v else ""
+        p["verdict_stale"] = bool(v) and not (
+            v.get("a_digest") == digests.get(v.get("a"))
+            and v.get("b_digest") == digests.get(v.get("b")))
+        settled = (v and not p["verdict_stale"]
+                   and p["verdict"] in ("distinct", "overlap"))
+        if settled and not include_judged:
+            continue
+        out.append(p)
+    return out, skipped
 
 
 def effective_confidence(fm, today=None):
@@ -888,7 +1086,70 @@ def cmd_dupes(args):
         print(f"\n{len(skipped)} entr(ies) too short to compare "
               f"(<{MIN_SHINGLES} shingles): {', '.join(sorted(skipped))}")
     print("\nThis finds text recorded twice, not the same claim written twice —"
-          "\nsee the 'kb-duplicate-detection-limits' entry for why.")
+          "\nsee the 'kb-duplicate-detection-limits' entry for why."
+          "\nFor the same claim in different words, run 'kb.py candidates'.")
+
+
+CANDIDATES_CAVEAT = (
+    "These are candidates, not duplicates. This is the recall half of the "
+    "job:\nabout one pair in three to eight is a real restatement, and no "
+    "score here can\ntell you which. Read both entries, then record the call."
+)
+
+
+def cmd_candidates(args):
+    pairs, skipped = candidate_pairs(neighbours=args.neighbours,
+                                     include_judged=args.all)
+    if args.json:
+        print(json.dumps({"neighbours": args.neighbours, "pairs": pairs,
+                          "too_short": skipped}, indent=2))
+        return
+    if not pairs:
+        print(f"no unjudged candidate pairs at {args.neighbours} neighbour(s) per entry")
+    for p in pairs:
+        tags = []
+        if p["linked"]:
+            tags.append("already linked")
+        if p["verdict"]:
+            tags.append(f"judged {p['verdict']} {p['judged']}"
+                        + (" — TEXT CHANGED SINCE" if p["verdict_stale"] else ""))
+        suffix = f"  ({'; '.join(tags)})" if tags else ""
+        print(f"\n{p['similarity']:.2f}  {p['a']} <-> {p['b']}{suffix}")
+        print(f"      {p['a_type']}/{p['b_type']}, {p['shared_tokens']} shared words")
+        print(f"      a: {p['a_description']}")
+        print(f"      b: {p['b_description']}")
+        if p["note"]:
+            print(f"      note: {p['note']}")
+    if pairs:
+        print(f"\n{len(pairs)} pair(s) to judge. {CANDIDATES_CAVEAT}\n"
+              f"  kb.py judge <a> <b> {'|'.join(VERDICTS)} [--note ...]")
+    if skipped:
+        print(f"\n{len(skipped)} entr(ies) too short to compare "
+              f"(<{MIN_CANDIDATE_TOKENS} distinct words): {', '.join(sorted(skipped))}")
+
+
+def cmd_judge(args):
+    a_type, a_path, a_fm, a_body = _require(args.a)
+    b_type, b_path, b_fm, b_body = _require(args.b)
+    a_name = a_fm.get("name", a_path.stem)
+    b_name = b_fm.get("name", b_path.stem)
+    if a_name == b_name:
+        print("an entry cannot duplicate itself", file=sys.stderr)
+        sys.exit(1)
+    record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body,
+                   args.verdict, args.note or "")
+    # No entry in .kb/log.md: that log tracks changes to entries, and a verdict
+    # changes none. The ledger is its own record and is git-tracked.
+    print(f"recorded: {a_name} <-> {b_name} = {args.verdict}")
+    follow_up = {
+        "duplicate": "merge the two by hand, then 'kb.py archive' the loser — "
+                     "this pair stays in 'candidates' until you do",
+        "overlap": "related but both earn their place; "
+                   f"'kb.py link {a_name} {b_name}' if they are not linked yet",
+        "distinct": "this pair will stay out of 'candidates' unless either "
+                    "entry's text changes",
+    }
+    print(f"next: {follow_up[args.verdict]}")
 
 
 def cmd_archive(args):
@@ -1320,6 +1581,25 @@ def main():
                          help=f"minimum jaccard or containment (default {DUPES_THRESHOLD})")
     p_dupes.add_argument("--json", action="store_true", help="machine-readable output")
     p_dupes.set_defaults(func=cmd_dupes)
+
+    p_cand = sub.add_parser(
+        "candidates",
+        help="pairs that may make the same claim in different words — for an agent to judge")
+    p_cand.add_argument("-n", "--neighbours", type=int, default=NEIGHBOURS,
+                        help=f"nearest neighbours per entry (default {NEIGHBOURS}); "
+                             "higher trades more pairs to read for more recall")
+    p_cand.add_argument("--all", action="store_true",
+                        help="include pairs already judged distinct or overlapping")
+    p_cand.add_argument("--json", action="store_true", help="machine-readable output")
+    p_cand.set_defaults(func=cmd_candidates)
+
+    p_judge = sub.add_parser(
+        "judge", help="record a judgement about one candidate pair")
+    p_judge.add_argument("a")
+    p_judge.add_argument("b")
+    p_judge.add_argument("verdict", choices=VERDICTS)
+    p_judge.add_argument("--note", help="one line on why, kept with the verdict")
+    p_judge.set_defaults(func=cmd_judge)
 
     p_archive = sub.add_parser(
         "archive", help="retire an entry from retrieval without deleting it")

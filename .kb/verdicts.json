@@ -1,0 +1,419 @@
+{
+  "version": 1,
+  "verdicts": [
+    {
+      "a": "asdlc-governed-change-rules",
+      "b": "purge-context-after-each-change",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "9b229e2d054d",
+      "b_digest": "77a48a37efe1",
+      "note": "asdlc decision D15 makes the purge preference a rule"
+    },
+    {
+      "a": "asdlc-governed-change-rules",
+      "b": "workspace-audit-2026-07-27",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "9b229e2d054d",
+      "b_digest": "cb63a8a06f2d",
+      "note": "the audit checked asdlc's branch and working-tree state"
+    },
+    {
+      "a": "asdlc-governed-change-rules",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "9b229e2d054d",
+      "b_digest": "7886fb25075b",
+      "note": "rules for two repos vs a miscount of all of them"
+    },
+    {
+      "a": "distill-session-into-memory",
+      "b": "kb-agent-entrypoint-is-agent-md",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "5b05a3875a85",
+      "b_digest": "93c2654408d2",
+      "note": "which contract to read vs how to write entries"
+    },
+    {
+      "a": "distill-session-into-memory",
+      "b": "kb-is-file-based",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "5b05a3875a85",
+      "b_digest": "6eec28cb29d9",
+      "note": "what the store is vs how to add to it"
+    },
+    {
+      "a": "distill-session-into-memory",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "5b05a3875a85",
+      "b_digest": "183ee61cba77",
+      "note": "closest pair in the store: persist steps 3-5 restate most of distill's six. Both survive for now because distill names the working template; a consolidation pass should fold it in"
+    },
+    {
+      "a": "editing-the-kb-without-a-cms",
+      "b": "kb-over-mcp",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "7d0ba0e594b9",
+      "b_digest": "9678feb64169",
+      "note": "two write paths into the store, both landing on staged-not-committed"
+    },
+    {
+      "a": "editing-the-kb-without-a-cms",
+      "b": "kb-ranked-retrieval",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "7d0ba0e594b9",
+      "b_digest": "702a697b8dea",
+      "note": "getting text in vs getting it back out"
+    },
+    {
+      "a": "editing-the-kb-without-a-cms",
+      "b": "memory-overview-site",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "7d0ba0e594b9",
+      "b_digest": "58b226771525",
+      "note": "the same site, seen from publishing and from editing"
+    },
+    {
+      "a": "holiday-autonomy-mandate",
+      "b": "purge-context-after-each-change",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "315907ae3387",
+      "b_digest": "77a48a37efe1",
+      "note": "a working habit vs a period of delegated authority"
+    },
+    {
+      "a": "holiday-autonomy-mandate",
+      "b": "routines-ui-not-api-for-prompts",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "315907ae3387",
+      "b_digest": "c5cef6af1776",
+      "note": "the routine carrying the mandate was configured this way"
+    },
+    {
+      "a": "holiday-autonomy-mandate",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "315907ae3387",
+      "b_digest": "154f350dd07c",
+      "note": "the access limit bounds what the mandate can reach"
+    },
+    {
+      "a": "holiday-autonomy-mandate",
+      "b": "twin-sovereignty-constraint",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "315907ae3387",
+      "b_digest": "64b47c7c6194",
+      "note": "no-vendor-model design rule vs a time-boxed mandate"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "kb-roadmap",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "93c2654408d2",
+      "b_digest": "b6322ef8ca89",
+      "note": "which contract is authoritative vs what the store builds next"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "memory-overview-site",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "93c2654408d2",
+      "b_digest": "58b226771525",
+      "note": "the layout contract vs the published site"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "93c2654408d2",
+      "b_digest": "183ee61cba77",
+      "note": "which doc is authoritative vs where insight belongs"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "93c2654408d2",
+      "b_digest": "7886fb25075b",
+      "note": "the same stale .claude/CLAUDE.md is the source of both problems"
+    },
+    {
+      "a": "kb-duplicate-candidates-by-nearest-neighbour",
+      "b": "kb-duplicate-detection-limits",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "a37be1bfb423",
+      "b_digest": "4dc736de7ec2",
+      "note": "deliberately a pair: one records why the dupes threshold sits where it does, the other why a second command exists beside it. Both must survive \u2014 deleting either loses half the reasoning"
+    },
+    {
+      "a": "kb-duplicate-candidates-by-nearest-neighbour",
+      "b": "kb-forgetting-model",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "a37be1bfb423",
+      "b_digest": "1a1d76b3f41d",
+      "note": "consolidation and forgetting, the two halves of Phase 3"
+    },
+    {
+      "a": "kb-duplicate-candidates-by-nearest-neighbour",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "a37be1bfb423",
+      "b_digest": "702a697b8dea",
+      "note": "both score text over this corpus, for opposite purposes"
+    },
+    {
+      "a": "kb-duplicate-detection-limits",
+      "b": "kb-forgetting-model",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "4dc736de7ec2",
+      "b_digest": "1a1d76b3f41d",
+      "note": "the two halves of Phase 3, deliberately separate"
+    },
+    {
+      "a": "kb-duplicate-detection-limits",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "77413ffcee8e",
+      "b_digest": "702a697b8dea",
+      "note": "both score text over this corpus, for opposite purposes"
+    },
+    {
+      "a": "kb-duplicate-detection-limits",
+      "b": "kb-roadmap",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "4dc736de7ec2",
+      "b_digest": "b6322ef8ca89",
+      "note": "the roadmap plans it; the entry records what the measurement found"
+    },
+    {
+      "a": "kb-entry-status-model",
+      "b": "kb-forgetting-model",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "42e389777bd7",
+      "b_digest": "1a1d76b3f41d",
+      "note": "decay changes effective confidence, which is one axis of status"
+    },
+    {
+      "a": "kb-entry-status-model",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "42e389777bd7",
+      "b_digest": "702a697b8dea",
+      "note": "confidence is a term in both, doing different jobs"
+    },
+    {
+      "a": "kb-entry-status-model",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "42e389777bd7",
+      "b_digest": "183ee61cba77",
+      "note": "what state an entry is in vs when to create one"
+    },
+    {
+      "a": "kb-forgetting-model",
+      "b": "kb-over-mcp",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "1a1d76b3f41d",
+      "b_digest": "9678feb64169",
+      "note": "MCP surfaces decayed confidence; a shared mechanism, not a shared claim"
+    },
+    {
+      "a": "kb-forgetting-model",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "1a1d76b3f41d",
+      "b_digest": "702a697b8dea",
+      "note": "decay is applied inside ranking; neither entry contains the other"
+    },
+    {
+      "a": "kb-forgetting-model",
+      "b": "kb-roadmap",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "1a1d76b3f41d",
+      "b_digest": "b6322ef8ca89",
+      "note": "the roadmap plans the forgetting work; the entry records what shipped"
+    },
+    {
+      "a": "kb-is-file-based",
+      "b": "memory-overview-site",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "6eec28cb29d9",
+      "b_digest": "58b226771525",
+      "note": "the static site is a consequence of the no-infrastructure premise"
+    },
+    {
+      "a": "kb-is-file-based",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "6eec28cb29d9",
+      "b_digest": "183ee61cba77",
+      "note": "the storage premise vs the standing instruction"
+    },
+    {
+      "a": "kb-over-mcp",
+      "b": "kb-roadmap",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "9678feb64169",
+      "b_digest": "b6322ef8ca89",
+      "note": "the roadmap plans MCP exposure; the entry records what shipped"
+    },
+    {
+      "a": "kb-over-mcp",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "9678feb64169",
+      "b_digest": "183ee61cba77",
+      "note": "a serving surface vs a working convention"
+    },
+    {
+      "a": "memory-overview-site",
+      "b": "persist-insight-to-knowledge-base",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "58b226771525",
+      "b_digest": "183ee61cba77",
+      "note": "publishing the store vs the convention to write to it"
+    },
+    {
+      "a": "persist-insight-to-knowledge-base",
+      "b": "purge-context-after-each-change",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "183ee61cba77",
+      "b_digest": "77a48a37efe1",
+      "note": "distil first, then purge \u2014 the two halves of one habit"
+    },
+    {
+      "a": "persist-insight-to-knowledge-base",
+      "b": "routines-ui-not-api-for-prompts",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "183ee61cba77",
+      "b_digest": "c5cef6af1776",
+      "note": "configuring a scheduler vs where knowledge lands"
+    },
+    {
+      "a": "persist-insight-to-knowledge-base",
+      "b": "workspace-improvement-phases",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "183ee61cba77",
+      "b_digest": "706b96ed2b57",
+      "note": "a convention vs a prioritised backlog"
+    },
+    {
+      "a": "persist-insight-to-knowledge-base",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "183ee61cba77",
+      "b_digest": "7886fb25075b",
+      "note": "a stale table vs where to write things down"
+    },
+    {
+      "a": "purge-context-after-each-change",
+      "b": "twin-sovereignty-constraint",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "77a48a37efe1",
+      "b_digest": "64b47c7c6194",
+      "note": "a design constraint on one repo vs a session habit"
+    },
+    {
+      "a": "routines-ui-not-api-for-prompts",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "c5cef6af1776",
+      "b_digest": "154f350dd07c",
+      "note": "the remedy for the access limit is the UI configuration this describes"
+    },
+    {
+      "a": "sibling-repo-access-denied-in-routines",
+      "b": "workspace-audit-2026-07-27",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "154f350dd07c",
+      "b_digest": "cb63a8a06f2d",
+      "note": "what a routine can reach vs what was on disk that day"
+    },
+    {
+      "a": "sibling-repo-access-denied-in-routines",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "154f350dd07c",
+      "b_digest": "7886fb25075b",
+      "note": "fixing the drift is blocked by exactly that access limit"
+    },
+    {
+      "a": "twin-sovereignty-constraint",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "distinct",
+      "judged": "2026-07-29",
+      "a_digest": "64b47c7c6194",
+      "b_digest": "7886fb25075b",
+      "note": "one repo's constraint vs the whole workspace's inventory"
+    },
+    {
+      "a": "workspace-audit-2026-07-27",
+      "b": "workspace-improvement-phases",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "cb63a8a06f2d",
+      "b_digest": "706b96ed2b57",
+      "note": "the phase statuses are read off that audit"
+    },
+    {
+      "a": "workspace-audit-2026-07-27",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "cb63a8a06f2d",
+      "b_digest": "7886fb25075b",
+      "note": "the drift fact was extracted from that audit sweep"
+    },
+    {
+      "a": "workspace-improvement-phases",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "overlap",
+      "judged": "2026-07-29",
+      "a_digest": "706b96ed2b57",
+      "b_digest": "7886fb25075b",
+      "note": "the phase plan carries the drift as an open item"
+    }
+  ]
+}

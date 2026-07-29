@@ -168,7 +168,8 @@ class TestToolListing(McpTestCase):
         tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertEqual(
             set(tools),
-            {"context", "search", "get", "triage", "status", "dupes", "propose_update"},
+            {"context", "search", "get", "triage", "status", "dupes",
+             "duplicate_candidates", "judge", "propose_update"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -391,6 +392,92 @@ class TestDupesOverMcp(McpTestCase):
         self.handshake()
         tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertTrue(tools["dupes"]["annotations"]["readOnlyHint"])
+
+
+class TestCandidatesOverMcp(McpTestCase):
+    """The blocker and the verdict ledger, driven the way an agent would."""
+
+    CLAIM = ("Every memory here is a markdown file with a small block of YAML "
+             "frontmatter at the top. There is no database and no vector store "
+             "anywhere in the design, and git is the only durable write path "
+             "the system relies on for its history.")
+    RESTATEMENT = ("Each note lives on disk as ordinary text carrying a short "
+                   "header of structured fields. Nothing relational is "
+                   "involved, no embedding index exists, and version control "
+                   "alone provides the lasting record of how things changed.")
+
+    def setUp(self):
+        super().setUp()
+        for slug, prose in (("first-fact", self.CLAIM),
+                            ("second-fact", self.RESTATEMENT)):
+            path = self.root / "memory" / "semantic" / f"{slug}.md"
+            head, _, _ = path.read_text().partition("---\n")[2].partition("\n---\n")
+            path.write_text(f"---\n{head}\n---\n\n{prose}\n")
+
+    def candidates(self, args=None):
+        return self.result_of(self.call("duplicate_candidates", args or {}))
+
+    def test_it_surfaces_the_pair_dupes_is_built_to_miss(self):
+        self.handshake()
+        result = self.candidates()
+        self.assertFalse(result["isError"])
+        pairs = result["structuredContent"]["pairs"]
+        self.assertIn({"first-fact", "second-fact"},
+                      [{p["a"], p["b"]} for p in pairs])
+        self.assertIn("candidates, not duplicates", result["content"][0]["text"])
+
+    def test_a_recorded_verdict_takes_the_pair_out_of_the_queue(self):
+        self.handshake()
+        verdict = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "distinct",
+            "note": "different claims, shared vocabulary"}))
+        self.assertFalse(verdict["isError"])
+        self.assertFalse(verdict["structuredContent"]["committed"])
+        pairs = self.candidates()["structuredContent"]["pairs"]
+        self.assertNotIn({"first-fact", "second-fact"},
+                         [{p["a"], p["b"]} for p in pairs])
+
+    def test_the_verdict_is_staged_in_the_working_tree(self):
+        self.handshake()
+        self.call("judge", {"a": "first-fact", "b": "second-fact",
+                            "verdict": "overlap"})
+        ledger = json.loads((self.root / ".kb" / "verdicts.json").read_text())
+        self.assertEqual(ledger["verdicts"][0]["verdict"], "overlap")
+
+    def test_an_unknown_verdict_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "maybe"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("verdict must be one of", result["content"][0]["text"])
+
+    def test_an_entry_cannot_be_judged_against_itself(self):
+        self.handshake()
+        result = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "first-fact", "verdict": "duplicate"}))
+        self.assertTrue(result["isError"])
+
+    def test_a_non_numeric_neighbour_count_is_a_tool_error(self):
+        self.handshake()
+        result = self.candidates({"neighbours": "lots"})
+        self.assertTrue(result["isError"])
+        self.assertIn("must be an integer", result["content"][0]["text"])
+
+    def test_candidates_is_read_only_and_judge_is_not(self):
+        self.handshake()
+        tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertTrue(tools["duplicate_candidates"]["annotations"]["readOnlyHint"])
+        self.assertFalse(tools["judge"]["annotations"]["readOnlyHint"])
+
+
+class TestJudgeIsAWriteTool(McpTestCase):
+    read_only = True
+
+    def test_judging_is_gone_in_read_only_mode_but_candidates_remain(self):
+        self.handshake()
+        names = {t["name"] for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertNotIn("judge", names)
+        self.assertIn("duplicate_candidates", names)
 
 
 class TestArchiveOverMcp(McpTestCase):

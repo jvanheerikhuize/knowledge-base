@@ -6,7 +6,7 @@ confidence: verified
 source: read both files and checked every path they name against the repo on 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27
-links: [kb-is-file-based, persist-insight-to-knowledge-base, kb-ranked-retrieval, holiday-autonomy-mandate]
+links: [kb-is-file-based, persist-insight-to-knowledge-base, kb-ranked-retrieval, holiday-autonomy-mandate, workspace-repo-inventory-drift]
 ---
 
 `knowledge-base` has two documents claiming to tell an agent how to work in

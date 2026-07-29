@@ -1,12 +1,12 @@
 ---
 name: kb-duplicate-detection-limits
 type: semantic
-description: lexical similarity cannot find semantic duplicates in this store — measured, a hand-written paraphrase ranked below 13 pairs of merely-related entries — so kb.py dupes is scoped to near-verbatim overlap and says so
+description: a global similarity threshold cannot find semantic duplicates — measured, a paraphrase ranked below 13 merely-related pairs — so kb.py dupes is scoped to near-verbatim overlap; the nearest-neighbour framing that did work is a separate entry
 confidence: verified
 source: measured 2026-07-28 against the live 20-entry store; scripts/kb.py dupe_pairs, tests/test_kb.py TestDupes
 created: 2026-07-28
 last_verified: 2026-07-28
-links: [kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based]
+links: [kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, kb-duplicate-candidates-by-nearest-neighbour]
 ---
 
 `kb.py dupes` finds **text recorded twice**. It does not find **the same claim
@@ -53,13 +53,18 @@ MinHash and LSH were considered and rejected. They exist to approximate Jaccard
 when O(n²) is intractable; this corpus is a few dozen files, where the exact
 computation is free and an approximation would only add error.
 
-**The open problem.** Detecting semantic duplication needs either embeddings —
-which breaks the no-infrastructure premise of [[kb-is-file-based]] and the no-
-vendor-model rule of [[twin-sovereignty-constraint]] — or an agent reading
-candidate pairs and judging them, which is how classification already works for
-`kb.py new` and would be consistent with it. The second is the promising route
-and remains unbuilt. Until then the honest position is that this store has no
-automated defence against saying the same thing twice in different words.
+**Solved 2026-07-29, and not the way this entry expected.** See
+[[kb-duplicate-candidates-by-nearest-neighbour]]. Everything measured above is
+still true of the question it asked — *can a lexical score decide a pair* — but
+that turned out to be one framing of the problem rather than the problem. Asking
+each entry for its nearest neighbours instead of thresholding pair scores
+globally catches all seven planted paraphrases in 5% of the pair space, using
+the same family of metric on the same corpus. The route this entry called
+promising-but-unbuilt is what shipped: `kb.py candidates` blocks, an agent
+judges, `kb.py judge` records the verdict.
+
+Read the two together. This entry is why the *threshold* on `dupes` is where it
+is; the other is why a second command exists beside it.
 
 **The guard.** `TestDupes.test_a_paraphrase_is_not_flagged` pins this finding as
 a regression test: it asserts the paraphrase is *not* reported. If a future
