@@ -75,17 +75,28 @@ already configured this way; inside a session just do the work you were given.
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
   broken or stale; regenerate if the store changed.
-- [ ] **ROADMAP Phase 3 — semantic duplicates and consolidation.** Forgetting
-  shipped 2026-07-28 (`kb-forgetting-model`); `kb.py dupes` shipped the same day
-  but only for **near-verbatim** overlap. The design question was answered by
-  measurement and the answer was negative: lexical similarity cannot find
-  paraphrases in this store (a real paraphrase ranked #14 of 210, below thirteen
-  merely-related pairs — see `kb-duplicate-detection-limits`). **Do not attempt
-  to fix this by lowering the threshold**; a regression test will fail and the
-  next thing found is a false positive. The open route is an agent judging
-  candidate pairs, consistent with how `kb.py new` already delegates
-  classification. Design that before building it. `consolidate` and
-  contradiction detection are downstream of it.
+- [x] **ROADMAP Phase 3 — semantic duplicates.** (2026-07-29) Done, and the
+  2026-07-28 negative result was too broad. The failure was the **global
+  threshold**, not the metric: re-measured against seven planted paraphrases,
+  per-entry nearest neighbours unioned both ways caught 7 of 7 in 5% of the pair
+  space, where global ranking put the worst at #81 of 378. Shipped `kb.py
+  candidates` (blocks, refuses to rule) + `kb.py judge` (durable verdicts in
+  `.kb/verdicts.json`, bound to a content digest) + both over MCP. First full
+  pass: 42 pairs judged, zero duplicates, one missing link found. Write-up:
+  `kb-duplicate-candidates-by-nearest-neighbour`.
+- [ ] **ROADMAP Phase 3 — `consolidate` and contradiction detection.** Now
+  unblocked: `candidates` supplies the candidate set and `judge` records which
+  pairs are real, so `consolidate` has a queue (pairs standing at `duplicate`).
+  The first pass found none, so wait for a real merge to design against rather
+  than a hypothetical one — the nearest case is `distill-session-into-memory`
+  against `persist-insight-to-knowledge-base`, judged `overlap` because the
+  latter's steps 3–5 restate most of the former. Contradiction detection is the
+  other half and is still mechanical-first: same subject, conflicting
+  frontmatter, or a body that negates one it links to.
+  (The 2026-07-28 warning still stands and now lives with the code: **do not
+  lower the `dupes` threshold to "catch more"** — that is a different command
+  from `candidates`, its regression test will fail, and the next thing it finds
+  is a false positive.)
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

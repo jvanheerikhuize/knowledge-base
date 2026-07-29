@@ -847,6 +847,146 @@ class TestDupes(KbTestCase):
         self.assertIn("not the same claim written twice", out)
 
 
+class TestCandidates(KbTestCase):
+    """The other half of duplicate detection: the pair `dupes` is built to miss.
+
+    `dupes` is precision-tuned and asserts duplicates. `candidates` is
+    recall-tuned and asserts nothing — it hands an agent a short list to read.
+    The load-bearing test here is the exact inverse of
+    TestDupes.test_a_paraphrase_is_not_flagged: the pair that `dupes` must stay
+    quiet about is the pair `candidates` must surface.
+    """
+
+    CLAIM = TestDupes.PROSE_A
+    RESTATEMENT = TestDupes.PROSE_B
+
+    # Filler, so the store is big enough that nearest-neighbour selection is
+    # actually choosing between things. Each must clear MIN_CANDIDATE_TOKENS.
+    FILLER = {
+        "tides": "The moon pulls the ocean into a bulge that follows it around "
+                 "the planet, and a second bulge forms on the far side where "
+                 "the pull is weakest, so most coastlines see two high waters "
+                 "and two low ones over roughly a day.",
+        "sourdough": "A flour and water mixture left alone gathers wild yeasts "
+                     "and bacteria from the air and the grain until it bubbles "
+                     "reliably, after which a spoonful of it will raise a loaf "
+                     "given warmth, salt, and enough time to ferment.",
+        "cricket": "A bowler runs up and releases toward a batter defending "
+                   "three wooden stumps, and runs accumulate either by the two "
+                   "batters exchanging ends or by the ball reaching or clearing "
+                   "the boundary rope without being caught first.",
+        "cartography": "Any attempt to draw a curved surface onto a flat sheet "
+                       "distorts something, so a projection is chosen for what "
+                       "it preserves: angle, area, or distance along particular "
+                       "lines, never all three together at once.",
+        "espresso": "Hot water forced through finely ground coffee under "
+                    "pressure produces a small concentrated drink topped with "
+                    "foam, and the grind, dose, and pour duration are the three "
+                    "levers a barista adjusts to fix a sour or bitter result.",
+        "sailing": "A boat can travel against the wind by tacking, angling "
+                   "across it and zigzagging upwind, because the sail acts as a "
+                   "wing generating lift sideways rather than simply catching "
+                   "and being pushed by moving air.",
+    }
+
+    def write_body(self, slug, prose, entry_type="semantic"):
+        path = self.entry_path(entry_type, slug)
+        head, _, _ = path.read_text().partition("---\n")[2].partition("\n---\n")
+        path.write_text(f"---\n{head}\n---\n\n{prose}\n")
+
+    def setUp(self):
+        super().setUp()
+        bodies = {"stated-plainly": self.CLAIM, "stated-again": self.RESTATEMENT}
+        bodies.update(self.FILLER)
+        for slug, prose in bodies.items():
+            self.run_kb("new", slug, "--type", "semantic")
+            self.write_body(slug, prose)
+
+    def candidates(self, *args):
+        result = self.run_kb("candidates", "--json", *args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def pair_names(self, report):
+        return {frozenset((p["a"], p["b"])) for p in report["pairs"]}
+
+    THE_PAIR = frozenset(("stated-plainly", "stated-again"))
+
+    def test_the_paraphrase_dupes_must_miss_is_the_one_candidates_must_catch(self):
+        self.assertIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
+        dupes = json.loads(self.run_kb("dupes", "--json").stdout)
+        self.assertNotIn(self.THE_PAIR,
+                         {frozenset((p["a"], p["b"])) for p in dupes["pairs"]})
+
+    def test_it_narrows_rather_than_listing_every_pair(self):
+        report = self.candidates("-n", "1")
+        entries = len(self.FILLER) + 2
+        self.assertLess(len(report["pairs"]), entries * (entries - 1) // 2)
+
+    def test_more_neighbours_never_loses_a_candidate(self):
+        narrow = self.pair_names(self.candidates("-n", "1"))
+        wide = self.pair_names(self.candidates("-n", "3"))
+        self.assertTrue(narrow <= wide)
+
+    def test_output_refuses_to_call_them_duplicates(self):
+        out = self.run_kb("candidates").stdout
+        self.assertIn("candidates, not duplicates", out)
+
+    def test_a_judged_pair_leaves_the_queue(self):
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
+
+    def test_a_judged_pair_is_still_visible_with_all(self):
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.assertIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1", "--all")))
+
+    def test_a_confirmed_duplicate_stays_until_it_is_merged(self):
+        self.run_kb("judge", "stated-plainly", "stated-again", "duplicate")
+        pairs = self.candidates("-n", "1")["pairs"]
+        pair = next(p for p in pairs if {p["a"], p["b"]} == set(self.THE_PAIR))
+        self.assertEqual(pair["verdict"], "duplicate")
+        self.assertFalse(pair["verdict_stale"])
+
+    def test_rewriting_an_entry_reopens_the_question(self):
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.write_body("stated-again", self.RESTATEMENT + " Also, one more thing.")
+        pairs = self.candidates("-n", "1")["pairs"]
+        pair = next(p for p in pairs if {p["a"], p["b"]} == set(self.THE_PAIR))
+        self.assertTrue(pair["verdict_stale"])
+        self.assertIn("TEXT CHANGED SINCE", self.run_kb("candidates", "-n", "1").stdout)
+
+    def test_re_verifying_an_entry_does_not_reopen_it(self):
+        """A verdict is about what an entry claims, not about its metadata."""
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.run_kb("verify", "stated-again", "--confidence", "verified")
+        self.run_kb("link", "stated-again", "tides")
+        self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
+
+    def test_the_verdict_does_not_care_which_order_the_pair_was_given_in(self):
+        self.run_kb("judge", "stated-again", "stated-plainly", "distinct")
+        self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
+
+    def test_archived_entries_are_out_of_the_candidate_set(self):
+        self.run_kb("archive", "stated-again")
+        self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "3")))
+
+    def test_short_entries_are_reported_rather_than_silently_skipped(self):
+        self.run_kb("new", "stub-entry", "--type", "semantic")
+        self.write_body("stub-entry", "Too short to judge.")
+        self.assertIn("stub-entry", self.candidates()["too_short"])
+
+    def test_an_entry_cannot_duplicate_itself(self):
+        result = self.run_kb("judge", "stated-plainly", "stated-plainly", "distinct")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_judging_an_unknown_entry_fails_loudly(self):
+        result = self.run_kb("judge", "stated-plainly", "no-such-entry", "distinct")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_dupes_points_at_candidates_for_the_case_it_cannot_cover(self):
+        self.assertIn("kb.py candidates", self.run_kb("dupes").stdout)
+
+
 class TestConfidenceDecay(KbTestCase):
     """Age demotes confidence at read time; the file on disk is never rewritten."""
 

@@ -198,6 +198,8 @@ python3 scripts/kb.py triage           # only what needs attention, worst first
 python3 scripts/kb.py verify <name> --confidence high
 python3 scripts/kb.py archive <name> [--undo]   # retire from retrieval, keep the file
 python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not paraphrases)
+python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each other — for you to judge
+python3 scripts/kb.py judge <a> <b> distinct    # record the call so nobody re-reads the pair
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -281,10 +283,7 @@ and a tool whose top hits are all wrong is one people learn to ignore.
 
 So the default sits at ~70× the observed maximum, the command prints the
 sentence naming its own limit, and a clean result means *no copies found* —
-never *no duplicates*. Detecting semantic duplication needs embeddings (which
-break the no-infrastructure premise) or an agent judging candidate pairs (which
-is how classification already works for `kb.py new`); the second is the intended
-route and is not built. Full write-up in the `kb-duplicate-detection-limits`
+never *no duplicates*. Full write-up in the `kb-duplicate-detection-limits`
 entry; `TestDupes.test_a_paraphrase_is_not_flagged` pins it as a regression test,
 so lowering the threshold to "catch more" fails loudly.
 
@@ -295,6 +294,61 @@ scaffolding nobody came back to finish.
 MinHash and LSH were considered and rejected: they approximate Jaccard to make
 O(n²) tractable at web scale, and this store is a few dozen files where the exact
 computation is free and an approximation would only add error.
+
+## The same claim in different words: `candidates` and `judge`
+
+```
+python3 scripts/kb.py candidates [-n 3] [--all]
+python3 scripts/kb.py judge <a> <b> duplicate|overlap|distinct [--note "..."]
+```
+
+The paragraphs above say lexical similarity cannot *decide* whether two entries
+make the same claim. That stands. What was wrong was the framing, and measuring
+it again with the framing changed is what unblocked this.
+
+A global threshold asks "is this pair similar in absolute terms" — and absolute
+similarity is dominated by how much vocabulary a *topic* happens to share, which
+varies far more between topics than duplication does within one. Asking instead
+"of everything in the store, which entries is this one **most** like" cancels
+that per-entry baseline out. Measured over seven hand-written paraphrases
+planted in this store (28 entries, 378 pairs):
+
+| framing | result |
+|---|---|
+| global ranking, best pairs first | worst planted paraphrase at **#81 of 378** |
+| each entry's single nearest neighbour, unioned both ways | **7 of 7** caught, in **19 pairs** (5% of the space) |
+
+The union matters and is not a detail: a long entry's nearest neighbour is often
+not the short entry restating it, while the short one's nearest neighbour is
+reliably the long one. Taking a pair when *either* side nominates it is what
+turned 6 of 7 into 7 of 7 at no extra cost.
+
+So `candidates` is a **blocker** — the cheap, recall-oriented half of the
+standard record-linkage pair — and it stops there. It never calls a pair a
+duplicate; roughly one candidate in three to eight is a real restatement and no
+score tells you which. Deciding is a judgement someone makes by reading both
+entries, which is the same division of labour as `kb.py new`: the tool does the
+mechanics, the operating agent supplies the classification, and no vendor model
+is wired into the store.
+
+**`judge` writes that decision down**, in `.kb/verdicts.json`, so it outlives one
+agent's context and nobody re-reads the pair:
+
+- `duplicate` — the same claim twice. Stays in the queue until it is merged,
+  because that is outstanding work, not a closed question.
+- `overlap` — related, both earn their place. Link them.
+- `distinct` — different claims that share vocabulary. Leaves the queue.
+
+A verdict is bound to a digest of the two entries' description and body, and to
+nothing else. Re-verify an entry or relink it and the verdict stands, because
+neither changes what it *claims*; rewrite the body and the pair comes back marked
+`TEXT CHANGED SINCE`. That is what makes the pass incremental: the first sweep of
+this store cost 42 judgements, and a new entry costs about `n` more, not another
+sweep of the whole square.
+
+Default `-n 3` rather than the measured-sufficient `-n 1`: recall was already 7/7
+at one neighbour, but two of the seven cleared their nearest rival by under 0.02,
+and seven positives is too small a sample to spend that margin on.
 
 `kb.py status` answers the complementary question. Where `triage` lists only
 what is already wrong, `status` places *every* entry in exactly one of eight
@@ -322,6 +376,8 @@ no process to keep running — the client spawns it.
 | `triage` | the queue of entries that are wrong or ageing, worst first |
 | `status` | every entry in exactly one status, with the command that moves it |
 | `dupes` | entry pairs whose text overlaps near-verbatim — copies, not paraphrases |
+| `duplicate_candidates` | each entry's nearest neighbours, as a short list of pairs for the agent to judge by reading them |
+| `judge` | record whether a pair is `duplicate` / `overlap` / `distinct` — staged, never committed |
 | `propose_update` | stage an edit to an entry in the working tree — **never commits**; also archives and un-archives |
 
 Entries are also published as MCP *resources* (`kb://entry/<name>`, plus

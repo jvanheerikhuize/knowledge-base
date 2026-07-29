@@ -93,16 +93,49 @@ nothing useful.
   MinHash/LSH were rejected as approximations of a computation that is free at
   this scale. Full write-up: [[kb-duplicate-detection-limits]].
 
-- **Semantic duplicate detection** — still open, and now known to be the hard
-  part rather than a threshold tweak. Two routes: embeddings, which break the
-  no-infrastructure premise of [[kb-is-file-based]] and the no-vendor-model rule
-  of [[twin-sovereignty-constraint]]; or an agent reading candidate pairs and
-  judging them, which is exactly how classification already works for `kb.py new`
-  and is therefore the consistent choice. Design the second before building it.
+- ✅ **Semantic duplicate detection** — `kb.py candidates` + `kb.py judge`, and
+  the interesting part is why it works after the previous attempt failed.
+
+  The earlier measurement was right about what it measured and wrong about what
+  that implied. It asked whether a lexical score can *decide* a pair, found it
+  cannot, and concluded lexical similarity was the wrong signal. But the failure
+  was in the framing: a **global threshold** asks "is this pair similar in
+  absolute terms", and absolute similarity is dominated by how much vocabulary a
+  *topic* happens to share — which varies far more between topics than
+  duplication does within one. Asking instead "of everything here, which entries
+  is this one **most** like" cancels that per-entry baseline out.
+
+  Re-measured against seven hand-written paraphrases planted in this store
+  (28 entries, 378 pairs): as a global ranking the worst positive sat at **#81 of
+  378**; as each entry's single nearest neighbour, unioned in both directions,
+  **all seven** were caught inside **19 pairs** — 5% of the space. The union is
+  load-bearing, not a detail: it is what took 6 of 7 to 7 of 7 for free, because
+  a long entry's nearest neighbour is often not the short entry restating it
+  while the reverse holds reliably.
+
+  So the shipped thing is a **blocker** — the recall half of the standard
+  record-linkage pair — and it refuses to rule. An agent reads the pair and
+  rules, which is the same division of labour as `kb.py new` and keeps the
+  no-vendor-model rule of [[twin-sovereignty-constraint]] intact. `judge` writes
+  the verdict to `.kb/verdicts.json` bound to a digest of both entries' claim
+  text, so re-verifying or relinking does not expire it but rewriting a body
+  does. That is what makes the pass incremental: the first sweep of this store
+  cost 42 judgements; a new entry costs about `n` more, not another full sweep.
+
+  First full pass, 2026-07-29: 42 pairs judged, **no duplicates** — 24 overlap,
+  18 distinct — and one unlinked overlap found and linked
+  (`kb-agent-entrypoint-is-agent-md` ↔ `workspace-repo-inventory-drift`).
+  Write-up: [[kb-duplicate-candidates-by-nearest-neighbour]].
+
 - **`kb.py consolidate`** — propose merges, and propose distilling repeated
   `episodic` observations into one `semantic` fact. Proposals, never silent
-  rewrites. Blocked on the line above: merging is only as good as the candidate
-  set feeding it, and `dupes` currently supplies only the near-verbatim ones.
+  rewrites. **Now unblocked** — `candidates` supplies the candidate set and
+  `judge` records which pairs are real, so `consolidate` has a queue to work
+  from: the pairs standing at `duplicate`. The first pass found none, so this
+  waits for a real merge to design against rather than a hypothetical one. The
+  nearest thing the pass did surface is `distill-session-into-memory` against
+  `persist-insight-to-knowledge-base`, judged `overlap` with a note that the
+  latter's steps 3–5 restate most of the former.
 - **Contradiction detection** — start mechanical: same subject, conflicting
   frontmatter, or an entry whose body negates one it links to. Report as a
   triage reason code rather than a lint failure.
@@ -124,6 +157,16 @@ about a *single* entry and cannot really be wrong. Merging is a claim about a
 *pair*, and the measurement above shows how hard that claim is to make from text
 alone. That ordering turned out to be right for a reason that was not obvious
 when it was chosen.
+
+**And the lesson from getting the pair half wrong once.** The negative result
+was real, reproducible, and correctly guarded by a regression test — and it
+still pointed at the wrong conclusion, because the experiment tested a metric
+when the thing that was broken was the question being asked of it. Before
+accepting "X cannot work", check whether what was measured was X or one framing
+of X. The regression test that pinned the old finding
+(`test_a_paraphrase_is_not_flagged`) is still passing and still correct: the
+paraphrase must not be reported as a near-verbatim *duplicate*. It is now
+reported as a *candidate*, which is a different claim, by a different command.
 
 ## Phase 4 — Temporal validity · `planned`
 
@@ -215,6 +258,9 @@ does not cover it.
 - MCP server over stdio with staged, never-committed writes ([[kb-over-mcp]]).
 - Read-time confidence decay and `kb.py archive` — the forgetting half of
   Phase 3 ([[kb-forgetting-model]]).
+- `kb.py candidates` / `kb.py judge` and the MCP tools behind them — nearest-
+  neighbour blocking plus a durable verdict ledger, the consolidation half of
+  Phase 3 ([[kb-duplicate-candidates-by-nearest-neighbour]]).
 
 ---
 
@@ -244,6 +290,17 @@ that are not backed by a line here are judgement, not citation.
   (0.7–0.8 conservative, 0.5–0.6 aggressive), and the warning that shingle
   estimates degrade on very short documents — which is why `dupes` skips
   entries under 20 shingles and says which ones it skipped.
+
+- Blocking / entity resolution (2026-07-29) — the "cheap recall-oriented blocker
+  feeding an expensive pairwise matcher" split, and the recall-vs-comparisons
+  trade-off it turns on, are standard record-linkage vocabulary, not an
+  invention here. The reference work is Papadakis et al., *Blocking and
+  Filtering Techniques for Entity Resolution: A Survey*, ACM Computing Surveys
+  53(2), 2020 ([arXiv:1905.06167](https://arxiv.org/abs/1905.06167)).
+  **Read at summary level only** — both the arXiv and the authors' PDF mirror
+  returned 403 from this session, so the full text was not retrieved. It is
+  cited for the terminology. The numbers in Phase 3 are this store's own
+  measurement and rest on nothing in it.
 
 **Near-neighbour projects — re-checked 2026-07-28.** The Phase 2 sentence
 originally named four; two are confirmed, two are dropped as uncited.
