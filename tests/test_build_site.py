@@ -134,6 +134,23 @@ class BuildTests(unittest.TestCase):
         self.assertIn(target["backlinks"][0], html)
 
 
+class EmptyStoreTests(unittest.TestCase):
+    """The page-rendering functions are pure over `entries`, so the empty-KB
+    branches can be exercised directly without standing up a whole empty
+    store on disk."""
+
+    def test_mermaid_source_falls_back_to_a_placeholder_node(self):
+        self.assertIn('empty["(no entries yet)"]', build_site.mermaid_source([]))
+
+    def test_index_page_falls_back_to_a_placeholder_message(self):
+        self.assertIn('<p class="empty">No entries yet.</p>', build_site.build_index([]))
+
+    def test_index_page_stats_are_zero(self):
+        index = build_site.build_index([])
+        self.assertIn("<b>0</b> entries", index)
+        self.assertIn("<b>—</b> newest", index)
+
+
 class StatusPageTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
