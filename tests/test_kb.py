@@ -109,6 +109,17 @@ class TestListAndSearch(KbTestCase):
         result = self.run_kb("search", "unicorn-flavored")
         self.assertIn("searchable-entry", result.stdout)
 
+    def test_readme_and_template_files_in_a_type_folder_are_not_entries(self):
+        self.run_kb("new", "real-entry", "--type", "semantic")
+        folder = self.entry_path("semantic", "real-entry").parent
+        (folder / "README.md").write_text("# semantic\n\nnot an entry")
+        (folder / "scratch.template.md").write_text("---\nname: scratch\n---\n")
+        result = self.run_kb("list")
+        self.assertIn("real-entry", result.stdout)
+        self.assertNotIn("README", result.stdout)
+        self.assertNotIn("scratch", result.stdout)
+        self.assertEqual(self.run_kb("lint").returncode, 0, self.run_kb("lint").stdout)
+
     def test_search_no_matches(self):
         self.run_kb("new", "boring-entry", "--type", "semantic")
         result = self.run_kb("search", "nonexistent-keyword-xyz")
@@ -222,6 +233,15 @@ class TestContext(RankingTestCase):
         pack = json.loads(self.run_kb("context", "quasar-telemetry", "--json").stdout)
         self.assertEqual(pack["entries"], [])
         self.assertIn("no matches", pack["text"])
+
+    def test_limit_caps_how_many_ranked_hits_are_considered(self):
+        for i in range(4):
+            self.make("semantic", f"widget-{i}", "widget " * (4 - i))
+        pack = json.loads(
+            self.run_kb("context", "widget", "--limit", "2", "--json").stdout)
+        self.assertEqual(len(pack["entries"]), 2)
+        self.assertEqual({e["name"] for e in pack["entries"]},
+                         {"widget-0", "widget-1"})
 
 
 class TestShow(KbTestCase):
@@ -617,6 +637,17 @@ class TestMutationLog(KbTestCase):
         log = (self.root / ".kb" / "log.md").read_text()
         for action in ("created", "verified", "updated", "deleted"):
             self.assertIn(action, log)
+
+    def test_deleting_from_a_mixed_type_store_logs_its_own_type(self):
+        """Regression: cmd_rm's referrer scan iterates (type, path) pairs and
+        must not let that loop variable overwrite the deleted entry's own
+        type before the log line is written."""
+        self.run_kb("new", "semantic-victim", "--type", "semantic")
+        self.run_kb("new", "an-episode", "--type", "episodic")
+        self.run_kb("rm", "semantic-victim")
+        log = (self.root / ".kb" / "log.md").read_text()
+        self.assertIn("semantic/semantic-victim.md", log)
+        self.assertNotIn("episodic/semantic-victim.md", log)
 
 
 class TestWriteBody(KbTestCase):

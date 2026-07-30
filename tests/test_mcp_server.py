@@ -151,6 +151,13 @@ class TestLifecycle(McpTestCase):
         response = self.send_raw(json.dumps([{"jsonrpc": "2.0", "id": 99, "method": "ping"}]))
         self.assertEqual(response["error"]["code"], -32600)
 
+    def test_non_object_params_is_a_tool_error_not_a_crash(self):
+        self.handshake()
+        response = self.send_raw(json.dumps(
+            {"jsonrpc": "2.0", "id": 98, "method": "ping", "params": "not-an-object"}))
+        self.assertEqual(response["error"]["code"], -32602)
+        self.assertEqual(self.result_of(self.send("ping")), {})
+
     def test_every_response_is_exactly_one_line(self):
         self.handshake()
         self.proc.stdin.write(json.dumps(

@@ -1350,7 +1350,7 @@ def cmd_rm(args):
     t, path, fm, _ = _require(args.name)
     name = fm.get("name", path.stem)
     referrers = []
-    for t, other in iter_entries():
+    for _other_type, other in iter_entries():
         if other == path:
             continue
         try:
