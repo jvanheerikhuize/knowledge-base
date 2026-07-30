@@ -49,6 +49,10 @@ UNVERIFIED_DAYS = 30
 CONFIDENCE_LEVELS = ["verified", "high", "medium", "low", "unverified"]
 # Lower number = more urgent; drives the order of the triage queue.
 TRIAGE_SEVERITY = {
+    # Worse than broken metadata: a broken date means one entry escapes a
+    # check, a standing contradiction means the store answers a question two
+    # incompatible ways and one of the answers is wrong.
+    "contradiction": -1,
     "invalid-due": 0,
     "invalid-date": 0,
     "overdue": 1,
@@ -66,6 +70,14 @@ AGEING_RATIO = 2 / 3
 # answers "what is the single next thing to do about this entry".
 # `action` is the literal command that moves it out of the state.
 STATUS_MODEL = [
+    {
+        "key": "contradicted",
+        "label": "Contradicted",
+        "meaning": "Another entry has been judged to disagree with this one. "
+                   "Whatever else is true, one of them is wrong.",
+        "action": "reconcile the two, then re-judge the pair with "
+                  "kb.py judge <a> <b> <verdict> --agreement agree",
+    },
     {
         "key": "broken",
         "label": "Broken metadata",
@@ -135,6 +147,7 @@ STATUS_ORDER = [s["key"] for s in STATUS_MODEL]
 
 # Which triage reason code implies which status.
 _REASON_STATUS = {
+    "contradiction": "contradicted",
     "invalid-due": "broken",
     "invalid-date": "broken",
     "overdue": "overdue",
@@ -293,6 +306,39 @@ MIN_CANDIDATE_TOKENS = 20
 VERDICTS = ("duplicate", "overlap", "distinct")
 VERDICTS_FILE = KB_DIR / "verdicts.json"
 
+# --- The second question: do these two entries disagree? --------------------
+# Contradiction is a *separate axis* from duplication, not a fourth value of
+# it, and that was measured rather than assumed. Nine contradictions (eight
+# hand-written, one recovered from this repo's own git history) were planted
+# in a copy of the store and every cheap signal was scored against them:
+#
+#   global topical similarity   contradicting pairs land anywhere from #2 to
+#                               #107 of 435 — the same failure a global
+#                               threshold has for duplicates
+#   claim-level alignment       a tight net (2% of the pair space) but only
+#                               4 of 9 — sentences are short, and two entries
+#                               rarely word the same claim the same way
+#   negation-polarity mismatch  5 of 9, and it cannot see the commonest shape
+#                               of all: two competing *positive* assertions
+#                               ("20 repos" against "22 repos"). Its false
+#                               positives are negation-scope errors ("this is
+#                               not just a preference") and entries that agree
+#                               *about* a contradiction elsewhere
+#
+# So no cheap signal decides it, and — the useful half — none is needed. The
+# nearest-neighbour blocker built for duplicates already caught 8 of the 9 at
+# its default setting and 9 of 9 at `-n 5`. What was missing was never a
+# detector; it was that `duplicate|overlap|distinct` has no way to say "these
+# two disagree", so a pair could be judged, look settled, and never have been
+# asked. Hence a second field on the same verdict.
+#
+# The two axes really are independent: of the pairs this store has judged, the
+# contradicting ones are spread across `overlap` and `distinct` alike, and a
+# pair can restate *and* disagree (an entry corrected in place against the one
+# that corrected it). Absent means unexamined, and is reported as such —
+# silence must not read as "checked, they agree".
+AGREEMENTS = ("agree", "contradict")
+
 
 def _claim_text(fm, body):
     """The part of an entry that carries its claim, and nothing else."""
@@ -412,19 +458,37 @@ def save_verdicts(verdicts):
                              encoding="utf-8")
 
 
-def record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body, verdict, note=""):
-    """Write down a judgement about one pair, against the text it was made on."""
+def record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body, verdict,
+                   note=None, agreement=None):
+    """Write down a judgement about one pair, against the text it was made on.
+
+    `agreement` is the second, independent axis: `agree`, `contradict`, or
+    None for "nobody has looked". None is stored as an absent key rather than
+    a value, so a ledger written before the axis existed reads correctly as
+    unexamined instead of quietly as "fine".
+
+    `note=None` means "say nothing about the note" and keeps whatever the
+    pair already carried. Adding the agreement axis re-opened every pair this
+    store had already judged, so the common case is now a *second* judgement
+    on a pair that already has reasoning attached — silently blanking it
+    would spend the first pass to buy the second. Pass `note=""` to clear one
+    on purpose.
+    """
     verdicts = load_verdicts()
+    previous = verdicts.get(_verdict_key(a_name, b_name), {})
     a, b = sorted(((a_name, a_fm, a_body), (b_name, b_fm, b_body)),
                   key=lambda e: e[0])
-    verdicts[_verdict_key(a_name, b_name)] = {
+    record = {
         "a": a[0], "b": b[0],
         "verdict": verdict,
         "judged": datetime.date.today().isoformat(),
         "a_digest": content_digest(a[1], a[2]),
         "b_digest": content_digest(b[1], b[2]),
-        "note": note or "",
+        "note": previous.get("note", "") if note is None else note,
     }
+    if agreement:
+        record["agreement"] = agreement
+    verdicts[_verdict_key(a_name, b_name)] = record
     save_verdicts(verdicts)
 
 
@@ -436,9 +500,11 @@ def candidate_pairs(neighbours=NEIGHBOURS, include_judged=False):
     surfaced again — a judgement about text that no longer exists is not a
     judgement.
 
-    Settled pairs drop out of the default view, with one exception: a pair
-    judged `duplicate` stays until somebody actually merges it. That is
-    outstanding work, not a closed question.
+    Settled pairs drop out of the default view. Three things keep a pair in
+    it, and all three are outstanding work rather than open questions:
+    a `duplicate` verdict nobody has merged yet, a `contradict` agreement
+    nobody has reconciled yet, and a verdict passed without the agreement
+    axis being answered at all.
 
     Returns (pairs, skipped).
     """
@@ -451,17 +517,46 @@ def candidate_pairs(neighbours=NEIGHBOURS, include_judged=False):
     for p in pairs:
         v = verdicts.get(_verdict_key(p["a"], p["b"]))
         p["verdict"] = v.get("verdict") if v else None
+        p["agreement"] = v.get("agreement") if v else None
         p["judged"] = v.get("judged", "") if v else ""
         p["note"] = v.get("note", "") if v else ""
         p["verdict_stale"] = bool(v) and not (
             v.get("a_digest") == digests.get(v.get("a"))
             and v.get("b_digest") == digests.get(v.get("b")))
         settled = (v and not p["verdict_stale"]
-                   and p["verdict"] in ("distinct", "overlap"))
+                   and p["verdict"] in ("distinct", "overlap")
+                   and p["agreement"] == "agree")
         if settled and not include_judged:
             continue
         out.append(p)
     return out, skipped
+
+
+def standing_contradictions():
+    """Pairs judged to disagree, where that judgement still applies.
+
+    A verdict is bound to the text it was passed on, so rewriting either
+    entry drops the pair out of here and back into `candidates` — resolving a
+    contradiction by editing is therefore self-clearing, and claiming one
+    about text that no longer exists is impossible. Archived entries are out
+    too: retiring an entry is already the decision that it no longer speaks.
+    """
+    docs, _ = _candidate_docs()
+    digests = {d["name"]: content_digest(d["fm"], d["body"]) for d in docs}
+    live = {d["name"] for d in docs}
+    out = []
+    for v in load_verdicts().values():
+        if v.get("agreement") != "contradict":
+            continue
+        a, b = v.get("a"), v.get("b")
+        if a not in live or b not in live:
+            continue
+        if not (v.get("a_digest") == digests[a] and v.get("b_digest") == digests[b]):
+            continue
+        out.append({"a": a, "b": b, "verdict": v.get("verdict", ""),
+                    "judged": v.get("judged", ""), "note": v.get("note", "")})
+    out.sort(key=lambda p: (p["a"], p["b"]))
+    return out
 
 
 def effective_confidence(fm, today=None):
@@ -854,6 +949,13 @@ def triage_report():
             inbound.add(link)
         entries.append((t, path, fm))
 
+    # A contradiction is a property of a pair, so it lands on both entries:
+    # neither is identifiable as the wrong one without reading them.
+    disagrees = collections.defaultdict(list)
+    for pair in standing_contradictions():
+        disagrees[pair["a"]].append(pair["b"])
+        disagrees[pair["b"]].append(pair["a"])
+
     report = []
     for t, path, fm in entries:
         # Archiving is the decision that an entry no longer needs attention.
@@ -863,6 +965,10 @@ def triage_report():
         name = fm.get("name", path.stem)
         confidence = fm.get("confidence", "")
         reasons = []
+
+        for other in sorted(disagrees.get(name, [])):
+            reasons.append(("contradiction",
+                            f"judged to disagree with {other}"))
 
         due = fm.get("due")
         if t == "prospective" and due:
@@ -1113,6 +1219,10 @@ def cmd_candidates(args):
         if p["verdict"]:
             tags.append(f"judged {p['verdict']} {p['judged']}"
                         + (" — TEXT CHANGED SINCE" if p["verdict_stale"] else ""))
+        if p["agreement"] == "contradict":
+            tags.append("CONTRADICTION standing — reconcile them")
+        elif p["verdict"] and not p["agreement"] and not p["verdict_stale"]:
+            tags.append("never checked for contradiction")
         suffix = f"  ({'; '.join(tags)})" if tags else ""
         print(f"\n{p['similarity']:.2f}  {p['a']} <-> {p['b']}{suffix}")
         print(f"      {p['a_type']}/{p['b_type']}, {p['shared_tokens']} shared words")
@@ -1122,7 +1232,10 @@ def cmd_candidates(args):
             print(f"      note: {p['note']}")
     if pairs:
         print(f"\n{len(pairs)} pair(s) to judge. {CANDIDATES_CAVEAT}\n"
-              f"  kb.py judge <a> <b> {'|'.join(VERDICTS)} [--note ...]")
+              f"  kb.py judge <a> <b> {'|'.join(VERDICTS)} "
+              f"--agreement {'|'.join(AGREEMENTS)} [--note ...]\n"
+              "Two questions per pair, not one: how much they overlap, and "
+              "whether they disagree.")
     if skipped:
         print(f"\n{len(skipped)} entr(ies) too short to compare "
               f"(<{MIN_CANDIDATE_TOKENS} distinct words): {', '.join(sorted(skipped))}")
@@ -1137,10 +1250,18 @@ def cmd_judge(args):
         print("an entry cannot duplicate itself", file=sys.stderr)
         sys.exit(1)
     record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body,
-                   args.verdict, args.note or "")
+                   args.verdict, args.note, args.agreement)
     # No entry in .kb/log.md: that log tracks changes to entries, and a verdict
     # changes none. The ledger is its own record and is git-tracked.
-    print(f"recorded: {a_name} <-> {b_name} = {args.verdict}")
+    agreed = f" ({args.agreement})" if args.agreement else ""
+    print(f"recorded: {a_name} <-> {b_name} = {args.verdict}{agreed}")
+
+    if args.agreement == "contradict":
+        # Whatever the overlap verdict says, disagreement is the live problem.
+        print("next: both entries are now 'contradicted' in triage and status. "
+              "Reconcile them — correct the wrong one, or narrow both until "
+              "they can both be true — then re-judge with --agreement agree")
+        return
     follow_up = {
         "duplicate": "merge the two by hand, then 'kb.py archive' the loser — "
                      "this pair stays in 'candidates' until you do",
@@ -1150,6 +1271,10 @@ def cmd_judge(args):
                     "entry's text changes",
     }
     print(f"next: {follow_up[args.verdict]}")
+    if not args.agreement:
+        print("half-judged: you said how much they overlap, not whether they "
+              "disagree. This pair stays in 'candidates' until you pass "
+              f"--agreement {'|'.join(AGREEMENTS)}")
 
 
 def cmd_archive(args):
@@ -1589,7 +1714,7 @@ def main():
                         help=f"nearest neighbours per entry (default {NEIGHBOURS}); "
                              "higher trades more pairs to read for more recall")
     p_cand.add_argument("--all", action="store_true",
-                        help="include pairs already judged distinct or overlapping")
+                        help="include pairs already settled on both axes")
     p_cand.add_argument("--json", action="store_true", help="machine-readable output")
     p_cand.set_defaults(func=cmd_candidates)
 
@@ -1598,6 +1723,10 @@ def main():
     p_judge.add_argument("a")
     p_judge.add_argument("b")
     p_judge.add_argument("verdict", choices=VERDICTS)
+    p_judge.add_argument("--agreement", choices=AGREEMENTS,
+                         help="the other, independent question: do these two "
+                              "entries disagree? omitting it leaves the pair "
+                              "unexamined, not cleared")
     p_judge.add_argument("--note", help="one line on why, kept with the verdict")
     p_judge.set_defaults(func=cmd_judge)
 

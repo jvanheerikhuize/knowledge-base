@@ -74,6 +74,9 @@ TYPE_BLURB = {
 CONFIDENCE_ORDER = ["verified", "high", "medium", "low", "unverified"]
 
 STATUS_COLORS = {
+    # The worst state in the model, and the only one where the store is
+    # actively wrong rather than merely unchecked — hence the strongest colour.
+    "contradicted": "#880e4f",
     "broken": "#b71c1c",
     "overdue": "#c62828",
     "stale": "#ef6c00",

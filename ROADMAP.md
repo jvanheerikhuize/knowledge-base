@@ -69,9 +69,9 @@ ten-week validation window, would trade a working server for a hypothetical one.
 
 ## Phase 3 — Consolidation and forgetting · `in progress`
 
-**Gap.** `memory/AGENT.md` states plainly that lint "does not detect
+**Gap.** `memory/AGENT.md` stated plainly that lint "does not detect
 content-level contradictions between entries — no such checker exists yet."
-Nothing merges duplicates, nothing ages, nothing retires. The documented
+Nothing merged duplicates, nothing aged, nothing retired. The documented
 failure mode of memory systems is exactly this: stale contradictory facts
 outranking current ones until an agent that remembers everything remembers
 nothing useful.
@@ -136,9 +136,46 @@ nothing useful.
   nearest thing the pass did surface is `distill-session-into-memory` against
   `persist-insight-to-knowledge-base`, judged `overlap` with a note that the
   latter's steps 3–5 restate most of the former.
-- **Contradiction detection** — start mechanical: same subject, conflicting
-  frontmatter, or an entry whose body negates one it links to. Report as a
-  triage reason code rather than a lint failure.
+- ✅ **Contradiction detection** — shipped as `judge --agreement`, and the
+  finding is that the mechanical version this line proposed does not work.
+
+  Nine contradictions were planted in a copy of the store — eight hand-written,
+  one real, recovered from git (the pre-correction
+  [[kb-duplicate-detection-limits]] against the entry that overturned it) — and
+  every cheap signal was scored against them.
+
+  | signal | pairs it puts up | caught |
+  |---|---|---|
+  | global topical similarity | positives at #2 to #107 of 435 | no usable cut |
+  | claim-level sentence alignment | 10 pairs (2%) | 4 of 9 |
+  | negation-polarity mismatch | 12 pairs (3%) | 5 of 9 |
+  | the existing `candidates` blocker, `-n 3` | 62 pairs (14%) | **8 of 9** |
+  | the existing `candidates` blocker, `-n 5` | 103 pairs (24%) | **9 of 9** |
+
+  "An entry whose body negates one it links to" is the polarity row, and it
+  cannot see the commonest shape of disagreement at all: two competing
+  *positive* assertions, "20 repos" against "22 repos", with no negation on
+  either side. Its false positives are negation-scope errors and entries that
+  agree *about* a contradiction elsewhere.
+
+  So no detector shipped. The blocker built for semantic duplicates already
+  surfaces these pairs; what was missing was that `duplicate|overlap|distinct`
+  has no value meaning "these disagree", so a pair could be judged, look
+  settled, and never have been asked. `--agreement agree|contradict` is a
+  second, independent axis on the same verdict — a pair can restate *and*
+  disagree — and omitting it stores no key, so the 46 verdicts written before
+  it existed read as unexamined rather than as fine. Standing contradictions
+  are the `contradiction` triage reason and the `contradicted` status, above
+  `broken`, and deliberately not a lint failure: lint checks form.
+
+  Duplication is a whole-entry relation and contradiction a sub-claim one,
+  which is why full recall wants `-n 5` here where 5% of the pair space
+  sufficed for paraphrases. First full pass 2026-07-30: 75 pairs at `-n 5`,
+  **one real contradiction** — [[kb-entry-status-model]] claiming eight
+  statuses against [[kb-forgetting-model]] describing a ninth — standing for
+  two days through a duplicate-judging pass, a clean lint, and a clean triage,
+  because nothing had asked. Reconciled; the store is clean on both axes.
+  Write-up: [[kb-contradiction-is-a-second-axis]].
 - ✅ **`kb.py archive <name>`** — invalidate rather than delete. Archived entries
   leave the retrieval set (search, context packs, triage) but stay readable,
   stay linked, and stay in the graph, so the audit trail survives. `status`
@@ -261,6 +298,9 @@ does not cover it.
 - `kb.py candidates` / `kb.py judge` and the MCP tools behind them — nearest-
   neighbour blocking plus a durable verdict ledger, the consolidation half of
   Phase 3 ([[kb-duplicate-candidates-by-nearest-neighbour]]).
+- `kb.py judge --agreement` and the `contradicted` status — the contradiction
+  half of Phase 3, shipped as a second axis on the existing verdict rather than
+  as a detector ([[kb-contradiction-is-a-second-axis]]).
 
 ---
 

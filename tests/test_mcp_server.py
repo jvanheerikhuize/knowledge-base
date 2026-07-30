@@ -430,6 +430,7 @@ class TestCandidatesOverMcp(McpTestCase):
         self.handshake()
         verdict = self.result_of(self.call("judge", {
             "a": "first-fact", "b": "second-fact", "verdict": "distinct",
+            "agreement": "agree",
             "note": "different claims, shared vocabulary"}))
         self.assertFalse(verdict["isError"])
         self.assertFalse(verdict["structuredContent"]["committed"])
@@ -443,6 +444,53 @@ class TestCandidatesOverMcp(McpTestCase):
                             "verdict": "overlap"})
         ledger = json.loads((self.root / ".kb" / "verdicts.json").read_text())
         self.assertEqual(ledger["verdicts"][0]["verdict"], "overlap")
+
+    def test_a_verdict_without_an_agreement_leaves_the_pair_in_the_queue(self):
+        """The tool must not let an agent half-judge a pair and look done."""
+        self.handshake()
+        result = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "distinct"}))
+        self.assertIsNone(result["structuredContent"]["agreement"])
+        self.assertIn("half-judged", result["content"][0]["text"])
+        pairs = self.candidates()["structuredContent"]["pairs"]
+        self.assertIn({"first-fact", "second-fact"},
+                      [{p["a"], p["b"]} for p in pairs])
+
+    def test_a_contradiction_is_recorded_and_stays_outstanding(self):
+        self.handshake()
+        result = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "overlap",
+            "agreement": "contradict"}))
+        self.assertEqual(result["structuredContent"]["agreement"], "contradict")
+        self.assertIn("contradicted", result["content"][0]["text"])
+        pairs = self.candidates()["structuredContent"]["pairs"]
+        pair = next(p for p in pairs if {p["a"], p["b"]} == {"first-fact", "second-fact"})
+        self.assertEqual(pair["agreement"], "contradict")
+
+    def test_a_contradiction_reaches_the_triage_tool(self):
+        self.handshake()
+        self.call("judge", {"a": "first-fact", "b": "second-fact",
+                            "verdict": "overlap", "agreement": "contradict"})
+        report = self.result_of(self.call("triage", {}))["structuredContent"]
+        flagged = {r["name"]: [x["code"] for x in r["reasons"]]
+                   for r in report["triage"]}
+        self.assertIn("contradiction", flagged.get("first-fact", []))
+        self.assertIn("contradiction", flagged.get("second-fact", []))
+
+    def test_an_unknown_agreement_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "distinct",
+            "agreement": "sort of"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("agreement must be one of", result["content"][0]["text"])
+
+    def test_the_judge_schema_offers_both_axes(self):
+        self.handshake()
+        tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
+        props = tools["judge"]["inputSchema"]["properties"]
+        self.assertEqual(props["agreement"]["enum"], ["agree", "contradict"])
+        self.assertNotIn("agreement", tools["judge"]["inputSchema"]["required"])
 
     def test_an_unknown_verdict_is_a_tool_error(self):
         self.handshake()
