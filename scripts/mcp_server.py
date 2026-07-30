@@ -274,7 +274,11 @@ def tool_candidates(args):
         "These are candidates, not duplicates — roughly one pair in three to "
         "eight is a real restatement, and no score here tells you which. Read "
         "both entries in full (kb://entry/<name> or the `get` tool) and record "
-        "the call with `judge`."
+        "the call with `judge`. Answer BOTH questions: how much the two "
+        "overlap (`verdict`), and whether they disagree (`agreement`). A pair "
+        "left unanswered on the second stays in this queue — no score finds "
+        "contradictions, so an agent reading the pair is the only detector "
+        "there is."
     )
     if not pairs:
         text = f"no unjudged candidate pairs at {neighbours} neighbour(s) per entry"
@@ -287,6 +291,10 @@ def tool_candidates(args):
             if p["verdict"]:
                 tags.append(f"judged {p['verdict']} {p['judged']}"
                             + (" — TEXT CHANGED SINCE" if p["verdict_stale"] else ""))
+            if p["agreement"] == "contradict":
+                tags.append("CONTRADICTION standing — reconcile them")
+            elif p["verdict"] and not p["agreement"] and not p["verdict_stale"]:
+                tags.append("never checked for contradiction")
             suffix = f"  ({'; '.join(tags)})" if tags else ""
             lines.append(f"{p['similarity']:.2f}  {p['a']} <-> {p['b']}{suffix}")
             lines.append(f"      a: {p['a_description']}")
@@ -301,6 +309,9 @@ def tool_judge(args):
     verdict = str(args.get("verdict") or "").strip()
     if verdict not in kb.VERDICTS:
         raise ToolError(f"verdict must be one of: {', '.join(kb.VERDICTS)}")
+    agreement = str(args.get("agreement") or "").strip() or None
+    if agreement and agreement not in kb.AGREEMENTS:
+        raise ToolError(f"agreement must be one of: {', '.join(kb.AGREEMENTS)}")
     a_name = str(args.get("a") or "").strip()
     b_name = str(args.get("b") or "").strip()
     if not a_name or not b_name:
@@ -312,17 +323,29 @@ def tool_judge(args):
     if a_resolved == b_resolved:
         raise ToolError("an entry cannot duplicate itself")
     kb.record_verdict(a_resolved, a_fm, a_body, b_resolved, b_fm, b_body,
-                      verdict, str(args.get("note") or ""))
-    follow_up = {
-        "duplicate": "merge the two by hand and archive the loser — this pair "
-                     "stays in the candidate queue until you do",
-        "overlap": "related, but both earn their place; link them if they are "
-                   "not linked already",
-        "distinct": "this pair leaves the queue unless either entry's text changes",
-    }[verdict]
+                      verdict, args.get("note"), agreement)
+    if agreement == "contradict":
+        follow_up = ("both entries are now `contradicted` in triage and status. "
+                     "Reconcile them — correct the wrong one, or narrow both "
+                     "until they can both be true — then re-judge with "
+                     "agreement=agree")
+    else:
+        follow_up = {
+            "duplicate": "merge the two by hand and archive the loser — this pair "
+                         "stays in the candidate queue until you do",
+            "overlap": "related, but both earn their place; link them if they are "
+                       "not linked already",
+            "distinct": "this pair leaves the queue unless either entry's text changes",
+        }[verdict]
+        if not agreement:
+            follow_up += ("; and you have only half-judged it — no `agreement` "
+                          "means nobody has asked whether the two disagree, so "
+                          "the pair stays in the queue")
+    agreed = f" ({agreement})" if agreement else ""
     text = (f"recorded (staged, not committed): {a_resolved} <-> {b_resolved} "
-            f"= {verdict}\nnext: {follow_up}")
+            f"= {verdict}{agreed}\nnext: {follow_up}")
     return text, {"a": a_resolved, "b": b_resolved, "verdict": verdict,
+                  "agreement": agreement,
                   "file": str(kb.VERDICTS_FILE.relative_to(kb.ROOT)),
                   "committed": False}
 
@@ -535,8 +558,12 @@ READ_TOOLS = [
             "as a short list of pairs for YOU to judge by reading them — no score "
             "here decides anything, and most pairs will be merely related. "
             "Pairs already judged drop out; a pair judged `duplicate` stays until "
-            "it is merged, and any pair whose entries have been rewritten since "
-            "comes back. Record every call with `judge` so the next agent does "
+            "it is merged, a pair judged to contradict stays until it is "
+            "reconciled, and any pair whose entries have been rewritten since "
+            "comes back. This is also the store's only contradiction check — "
+            "measured, no cheap signal separates 'these two disagree' from "
+            "'these two are about the same thing', so reading the pair is the "
+            "detector. Record every call with `judge` so the next agent does "
             "not repeat the reading."
         ),
         "annotations": {"readOnlyHint": True, "openWorldHint": False},
@@ -549,7 +576,7 @@ READ_TOOLS = [
                                               f"more pairs to read for more recall"},
                 "include_judged": {"type": "boolean",
                                    "description": "also return pairs already settled "
-                                                  "as distinct or overlapping"},
+                                                  "on both axes"},
             },
         },
         "handler": tool_candidates,
@@ -561,12 +588,18 @@ WRITE_TOOLS = [
         "name": "judge",
         "title": "Record a verdict on one candidate pair (staged, not committed)",
         "description": (
-            "Write down whether two entries make the same claim, so the judgement "
-            "outlives your context and nobody re-reads the pair. `duplicate` = the "
-            "same claim twice, merge them. `overlap` = related, both earn their "
-            "place. `distinct` = different claims that happen to share vocabulary. "
-            "The verdict is bound to the text you judged: rewrite either entry and "
-            "the pair returns for a fresh look."
+            "Write down what you concluded about a pair, so the judgement "
+            "outlives your context and nobody re-reads the pair. TWO answers, "
+            "not one. `verdict` is how much they overlap: `duplicate` = the "
+            "same claim twice, merge them; `overlap` = related, both earn their "
+            "place; `distinct` = different claims that happen to share vocabulary. "
+            "`agreement` is the independent question of whether they DISAGREE: "
+            "`agree` = both can be true, `contradict` = they cannot, so one of "
+            "them is wrong and both entries go to `contradicted` in triage. "
+            "Omitting `agreement` records the pair as unexamined on that axis "
+            "and leaves it in the queue — it is not a way to say 'fine'. "
+            "Both answers are bound to the text you judged: rewrite either entry "
+            "and the pair returns for a fresh look."
         ),
         "annotations": {"readOnlyHint": False, "destructiveHint": False,
                         "idempotentHint": True, "openWorldHint": False},
@@ -575,7 +608,11 @@ WRITE_TOOLS = [
             "properties": {
                 "a": {"type": "string", "description": "one entry of the pair"},
                 "b": {"type": "string", "description": "the other entry"},
-                "verdict": {"type": "string", "enum": list(kb.VERDICTS)},
+                "verdict": {"type": "string", "enum": list(kb.VERDICTS),
+                            "description": "how much the two overlap"},
+                "agreement": {"type": "string", "enum": list(kb.AGREEMENTS),
+                              "description": "whether they can both be true; "
+                                             "omit only if you did not look"},
                 "note": {"type": "string",
                          "description": "one line on why, kept with the verdict"},
             },

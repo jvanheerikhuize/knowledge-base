@@ -179,8 +179,11 @@ sequenceDiagram
 retrieval is the trade-off that keeps "no infra" true); no hardcoded
 LLM-driven classification pipeline (ingestion is agent-assisted); no UI *server*
 (the overview is statically generated — Mermaid also renders natively in GitHub,
-IDEs, and Claude artifacts). No content-level contradiction checker exists yet — lint detects
-duplicate slugs, not conflicting claims.
+IDEs, and Claude artifacts). No *automatic* contradiction checker, and not for
+want of trying — it was measured that no cheap signal separates "these two
+entries disagree" from "these two are about the same thing", so contradiction is
+a question an agent answers about a blocked pair (`judge --agreement`) rather
+than something lint computes.
 
 ## CLI quickstart
 
@@ -199,7 +202,7 @@ python3 scripts/kb.py verify <name> --confidence high
 python3 scripts/kb.py archive <name> [--undo]   # retire from retrieval, keep the file
 python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not paraphrases)
 python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each other — for you to judge
-python3 scripts/kb.py judge <a> <b> distinct    # record the call so nobody re-reads the pair
+python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both calls at once
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -299,7 +302,8 @@ computation is free and an approximation would only add error.
 
 ```
 python3 scripts/kb.py candidates [-n 3] [--all]
-python3 scripts/kb.py judge <a> <b> duplicate|overlap|distinct [--note "..."]
+python3 scripts/kb.py judge <a> <b> duplicate|overlap|distinct \
+        --agreement agree|contradict [--note "..."]
 ```
 
 The paragraphs above say lexical similarity cannot *decide* whether two entries
@@ -350,10 +354,69 @@ Default `-n 3` rather than the measured-sufficient `-n 1`: recall was already 7/
 at one neighbour, but two of the seven cleared their nearest rival by under 0.02,
 and seven positives is too small a sample to spend that margin on.
 
+## The other question about the same pair: `--agreement`
+
+`memory/AGENT.md` carried a standing admission — lint "does not detect
+content-level contradictions between entries — no such checker exists yet." It
+still does not detect them. What changed is that the sentence now says why.
+
+Nine contradictions were planted in a copy of this store to find out what a
+detector would have to look like: eight hand-written (a capability flipped, a
+count changed, two documents each claiming authority, a mechanism described
+backwards) and one real, recovered from git — the pre-correction
+`kb-duplicate-detection-limits` against the entry that overturned it.
+
+| signal | pairs it puts up | contradictions caught |
+|---|---|---|
+| global topical similarity | positives at **#2 to #107** of 435 | no usable cut |
+| claim-level sentence alignment | 10 pairs (2% of the space) | 4 of 9 |
+| negation-polarity mismatch | 12 pairs (3%) | 5 of 9 |
+| **the `candidates` blocker above, `-n 3`** | 62 pairs (14%) | **8 of 9** |
+| the `candidates` blocker above, `-n 5` | 103 pairs (24%) | **9 of 9** |
+
+Polarity mismatch fails in the way that settles the question: it cannot see
+two competing *positive* assertions at all — "20 repos" against "22 repos" —
+which is the commonest shape a disagreement takes. Its false positives are
+negation-scope errors ("this is **not** just a preference" is agreement) and
+entries that agree *about* a contradiction located somewhere else.
+
+So there is no detector, and none is needed. The blocker built for duplicates
+already surfaces these pairs; what was missing was a way to *say* it.
+`duplicate|overlap|distinct` answers how much two entries say the same thing
+and has no value meaning "they disagree", so a pair could be judged, look
+settled, and never have been asked. `--agreement` is that second axis:
+
+- `agree` — both can be true. Settles the pair.
+- `contradict` — they cannot. Both entries go to the `contradicted` status and
+  the pair stays in the queue until somebody reconciles them.
+- *omitted* — nobody looked. Stored as an **absent key**, not a default, so the
+  46 verdicts written before this axis existed read as unexamined rather than
+  as fine, and came back marked "never checked for contradiction".
+
+Contradiction is deliberately not a lint failure: lint checks form, and whether
+two claims can both be true is not form. It is a triage reason and a status,
+sitting above `broken` — every other status means nobody has checked; this one
+means somebody checked and the store is wrong.
+
+Contradiction is a *sub-claim* relation where duplication is a *whole-entry*
+one — one line inside a long entry against one line inside another — which is
+why full recall wants `-n 5` (24% of the pair space) where 5% sufficed for
+paraphrases. The one positive missed at `-n 3` was exactly that: a short claim
+against one line of a long episodic sweep.
+
+**First full pass, 2026-07-30: 75 pairs at `-n 5`, one real contradiction.**
+`kb-entry-status-model` said every entry sits in one of *eight* statuses and
+omitted `archived`; `kb-forgetting-model` said archiving gives an entry its own
+`archived` state on the board. It had stood for two days, through a full
+duplicate-judging pass, a clean lint, and a clean triage, because nothing had
+ever asked. The same 45 pairs read for duplicates the day before had returned
+zero duplicates — asked the second question, they returned a real defect.
+
 `kb.py status` answers the complementary question. Where `triage` lists only
-what is already wrong, `status` places *every* entry in exactly one of eight
-states — `broken`, `overdue`, `stale`, `unverified`, `provisional`, `isolated`,
-`ageing`, `current` — worst first, each carrying the literal command that moves
+what is already wrong, `status` places *every* entry in exactly one of ten
+states — `contradicted`, `broken`, `overdue`, `stale`, `unverified`,
+`provisional`, `isolated`, `ageing`, `current`, `archived` — worst first, each
+carrying the literal command that moves
 it out, plus a `review_by` date (`last_verified` + 90 days). That is what stops
 "clean" from quietly meaning "unexamined". The full table lives in
 [`memory/AGENT.md`](memory/AGENT.md#entry-status).
@@ -376,8 +439,8 @@ no process to keep running — the client spawns it.
 | `triage` | the queue of entries that are wrong or ageing, worst first |
 | `status` | every entry in exactly one status, with the command that moves it |
 | `dupes` | entry pairs whose text overlaps near-verbatim — copies, not paraphrases |
-| `duplicate_candidates` | each entry's nearest neighbours, as a short list of pairs for the agent to judge by reading them |
-| `judge` | record whether a pair is `duplicate` / `overlap` / `distinct` — staged, never committed |
+| `duplicate_candidates` | each entry's nearest neighbours, as a short list of pairs for the agent to judge by reading them — the contradiction check runs over the same list |
+| `judge` | record both answers about a pair: how much it overlaps, and whether the two disagree — staged, never committed |
 | `propose_update` | stage an edit to an entry in the working tree — **never commits**; also archives and un-archives |
 
 Entries are also published as MCP *resources* (`kb://entry/<name>`, plus

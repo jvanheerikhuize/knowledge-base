@@ -933,11 +933,13 @@ class TestCandidates(KbTestCase):
         self.assertIn("candidates, not duplicates", out)
 
     def test_a_judged_pair_leaves_the_queue(self):
-        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct",
+                    "--agreement", "agree")
         self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
 
     def test_a_judged_pair_is_still_visible_with_all(self):
-        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct",
+                    "--agreement", "agree")
         self.assertIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1", "--all")))
 
     def test_a_confirmed_duplicate_stays_until_it_is_merged(self):
@@ -948,7 +950,8 @@ class TestCandidates(KbTestCase):
         self.assertFalse(pair["verdict_stale"])
 
     def test_rewriting_an_entry_reopens_the_question(self):
-        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct",
+                    "--agreement", "agree")
         self.write_body("stated-again", self.RESTATEMENT + " Also, one more thing.")
         pairs = self.candidates("-n", "1")["pairs"]
         pair = next(p for p in pairs if {p["a"], p["b"]} == set(self.THE_PAIR))
@@ -957,13 +960,15 @@ class TestCandidates(KbTestCase):
 
     def test_re_verifying_an_entry_does_not_reopen_it(self):
         """A verdict is about what an entry claims, not about its metadata."""
-        self.run_kb("judge", "stated-plainly", "stated-again", "distinct")
+        self.run_kb("judge", "stated-plainly", "stated-again", "distinct",
+                    "--agreement", "agree")
         self.run_kb("verify", "stated-again", "--confidence", "verified")
         self.run_kb("link", "stated-again", "tides")
         self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
 
     def test_the_verdict_does_not_care_which_order_the_pair_was_given_in(self):
-        self.run_kb("judge", "stated-again", "stated-plainly", "distinct")
+        self.run_kb("judge", "stated-again", "stated-plainly", "distinct",
+                    "--agreement", "agree")
         self.assertNotIn(self.THE_PAIR, self.pair_names(self.candidates("-n", "1")))
 
     def test_archived_entries_are_out_of_the_candidate_set(self):
@@ -985,6 +990,136 @@ class TestCandidates(KbTestCase):
 
     def test_dupes_points_at_candidates_for_the_case_it_cannot_cover(self):
         self.assertIn("kb.py candidates", self.run_kb("dupes").stdout)
+
+
+class TestContradictions(TestCandidates):
+    """The second axis: do these two entries disagree?
+
+    Measured before it was built: contradicting pairs sit anywhere from #2 to
+    #107 of 435 by topical similarity, claim-level alignment finds 4 of 9, and
+    negation polarity finds 5 of 9 while missing every pair that disagrees by
+    competing positive assertion. So there is no detector — the blocker built
+    for duplicates already surfaces the pairs, and this axis is where an agent
+    that read them writes the answer down.
+    """
+
+    def ledger(self):
+        return json.loads((self.root / ".kb" / "verdicts.json").read_text())["verdicts"]
+
+    def judge(self, *args):
+        result = self.run_kb("judge", "stated-plainly", "stated-again", *args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
+
+    def in_queue(self):
+        return self.THE_PAIR in self.pair_names(self.candidates("-n", "1"))
+
+    def statuses(self):
+        report = json.loads(self.run_kb("status", "--json").stdout)
+        return {r["name"]: r["status"] for r in report}
+
+    def test_half_judging_a_pair_does_not_settle_it(self):
+        """Silence on the second question must not read as 'checked, fine'."""
+        out = self.judge("distinct").stdout
+        self.assertIn("half-judged", out)
+        self.assertTrue(self.in_queue())
+        self.assertIn("never checked for contradiction",
+                      self.run_kb("candidates", "-n", "1").stdout)
+
+    def test_an_unexamined_pair_stores_no_agreement_at_all(self):
+        """Absent, not a default value — an old ledger must read as unexamined."""
+        self.judge("distinct")
+        self.assertNotIn("agreement", self.ledger()[0])
+
+    def test_answering_both_questions_settles_the_pair(self):
+        self.judge("distinct", "--agreement", "agree")
+        self.assertFalse(self.in_queue())
+        self.assertEqual(self.ledger()[0]["agreement"], "agree")
+
+    def test_a_contradiction_stays_in_the_queue_until_it_is_reconciled(self):
+        self.judge("overlap", "--agreement", "contradict")
+        self.assertTrue(self.in_queue())
+        self.assertIn("CONTRADICTION standing",
+                      self.run_kb("candidates", "-n", "1").stdout)
+
+    def test_a_contradiction_is_reported_against_both_entries(self):
+        """Neither entry is identifiable as the wrong one without reading them."""
+        self.judge("overlap", "--agreement", "contradict")
+        report = json.loads(self.run_kb("triage", "--json").stdout)
+        flagged = {r["name"]: [x["code"] for x in r["reasons"]] for r in report}
+        self.assertIn("contradiction", flagged.get("stated-plainly", []))
+        self.assertIn("contradiction", flagged.get("stated-again", []))
+
+    def test_contradiction_outranks_every_other_status(self):
+        stamp = (datetime.date.today() - datetime.timedelta(days=400)).isoformat()
+        self.edit_frontmatter("semantic", "stated-again", last_verified=stamp)
+        self.assertEqual(self.statuses()["stated-again"], "stale")
+        self.judge("overlap", "--agreement", "contradict")
+        self.assertEqual(self.statuses()["stated-again"], "contradicted")
+
+    def test_it_is_a_triage_reason_not_a_lint_failure(self):
+        """Lint checks form. Whether two entries can both be true is not form."""
+        self.judge("overlap", "--agreement", "contradict")
+        self.assertEqual(self.run_kb("lint").returncode, 0)
+        flagged = self.run_kb("triage", "--reason", "contradiction").stdout
+        self.assertIn("stated-plainly", flagged)
+        self.assertIn("stated-again", flagged)
+
+    def test_rewriting_an_entry_clears_the_standing_contradiction(self):
+        """Resolving one by editing is self-clearing; the pair comes back to judge."""
+        self.judge("overlap", "--agreement", "contradict")
+        self.write_body("stated-again", self.RESTATEMENT + " On reflection, no.")
+        self.assertNotIn("contradicted", self.statuses().values())
+        pair = next(p for p in self.candidates("-n", "1")["pairs"]
+                    if {p["a"], p["b"]} == set(self.THE_PAIR))
+        self.assertTrue(pair["verdict_stale"])
+
+    def test_re_verifying_does_not_clear_a_contradiction(self):
+        """Metadata is not the claim, so stamping a date settles nothing."""
+        self.judge("overlap", "--agreement", "contradict")
+        self.run_kb("verify", "stated-again", "--confidence", "verified")
+        self.assertEqual(self.statuses()["stated-again"], "contradicted")
+
+    def test_archiving_one_side_ends_the_disagreement(self):
+        """A retired entry no longer speaks, so it can no longer disagree."""
+        self.judge("overlap", "--agreement", "contradict")
+        self.run_kb("archive", "stated-again")
+        self.assertNotIn("contradicted", self.statuses().values())
+
+    def test_the_two_axes_are_recorded_independently(self):
+        self.judge("distinct", "--agreement", "contradict")
+        entry = self.ledger()[0]
+        self.assertEqual((entry["verdict"], entry["agreement"]),
+                         ("distinct", "contradict"))
+
+    def test_an_unknown_agreement_is_rejected(self):
+        result = self.run_kb("judge", "stated-plainly", "stated-again",
+                             "distinct", "--agreement", "probably")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_the_prompt_asks_for_both_answers(self):
+        out = self.run_kb("candidates", "-n", "1").stdout
+        self.assertIn("--agreement", out)
+        self.assertIn("Two questions per pair", out)
+
+    def test_re_judging_keeps_the_reasoning_from_the_first_pass(self):
+        """Adding this axis re-opened every already-judged pair; a second
+        judgement must not silently spend the first one's note."""
+        self.judge("overlap", "--note", "two halves of one topic")
+        self.judge("overlap", "--agreement", "agree")
+        self.assertEqual(self.ledger()[0]["note"], "two halves of one topic")
+
+    def test_a_note_can_still_be_replaced_or_cleared_on_purpose(self):
+        self.judge("overlap", "--note", "first thought")
+        self.judge("overlap", "--agreement", "agree", "--note", "second thought")
+        self.assertEqual(self.ledger()[0]["note"], "second thought")
+        self.judge("overlap", "--agreement", "agree", "--note", "")
+        self.assertEqual(self.ledger()[0]["note"], "")
+
+    def test_the_legend_explains_how_to_leave_the_contradicted_state(self):
+        out = self.run_kb("status", "--legend").stdout
+        self.assertIn("Contradicted", out)
+        self.assertIn("--agreement agree", out)
 
 
 class TestConfidenceDecay(KbTestCase):

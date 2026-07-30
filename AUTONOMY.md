@@ -84,15 +84,25 @@ already configured this way; inside a session just do the work you were given.
   `.kb/verdicts.json`, bound to a content digest) + both over MCP. First full
   pass: 42 pairs judged, zero duplicates, one missing link found. Write-up:
   `kb-duplicate-candidates-by-nearest-neighbour`.
-- [ ] **ROADMAP Phase 3 — `consolidate` and contradiction detection.** Now
-  unblocked: `candidates` supplies the candidate set and `judge` records which
-  pairs are real, so `consolidate` has a queue (pairs standing at `duplicate`).
-  The first pass found none, so wait for a real merge to design against rather
-  than a hypothetical one — the nearest case is `distill-session-into-memory`
-  against `persist-insight-to-knowledge-base`, judged `overlap` because the
-  latter's steps 3–5 restate most of the former. Contradiction detection is the
-  other half and is still mechanical-first: same subject, conflicting
-  frontmatter, or a body that negates one it links to.
+- [x] **ROADMAP Phase 3 — contradiction detection.** (2026-07-30) Done, and
+  the mechanical version this backlog proposed does not work. Nine
+  contradictions planted (eight written, one recovered from git): negation
+  polarity caught 5 of 9 and is blind to competing *positive* assertions ("20
+  repos" vs "22 repos"); claim-level alignment caught 4 of 9. The blocker
+  already shipped for duplicates caught 8 of 9 at `-n 3` and 9 of 9 at `-n 5`.
+  So no detector — `judge` gained `--agreement agree|contradict`, an axis
+  independent of `duplicate|overlap|distinct`, plus the `contradicted` status
+  above `broken` and a `contradiction` triage reason. Omitting the axis stores
+  no key, so the 46 older verdicts reopened as *unexamined*. First pass: 75
+  pairs at `-n 5`, **one real contradiction** (`kb-entry-status-model` claiming
+  eight statuses against `kb-forgetting-model` describing a ninth), standing
+  two days through a clean lint and a clean triage. Reconciled. Write-up:
+  `kb-contradiction-is-a-second-axis`. 36 new tests (267 total).
+- [ ] **ROADMAP Phase 3 — `consolidate`.** Still waiting for a real merge to
+  design against: two full judging passes have now found zero duplicates. The
+  nearest case remains `distill-session-into-memory` against
+  `persist-insight-to-knowledge-base`, judged `overlap` because the latter's
+  steps 3–5 restate most of the former.
   (The 2026-07-28 warning still stands and now lives with the code: **do not
   lower the `dupes` threshold to "catch more"** — that is a different command
   from `candidates`, its regression test will fail, and the next thing it finds

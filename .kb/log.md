@@ -46,3 +46,7 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-29 — created `semantic/kb-duplicate-candidates-by-nearest-neighbour.md`
 - 2026-07-29 — linked `semantic/kb-duplicate-detection-limits.md` — -> kb-duplicate-candidates-by-nearest-neighbour
 - 2026-07-29 — updated `semantic/kb-duplicate-detection-limits.md` — description=a global similarity threshold cannot find semantic duplicates — measured, a paraphrase ranked below 13 merely-related pairs — so kb.py dupes is scoped to near-verbatim overlap; the nearest-neighbour framing that did work is a separate entry
+- 2026-07-30 — created `semantic/kb-contradiction-is-a-second-axis.md`
+- 2026-07-30 — linked `semantic/kb-duplicate-candidates-by-nearest-neighbour.md` — -> kb-contradiction-is-a-second-axis
+- 2026-07-30 — linked `prospective/kb-roadmap.md` — -> kb-contradiction-is-a-second-axis
+- 2026-07-30 — verified `prospective/kb-roadmap.md` — confidence=high

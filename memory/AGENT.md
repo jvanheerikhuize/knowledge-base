@@ -57,17 +57,34 @@ near-twin.
 
 After the fact, `kb.py candidates` will put your new entry's nearest neighbours
 in front of you — but only as pairs to *read*, never as a verdict. Judging them
-is your job, and `kb.py judge <a> <b> duplicate|overlap|distinct` is where you
-write the answer down so the next agent does not read the same pair again.
-A verdict survives re-verifying and relinking; rewriting either body reopens it.
+is your job, and it is **two questions, not one**:
+
+```
+kb.py judge <a> <b> duplicate|overlap|distinct --agreement agree|contradict
+```
+
+The verdict says how much the two overlap. `--agreement` says whether they can
+both be true — an independent axis, because a pair can restate *and* disagree.
+Leaving `--agreement` off does not clear a pair; it records that nobody looked,
+and the pair stays in the queue. This is the store's only contradiction check:
+it was measured that no cheap signal separates "these two disagree" from "these
+two are about the same thing", so an agent reading the pair is the detector
+(see the `kb-contradiction-is-a-second-axis` entry).
+
+Both answers survive re-verifying and relinking; rewriting either body reopens
+the pair. A pair judged `contradict` stays in the queue, and both its entries
+sit at `contradicted` in `triage` and `status`, until somebody reconciles
+them.
 
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
 `links:`, duplicate slugs, and violations of `../.kb/schema/entry.schema.json`
-(missing required fields, malformed `name`, invalid `type`). It does not
-detect content-level contradictions between entries — no such checker
-exists yet.
+(missing required fields, malformed `name`, invalid `type`). It still does not
+detect content-level contradictions between entries, and it never will: lint
+checks form, and whether two claims can both be true is not form. That question
+is asked of candidate pairs instead — see below — and reported as the
+`contradicted` status rather than as a lint failure.
 
 ## Entry status
 
@@ -81,6 +98,7 @@ Run `scripts/kb.py status` for the board, `--legend` for this table, or open
 
 | Status | What it means | How to change it |
 |---|---|---|
+| `contradicted` | Another entry has been judged to disagree with it — one of the two is wrong | reconcile them, then `kb.py judge <a> <b> <verdict> --agreement agree` |
 | `broken` | A frontmatter date will not parse, so the entry escapes every freshness check | `kb.py set <name> last_verified YYYY-MM-DD` |
 | `overdue` | A prospective entry whose `due` date has passed — a reminder that already fired | act on it, then `kb.py set <name> due YYYY-MM-DD` (or `kb.py rm <name>`) |
 | `stale` | Not re-checked in over 90 days; may still be true, nobody has looked | re-check against the source, then `kb.py verify <name>` |
@@ -128,7 +146,7 @@ scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as toda
 scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and its links stay
 scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
 scripts/kb.py candidates [-n 3] [--all]  # pairs that may restate each other — read them, then judge
-scripts/kb.py judge <a> <b> duplicate|overlap|distinct [--note "..."]   # record the call
+scripts/kb.py judge <a> <b> duplicate|overlap|distinct --agreement agree|contradict [--note "..."]   # record both calls
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR
@@ -154,6 +172,8 @@ python3 scripts/mcp_server.py [--read-only]
 | `get` | one entry in full |
 | `triage` | what is wrong or ageing, worst first |
 | `status` | where every entry stands and what moves it |
+| `duplicate_candidates` | pairs to read for restatement *and* for disagreement |
+| `judge` | record both answers about a pair — staged, never committed |
 | `propose_update` | stage an edit — **it does not commit** |
 
 Entries are also resources (`kb://entry/<name>`, plus `kb://agent` for this
