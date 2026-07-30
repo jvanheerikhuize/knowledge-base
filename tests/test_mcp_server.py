@@ -151,11 +151,15 @@ class TestLifecycle(McpTestCase):
         response = self.send_raw(json.dumps([{"jsonrpc": "2.0", "id": 99, "method": "ping"}]))
         self.assertEqual(response["error"]["code"], -32600)
 
-    def test_non_object_params_is_an_invalid_params_error(self):
+    def test_non_object_params_is_a_tool_error_not_a_crash(self):
+        # 2026-07-29 and 2026-07-30 each wrote this test independently; the
+        # later one is kept because it also proves the server keeps serving
+        # after the bad request, which is what "not a crash" actually means.
         self.handshake()
         response = self.send_raw(json.dumps(
-            {"jsonrpc": "2.0", "id": 98, "method": "ping", "params": "nope"}))
+            {"jsonrpc": "2.0", "id": 98, "method": "ping", "params": "not-an-object"}))
         self.assertEqual(response["error"]["code"], -32602)
+        self.assertEqual(self.result_of(self.send("ping")), {})
 
     def test_missing_method_is_an_invalid_request_error(self):
         self.handshake()
