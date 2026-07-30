@@ -68,9 +68,20 @@ already configured this way; inside a session just do the work you were given.
   consulted" section now lists what was actually read, with dates. The
   near-neighbour projects named in Phase 2 are flagged as still unverified
   rather than dressed up with plausible links — verify or drop them.
-- [ ] **Test consolidation & audit.** Review `tests/` for overlap and gaps
-  (127 tests as of 2026-07-27); consolidate where LEAN, add coverage where a
-  regression could hide.
+- [x] **Test consolidation & audit.** (2026-07-30) Read all four suites in
+  full (2304 lines, 271 tests after this pass) against their source files.
+  Overlap turned out minimal — CLI-vs-MCP layering is intentional, not
+  duplication — one low-severity case left as-is (`TestConfidenceDecay`'s
+  two saturation tests; kept because one ties to a scenario documented in
+  `kb-forgetting-model`). The gap sweep found a real bug: `cmd_rm`'s
+  referrer scan (`for t, other in iter_entries()`) shadowed the outer `t`
+  already resolved to the deleted entry's own type, so the ingest-log line
+  written after the loop recorded whichever type `iter_entries()` last
+  yielded — invisible because every existing `rm` test used a single-type
+  store. Fixed, with a regression test proven to fail pre-fix. Also closed
+  two coverage gaps: `context --limit` and `iter_entries`'s skip of
+  `README.md`/`*.template.md` inside a type folder were both previously
+  unexercised. 4 new tests (271 total), lint clean.
 - [ ] **KB hygiene pass.** `scripts/kb.py triage`; re-verify ageing entries,
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
