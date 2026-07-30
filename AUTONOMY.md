@@ -77,24 +77,36 @@ already configured this way; inside a session just do the work you were given.
   consulted" section now lists what was actually read, with dates. The
   near-neighbour projects named in Phase 2 are flagged as still unverified
   rather than dressed up with plausible links — verify or drop them.
-- [x] **Test consolidation & audit.** (2026-07-29) Done. Read all 231 tests
-  against the four source files they cover. Consolidation was the smaller
-  win: trimmed a handful of tests re-asserting numbers already pinned
-  elsewhere, merged one strict-subset test, repurposed one confidence-decay
-  test whose two ages landed on the same clamp branch into a new
-  intermediate-step test. The gap half mattered more: it found two real,
-  silent bugs — `kb.py set <name> links <value>` wrote a bare string instead
-  of list syntax (frontmatter corruption, since e.g. `cmd_link` then iterates
-  the string's characters), and `kb.py dupes` had no archived-entry filter
-  where `kb.py candidates` did, so an archived entry could be flagged as a
-  live duplicate. Both fixed (`set` now refuses `links`, pointing at `kb.py
-  link`; `dupe_pairs` now skips archived entries like `_candidate_docs`
-  does), each with a regression test confirmed to fail pre-fix. Also added
-  tests for previously-uncovered error paths (MCP `propose_update`/`judge`
-  on a missing entry, malformed JSON-RPC params/method/`resources/read`,
-  `build_site`'s empty-KB rendering branches, `serve.py` malformed POST
-  bodies and a route missing its required name). 231 → 244 tests, all green.
-  Write-up: `kb-test-audit-2026-07-29`.
+- [x] **Test consolidation & audit.** Done **twice**, 2026-07-29 and
+  2026-07-30, because the first pass was pushed to a branch and never merged,
+  so this box still read unchecked when the second session picked it up. Both
+  passes are kept below — they found different bugs, so the duplicated effort
+  was not wasted, but it was still duplicated. This is the case that put the
+  "end every session with the work on `main`" rule in the git strategy above.
+
+  *Pass 1 (2026-07-29, 231 tests read).* Consolidation was the smaller win:
+  trimmed a handful of tests re-asserting numbers already pinned elsewhere,
+  merged one strict-subset test, repurposed a confidence-decay test whose two
+  ages landed on the same clamp branch into a new intermediate-step test. The
+  gap half found two real, silent bugs — `kb.py set <name> links <value>`
+  wrote a bare string instead of list syntax (frontmatter corruption, since
+  `cmd_link` then iterates the string's characters), and `kb.py dupes` had no
+  archived-entry filter where `kb.py candidates` did, so an archived entry
+  could be flagged as a live duplicate. Both fixed with regression tests
+  confirmed to fail pre-fix, plus coverage for previously-unexercised error
+  paths (MCP `propose_update`/`judge` on a missing entry, malformed JSON-RPC
+  params/method/`resources/read`, `build_site`'s empty-KB branches,
+  `serve.py` malformed POST bodies). Write-up: `kb-test-audit-2026-07-29`.
+
+  *Pass 2 (2026-07-30, all four suites re-read).* Found overlap minimal —
+  CLI-vs-MCP layering is intentional, not duplication. The gap sweep found a
+  third bug: `cmd_rm`'s referrer scan (`for t, other in iter_entries()`)
+  shadowed the outer `t` already resolved to the deleted entry's own type, so
+  the log line written after the loop recorded whichever type `iter_entries()`
+  last yielded — invisible because every existing `rm` test used a
+  single-type store. Fixed, with a mixed-type regression test. Also covered
+  `context --limit` and `README.md`/`*.template.md` inside a type folder.
+  Write-up: `audit-test-corpora-for-artificial-uniformity`.
 - [ ] **KB hygiene pass.** `scripts/kb.py triage`; re-verify ageing entries,
   connect isolated ones, act on overdue prospective entries.
 - [ ] **Site polish.** Review the published site (GitHub Pages) for anything
