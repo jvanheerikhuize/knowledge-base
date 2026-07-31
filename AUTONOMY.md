@@ -34,6 +34,15 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   is explicitly pre-authorized). Delete merged branches.
 - Conventional-commit messages, small focused commits.
 - Never force-push. Never rewrite history on main.
+- **End every session with the work on `main`, or with the reason it is not
+  written in `DEBRIEF.md`.** A branch that is pushed and left is invisible: it
+  is not reviewed, its backlog item still reads unchecked, and the next session
+  redoes it. This is not hypothetical — the 11:00 routine did exactly that on
+  2026-07-29 and 2026-07-30 (`claude/cool-cerf-so8mrh`,
+  `claude/cool-cerf-sr8tim`), including three bug fixes and a debrief line that
+  never reached `main`. Pushing to a branch is a checkpoint, not an ending.
+- **Before picking a backlog item, check `git ls-remote --heads origin`.** An
+  unmerged `claude/*` branch may already hold the work.
 
 ## Model tiering
 

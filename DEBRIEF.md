@@ -46,6 +46,65 @@ Set up 2026-07-27 before you left.
 
 ## Blockers / notes
 
+- **2026-07-31 — two routines are running, neither in the afternoon, and one of
+  them has been losing its work since 07-29.** Jerry asked why no afternoon
+  session had run. Reconstructed from commit times (all times GMT+2):
+
+  | routine | fires | model | state |
+  |---|---|---|---|
+  | undocumented | ~09:15 | Opus (research) | ✅ merged every day — 07-28 … 07-31 |
+  | "Autonomy — daily workspace session" | ~11:15 (cron `0 9` UTC) | Sonnet (execution) | ⚠️ **work stranded on branches, never merged, never debriefed** |
+  | afternoon | — | — | ❌ **no session has ever run after 11:18** |
+
+  **Nothing fires in the afternoon on any day**, so Jerry's observation is
+  correct. I cannot see or change routine configuration from inside a routine
+  session — there is no RemoteTrigger tool here and no claude.ai credential, the
+  same sandboxing as `sibling-repo-access-denied-in-routines`. So this half is
+  Jerry's to fix in the UI; the steps are below.
+
+  **The more urgent finding is the second row.** The 11:00 routine ran on
+  2026-07-29 and 2026-07-30, did real work, pushed it, and stopped:
+
+  - `claude/cool-cerf-so8mrh` (07-29) — the **Test consolidation & audit**
+    backlog item: audit suite for overlap and gaps, **plus two bug fixes in
+    `scripts/kb.py`**, and an episodic entry recording the audit.
+  - `claude/cool-cerf-sr8tim` (07-30) — **a `cmd_rm` bug fix** (its referrer
+    scan overwrote the deleted entry's type), a semantic entry on artificial
+    uniformity in test corpora, and its own edits to `AUTONOMY.md` and
+    `DEBRIEF.md`.
+
+  That last detail is the one that matters: **that session did write its debrief
+  line — it just never reached `main`.** So the single document Jerry triages
+  has been silently missing two days of work, including three bug fixes, and the
+  backlog still shows "Test consolidation & audit" unchecked, which is why this
+  session nearly picked it up a third time. Both branches are based on
+  `22818bf`, so they will conflict with 07-30's and today's changes to
+  `scripts/kb.py` and `tests/`. **Not merged — three commits of unreviewed work
+  with known conflicts is Jerry's call, not a side effect of a scheduling
+  question.**
+
+  **Why "push to a branch" was not enough.** `AUTONOMY.md` offers three git
+  routes and only the PR route ends in `main`. A session that reads "logical
+  pieces of work → push directly to a work branch" follows the charter exactly
+  and still leaves nothing merged, nothing reviewed, and nothing in the debrief.
+  The charter should say that a session ends with its work on `main` or with the
+  reason it is not; that is fixed below.
+
+  **What Jerry needs to do (UI only — claude.ai/code/routines):**
+  1. Decide the fate of the two branches above: merge, cherry-pick the three bug
+     fixes, or discard.
+  2. If an afternoon routine was ever created via the API, check whether it is
+     **disabled**. Per `routines-ui-not-api-for-prompts`, a trigger written with
+     a repo slug as `environment_id` accepts the write, then fails its first run
+     with `environment_not_found` and **auto-disables itself** — silently, which
+     looks exactly like "it never ran". Re-enabling without fixing the
+     environment just re-disables it; set the repo through the UI picker.
+  3. Otherwise create it in the UI, not the API: instructions (a short pointer at
+     `AUTONOMY.md`), repository, model, and connectors are all UI-only fields.
+  4. Note the timezone trap: the API stores `cron_expression` in **UTC** while
+     the UI shows **local**. The existing 11:00 routine is cron `0 9` UTC. An
+     afternoon slot of 15:00 local is `0 13` UTC.
+
 - **2026-07-28 — the session started read-only; you fixed it mid-run.** For most
   of this session `git push` returned 403 from the git relay and the GitHub API
   returned `403 Resource not accessible by integration`; reads worked
