@@ -34,6 +34,15 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   is explicitly pre-authorized). Delete merged branches.
 - Conventional-commit messages, small focused commits.
 - Never force-push. Never rewrite history on main.
+- **End every session with the work on `main`, or with the reason it is not
+  written in `DEBRIEF.md`.** A branch that is pushed and left is invisible: it
+  is not reviewed, its backlog item still reads unchecked, and the next session
+  redoes it. This is not hypothetical — the 11:00 routine did exactly that on
+  2026-07-29 and 2026-07-30 (`claude/cool-cerf-so8mrh`,
+  `claude/cool-cerf-sr8tim`), including three bug fixes and a debrief line that
+  never reached `main`. Pushing to a branch is a checkpoint, not an ending.
+- **Before picking a backlog item, check `git ls-remote --heads origin`.** An
+  unmerged `claude/*` branch may already hold the work.
 
 ## Model tiering
 
@@ -98,11 +107,18 @@ already configured this way; inside a session just do the work you were given.
   eight statuses against `kb-forgetting-model` describing a ninth), standing
   two days through a clean lint and a clean triage. Reconciled. Write-up:
   `kb-contradiction-is-a-second-axis`. 36 new tests (267 total).
-- [ ] **ROADMAP Phase 3 — `consolidate`.** Still waiting for a real merge to
-  design against: two full judging passes have now found zero duplicates. The
-  nearest case remains `distill-session-into-memory` against
-  `persist-insight-to-knowledge-base`, judged `overlap` because the latter's
-  steps 3–5 restate most of the former.
+- [x] **ROADMAP Phase 3 — `consolidate`.** (2026-07-31) Done, and waiting for a
+  merge was waiting for the wrong thing. 87 verdicts, **zero duplicates** — a
+  curated store accumulates `overlap`, not duplicates, so a merge-only
+  `consolidate` was dead code. The live defect was in the overlap bucket:
+  `judge` recommends a link once and nothing ever checks it happened, and
+  **seven** overlapping pairs had no edge — invisible to lint, which reads one
+  entry at a time while a missing edge is a property of a pair. Shipped as
+  three queues of proposals (unmerged duplicates, missing edges, restated
+  passages). The passage signal was measured first: shingle containment 1 of 7,
+  passage-as-BM25-query 7 of 7, narrowed to 28 of 2728 pairs by requiring it to
+  beat its own host with the passage removed. 38 new tests (305 total).
+  Write-up: `kb-consolidation-is-owed-work`. Phase 3 is now closed.
   (The 2026-07-28 warning still stands and now lives with the code: **do not
   lower the `dupes` threshold to "catch more"** — that is a different command
   from `candidates`, its regression test will fail, and the next thing it finds

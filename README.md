@@ -203,6 +203,7 @@ python3 scripts/kb.py archive <name> [--undo]   # retire from retrieval, keep th
 python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not paraphrases)
 python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each other — for you to judge
 python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both calls at once
+python3 scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe — proposals only
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR

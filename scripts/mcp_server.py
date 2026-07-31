@@ -304,6 +304,50 @@ def tool_candidates(args):
     return text, {"neighbours": neighbours, "pairs": pairs, "too_short": skipped}
 
 
+def tool_consolidate(args):
+    """What the standing verdicts still owe. Proposals only — it writes nothing."""
+    margin = args.get("margin", kb.RESTATEMENT_MARGIN)
+    try:
+        margin = float(margin)
+    except (TypeError, ValueError):
+        raise ToolError(f"margin must be a number, got {args.get('margin')!r}")
+    if margin < 1:
+        raise ToolError("margin must be at least 1")
+    report = kb.consolidation_report(margin=margin)
+    merges, edges = report["merges"], report["missing_edges"]
+    restated = report["restatements"]
+
+    lines = [f"MERGE — pairs standing at 'duplicate' ({len(merges)})"]
+    for p in merges:
+        lines.append(f"  {p['a']} <-> {p['b']}   (judged {p['judged']})"
+                     + (f"  note: {p['note']}" if p["note"] else ""))
+    lines.append(f"\nLINK — judged 'overlap', no edge between them ({len(edges)})")
+    for p in edges:
+        lines.append(f"  {p['a']} <-> {p['b']}   (judged {p['judged']})"
+                     + (f"  note: {p['note']}" if p["note"] else ""))
+    lines.append(f"\nRESTATED — passages that read as another entry's ({len(restated)})")
+    for p in restated:
+        tags = []
+        if p["linked"]:
+            tags.append("already linked")
+        if p["mentions_target"]:
+            tags.append("passage already cites it")
+        if p["verdict"]:
+            tags.append(f"judged {p['verdict']}")
+        suffix = f"  ({'; '.join(tags)})" if tags else ""
+        lines.append(f"  {p['host']} -> {p['target']}{suffix}")
+        lines.append(f"      | {p['passage'][:200]}")
+    lines.append(
+        "\nProposals, not decisions. Each one is a judgement you make by "
+        "reading the entries: a missing link is an edge somebody decided was "
+        "not worth drawing, and most restated passages are an entry "
+        "legitimately discussing its neighbour. Apply the ones that are real "
+        "with `propose_update` (link) or by rewriting the passage; leave the "
+        "rest."
+    )
+    return "\n".join(lines), report
+
+
 def tool_judge(args):
     """Stage a verdict about one pair. Like every write here, it does not commit."""
     verdict = str(args.get("verdict") or "").strip()
@@ -580,6 +624,35 @@ READ_TOOLS = [
             },
         },
         "handler": tool_candidates,
+    },
+    {
+        "name": "consolidate",
+        "title": "What the standing verdicts still owe",
+        "description": (
+            "`judge` records what two entries are to each other; this reports "
+            "what nobody has done about it. Three queues: pairs judged "
+            "`duplicate` that were never merged; pairs judged `overlap` with "
+            "no link between them — a defect `lint` cannot see, because a "
+            "missing edge is a property of a pair and lint only checks single "
+            "entries; and passages that score higher against a different entry "
+            "than against their own, which is how a paragraph restating "
+            "another entry is found (shingle overlap does not find it — "
+            "measured, 1 of 7 against 7 of 7). Proposals only, it changes "
+            "nothing. Most restated passages are an entry legitimately "
+            "discussing its neighbour, so read before acting."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "margin": {"type": "number",
+                           "description": f"how far a passage's best entry must "
+                                          f"beat the runner-up (default "
+                                          f"{kb.RESTATEMENT_MARGIN}); lower trades "
+                                          f"more passages to read for more recall"},
+            },
+        },
+        "handler": tool_consolidate,
     },
 ]
 

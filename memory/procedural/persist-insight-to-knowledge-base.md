@@ -24,18 +24,10 @@ Steps:
 2. **During work.** When a task needs reference content — conventions,
    inventories, prior decisions — source it from `memory/` rather than
    re-deriving it, and correct the entry in place if reality has drifted.
-3. **After work.** Classify each new durable finding into one of the 7
-   memory types and scaffold it:
-   `scripts/kb.py new --type <type> "<slug>"`. Follow
-   [[distill-session-into-memory]] for the distillation pass.
-4. **Set `confidence` honestly** per the rubric in `memory/AGENT.md`. Facts
-   checked directly against a filesystem, command output, or primary doc are
-   `verified`; anything taken on a single unconfirmed report is at most
-   `high`.
-5. **Validate before committing.** `scripts/kb.py lint` must be clean, and
-   `scripts/kb.py triage` should surface nothing new after a batch of
-   additions. The published overview rebuilds itself from `memory/` on push —
-   there is no generated file to refresh by hand.
+3. **After work.** Classify each new durable finding into one of the 7 memory
+   types, then follow [[distill-session-into-memory]] — scaffolding, the
+   confidence rubric, linking, and the lint/triage check before committing
+   are all its steps, and this entry deliberately does not restate them.
 
 Do not persist what the repo already records (code structure, git history)
 or what matters only to one conversation. Prefer updating an existing entry

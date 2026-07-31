@@ -6,7 +6,7 @@ confidence: high
 source: research 2026-07-27 into current agent-memory practice, mapped against this repo's actual CLI surface
 created: 2026-07-27
 last_verified: 2026-07-30
-links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis]
+links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-consolidation-is-owed-work]
 due: 2026-10-27
 ---
 
@@ -39,11 +39,8 @@ changes for review rather than committing them, exactly as
 [[twin-sovereignty-constraint]] none of it may require an API key or an agent
 in the loop to function.
 
-**The admission that shaped Phase 3, and how it resolved.** `memory/AGENT.md`
-used to say lint "does not detect content-level contradictions between entries —
-no such checker exists yet", and Phase 3 was written as the answer to it. The
-answer turned out to be that there is no checker to build: measured, no cheap
-signal separates disagreement from topical proximity, so contradiction shipped
-as a second axis on the verdict an agent already records about a blocked pair
-([[kb-contradiction-is-a-second-axis]]). Lint still does not detect
-contradictions, on purpose — the sentence now says why.
+**The admission that shaped Phase 3, and how it resolved.** Phase 3 was written
+as the answer to a standing admission in `memory/AGENT.md` that nothing checked
+entries against each other. The answer turned out to be that there was no
+checker to build; what shipped instead is recorded in
+[[kb-contradiction-is-a-second-axis]], which is where that finding lives.

@@ -1122,6 +1122,192 @@ class TestContradictions(TestCandidates):
         self.assertIn("--agreement agree", out)
 
 
+class TestConsolidate(TestCandidates):
+    """What a judged pair still owes.
+
+    `judge` says what two entries are to each other and then the pair settles
+    out of `candidates` forever, so the one-line advice it prints — link them
+    if they are not linked — is given once and never checked again. These
+    tests pin the three queues that check it, and the measurement behind the
+    third: passage-level shingle containment found 1 of 7 planted restatements
+    where scoring the passage as a BM25 query found 7 of 7.
+    """
+
+    # A paragraph restating the `cartography` filler in different words, to be
+    # dropped into an entry that has nothing to do with it. This is the shape
+    # an agent produces when it re-records something the store already holds.
+    # Deliberately not about the store itself: `stated-plainly` and
+    # `stated-again` already restate each other, so a passage on that subject
+    # would have two equally right answers and test nothing.
+    RESTATING_PASSAGE = (
+        "A note on why no single map can be trusted for everything at once: "
+        "flattening a sphere onto paper always deforms it, so whoever draws "
+        "one picks what survives — the shapes of angles, the relative sizes "
+        "of regions, or true spacing along a few chosen lines — and accepts "
+        "that whatever was not picked comes out wrong."
+    )
+
+    def consolidate(self, *args):
+        result = self.run_kb("consolidate", "--json", *args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def judge_the_pair(self, verdict, *extra):
+        self.run_kb("judge", "stated-plainly", "stated-again", verdict,
+                    "--agreement", "agree", *extra)
+
+    def edge_names(self, report):
+        return {frozenset((p["a"], p["b"])) for p in report["missing_edges"]}
+
+    def append_to(self, slug, text, entry_type="semantic"):
+        path = self.entry_path(entry_type, slug)
+        path.write_text(path.read_text().rstrip("\n") + "\n\n" + text + "\n")
+
+    # --- the merge queue, which this store has never populated -------------
+
+    def test_a_duplicate_verdict_becomes_a_merge_proposal(self):
+        self.judge_the_pair("duplicate")
+        report = self.consolidate()
+        self.assertEqual(len(report["merges"]), 1)
+        self.assertEqual(frozenset(("stated-plainly", "stated-again")),
+                         frozenset((report["merges"][0]["a"],
+                                    report["merges"][0]["b"])))
+
+    def test_nothing_judged_means_nothing_proposed(self):
+        report = self.consolidate()
+        self.assertEqual(report["merges"], [])
+        self.assertEqual(report["missing_edges"], [])
+
+    def test_an_empty_merge_queue_says_so_rather_than_printing_nothing(self):
+        self.assertIn("none", self.run_kb("consolidate").stdout)
+
+    # --- the missing-edge queue, which is where the defects actually were --
+
+    def test_an_overlap_with_no_edge_between_them_is_proposed(self):
+        self.judge_the_pair("overlap")
+        self.assertIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_linking_the_pair_clears_the_proposal(self):
+        self.judge_the_pair("overlap")
+        self.run_kb("link", "stated-plainly", "stated-again")
+        self.assertNotIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_one_direction_of_link_is_enough(self):
+        self.judge_the_pair("overlap")
+        self.run_kb("link", "stated-again", "stated-plainly")
+        self.assertNotIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_a_distinct_verdict_owes_no_edge(self):
+        self.judge_the_pair("distinct")
+        self.assertNotIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_lint_cannot_see_the_missing_edge_that_consolidate_reports(self):
+        # Both entries are linked to something, so neither is an orphan and no
+        # link dangles. This is the whole reason the queue exists: a missing
+        # edge is a property of a pair, and lint only sees single entries.
+        self.judge_the_pair("overlap")
+        self.run_kb("link", "stated-plainly", "tides")
+        self.run_kb("link", "stated-again", "sourdough")
+        self.assertEqual(self.run_kb("lint").returncode, 0)
+        self.assertIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    # --- a verdict only speaks for the text it was passed on ---------------
+
+    def test_rewriting_an_entry_withdraws_its_proposals(self):
+        self.judge_the_pair("overlap")
+        self.assertIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+        self.write_body("stated-plainly", self.FILLER["cricket"])
+        self.assertNotIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_archiving_an_entry_withdraws_its_proposals(self):
+        self.judge_the_pair("overlap")
+        self.run_kb("archive", "stated-again")
+        self.assertNotIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    def test_re_verifying_does_not_withdraw_a_proposal(self):
+        # Verification changes provenance, not the claim — it must not expire
+        # a judgement about the claim, and so must not expire what that
+        # judgement owes either.
+        self.judge_the_pair("overlap")
+        self.run_kb("verify", "stated-plainly")
+        self.assertIn(self.THE_PAIR, self.edge_names(self.consolidate()))
+
+    # --- restated passages, and the metric that does not find them ---------
+
+    def restatement_targets(self, report, host):
+        return {p["target"] for p in report["restatements"] if p["host"] == host}
+
+    def test_a_restating_passage_points_at_the_entry_it_restates(self):
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        self.assertIn("cartography", self.restatement_targets(
+            self.consolidate(), "espresso"))
+
+    def test_containment_cannot_find_what_this_finds(self):
+        # The inverse of TestDupes.test_a_paraphrase_is_not_flagged, one level
+        # down: the passage `dupes` must stay silent about is the passage
+        # `consolidate` must surface. Shingles measure shared phrasing, which
+        # is exactly what a restatement does not share.
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        dupes = json.loads(self.run_kb("dupes", "--json").stdout)
+        self.assertNotIn(frozenset(("espresso", "cartography")),
+                         {frozenset((p["a"], p["b"])) for p in dupes["pairs"]})
+        self.assertIn("cartography", self.restatement_targets(
+            self.consolidate(), "espresso"))
+
+    def test_a_passage_at_home_in_its_own_entry_is_not_proposed(self):
+        # The same paragraph, in the entry it restates. It is now where it
+        # belongs, and nothing should be proposed about it — which only works
+        # because the host is scored with the passage removed.
+        self.append_to("cartography", self.RESTATING_PASSAGE)
+        self.assertEqual(set(), self.restatement_targets(
+            self.consolidate(), "cartography"))
+
+    def test_it_reads_a_fraction_of_the_passage_space(self):
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        report = self.consolidate()
+        entries = len(self.FILLER) + 2
+        self.assertLess(len(report["restatements"]), entries * (entries - 1))
+
+    def test_a_wider_margin_never_adds_a_proposal(self):
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        def keys(m):
+            return {(p["host"], p["target"])
+                    for p in self.consolidate("--margin", m)["restatements"]}
+        self.assertTrue(keys("3.0") <= keys("1.5") <= keys("1.0"))
+
+    def test_a_proposal_carries_what_is_needed_to_rule_on_it(self):
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        self.run_kb("judge", "espresso", "cartography", "overlap",
+                    "--agreement", "agree")
+        p = next(p for p in self.consolidate()["restatements"]
+                 if (p["host"], p["target"]) == ("espresso", "cartography"))
+        self.assertFalse(p["linked"])
+        self.assertEqual(p["verdict"], "overlap")
+        self.assertIn("no single map", p["passage"])
+
+    # --- it proposes, it never rewrites ------------------------------------
+
+    def test_it_only_proposes(self):
+        self.judge_the_pair("overlap")
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        before = {p: p.read_text() for p in
+                  (self.root / "memory").rglob("*.md")}
+        self.run_kb("consolidate")
+        self.assertEqual(before, {p: p.read_text() for p in
+                                  (self.root / "memory").rglob("*.md")})
+
+    def test_it_prints_the_command_that_applies_each_proposal(self):
+        self.judge_the_pair("overlap")
+        out = self.run_kb("consolidate").stdout
+        self.assertIn("kb.py link stated-again stated-plainly", out)
+
+    def test_one_queue_can_be_asked_for_alone(self):
+        self.judge_the_pair("duplicate")
+        out = self.run_kb("consolidate", "--only", "merges").stdout
+        self.assertIn("MERGE", out)
+        self.assertNotIn("RESTATED", out)
+
+
 class TestConfidenceDecay(KbTestCase):
     """Age demotes confidence at read time; the file on disk is never rewritten."""
 

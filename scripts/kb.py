@@ -13,6 +13,7 @@ import math
 import pathlib
 import re
 import sys
+import textwrap
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_FILE = pathlib.Path(__file__).resolve().parent / ".kb-config"
@@ -557,6 +558,209 @@ def standing_contradictions():
                     "judged": v.get("judged", ""), "note": v.get("note", "")})
     out.sort(key=lambda p: (p["a"], p["b"]))
     return out
+
+
+# --- Consolidation: what a judged pair leaves undone ------------------------
+# `judge` records what two entries are to each other. It does not record
+# whether anything was *done* about it, and that turned out to be the gap.
+#
+# The roadmap scoped this command as "propose merges", queued off the pairs
+# standing at `duplicate`. Measured against this store's own ledger, that
+# queue is empty and structurally likely to stay empty: 87 verdicts over two
+# full passes, **zero** duplicates. A store curated by an agent that judges
+# pairs as it writes them does not accumulate duplicates — it accumulates
+# `overlap`, 44 of the 87 here.
+#
+# The defect lives in that overlap bucket. `judge` prints "'kb.py link a b'
+# if they are not linked yet" once, when the verdict is passed, and then the
+# pair settles and drops out of `candidates` forever — so the advice is given
+# exactly once and never checked. Seven of this store's 44 overlapping pairs
+# had no edge between them. Nothing else can see that: `lint` catches links
+# that point nowhere and entries that nobody links to, and both of those are
+# properties of a single entry. A missing edge between two well-connected
+# entries is a property of a *pair*, and only the ledger knows the pair is
+# real.
+#
+# So `consolidate` reads the ledger and reports what each standing verdict
+# still owes: a `duplicate` nobody merged, an `overlap` nobody linked. It
+# proposes and never rewrites, for the same reason `candidates` refuses to
+# rule — merging is a judgement, and so is deciding an edge is not worth
+# drawing.
+MIN_PASSAGE_TOKENS = 25
+# How far the best-matching entry must beat the runner-up before a passage is
+# worth reading. Measured below: 1.5 holds recall at 7 of 7 while dropping the
+# queue from 72 passages to 28. At 2.0 recall collapses to 1 of 7.
+RESTATEMENT_MARGIN = 1.5
+CONSOLIDATE_CAVEAT = (
+    "Proposals, not decisions — each one is a judgement someone makes by "
+    "reading the entries."
+)
+
+
+def _passages(body):
+    """A body split into the units a person would move: paragraphs and items.
+
+    List items and table rows are their own passages rather than being glued
+    into the surrounding paragraph, because that is the granularity at which
+    procedures actually get restated — `persist-insight-to-knowledge-base`
+    repeats `distill-session-into-memory` a numbered step at a time.
+    """
+    out, cur = [], []
+    for line in body.splitlines():
+        if re.match(r"^\s*(\d+\.|[-*+]|\|)\s", line) or not line.strip():
+            if cur:
+                out.append("\n".join(cur))
+            cur = [line] if line.strip() else []
+        else:
+            cur.append(line)
+    if cur:
+        out.append("\n".join(cur))
+    return [p for p in out if len(tokenize(p)) >= MIN_PASSAGE_TOKENS]
+
+
+def _bm25_scorer(docs):
+    """BM25 over a fixed corpus, as a function of (query tokens, doc tokens).
+
+    Deliberately raw BM25 and not `rank()`. `rank` layers type, confidence and
+    recency weights on top, which are right when a *person* asks a question
+    and wrong here: whether a paragraph restates an entry has nothing to do
+    with how recently that entry was verified.
+    """
+    n = len(docs) or 1
+    df = collections.Counter()
+    for d in docs:
+        df.update(set(d["doc_tokens"]))
+    avgdl = sum(len(d["doc_tokens"]) for d in docs) / n
+
+    def score(q_tokens, d_tokens):
+        tf = collections.Counter(d_tokens)
+        dl = len(d_tokens) or 1
+        total = 0.0
+        for term in set(q_tokens):
+            f = tf.get(term, 0)
+            if not f:
+                continue
+            idf = math.log(1 + (n - df[term] + 0.5) / (df[term] + 0.5))
+            total += idf * (f * (BM25_K1 + 1)) / (
+                f + BM25_K1 * (1 - BM25_B + BM25_B * dl / avgdl)
+            )
+        return total
+
+    return score
+
+
+def restatements(margin=RESTATEMENT_MARGIN, docs=None):
+    """Passages that read as if they belong in a different entry.
+
+    The sub-entry half of consolidation, and the metric `dupes` uses does not
+    find it. Seven hand-written restatements were planted in a copy of this
+    store — each a paragraph in one entry restating another entry's claim in
+    different words, the shape an agent produces when it re-records something
+    already held. Over 2728 (passage, entry) pairs:
+
+        passage shingle-containment, best entry     20 pairs, 1 of 7
+        passage as a BM25 query, best entry        124 pairs, 7 of 7
+
+    Containment fails for the same reason it failed at whole-entry scale in
+    [[kb-duplicate-detection-limits]]: shingles measure shared *phrasing*, and
+    a restatement is precisely what shares none. Asking instead "of everything
+    here, which entry is this paragraph most like" is the framing that rescued
+    duplicate detection, applied one level down.
+
+    Two filters then cut the queue without costing recall:
+
+    - **It must beat its own host**, scored with the passage itself removed —
+      a paragraph that is more at home in another entry than in the one it is
+      written in. Removal is what makes the test mean anything; leave the
+      passage in and its host wins every time, trivially.
+    - **A margin over the runner-up**, because a paragraph that genuinely
+      restates one entry points at it decisively.
+
+    Together: 28 passages of 2728 pairs (1%), still 7 of 7.
+
+    Like `candidates`, this blocks and refuses to rule — most of what it puts
+    up is an entry legitimately discussing its neighbour. Returns proposals,
+    best first.
+    """
+    if docs is None:
+        docs, _ = _candidate_docs()
+    for d in docs:
+        d["doc_tokens"] = tokenize(
+            f"{d['name']} {d['fm'].get('description', '')} {d['body']}")
+    score = _bm25_scorer(docs)
+    by_name = {d["name"]: d for d in docs}
+    verdicts = load_verdicts()
+
+    out = []
+    for host in docs:
+        for passage in _passages(host["body"]):
+            q = tokenize(passage)
+            others = sorted(
+                ((score(q, d["doc_tokens"]), d["name"]) for d in docs
+                 if d["name"] != host["name"]),
+                key=lambda t: (-t[0], t[1]))
+            if not others:
+                continue
+            (best, target), runner_up = others[0], (others[1][0] if len(others) > 1 else 0.0)
+            if best <= 0:
+                continue
+            host_without = score(q, tokenize(
+                f"{host['name']} {host['fm'].get('description', '')} "
+                f"{host['body'].replace(passage, ' ')}"))
+            if best <= host_without or best < margin * max(runner_up, 1e-9):
+                continue
+            v = verdicts.get(_verdict_key(host["name"], target))
+            out.append({
+                "host": host["name"], "target": target,
+                "score": round(best, 1), "host_score": round(host_without, 1),
+                "runner_up": round(runner_up, 1),
+                "passage": passage.strip(),
+                "linked": (target in (host["fm"].get("links") or [])
+                           or host["name"] in (by_name[target]["fm"].get("links") or [])),
+                "mentions_target": f"[[{target}]]" in passage,
+                "verdict": (v or {}).get("verdict", ""),
+            })
+    out.sort(key=lambda p: (-p["score"], p["host"], p["target"]))
+    return out
+
+
+def consolidation_report(margin=RESTATEMENT_MARGIN):
+    """Everything the standing verdicts still owe, in three queues.
+
+    A verdict is bound to the text it was passed on, so a pair whose entries
+    have been rewritten since is deliberately absent from all three: it is
+    already back in `candidates` to be judged again, and acting on a
+    judgement about text that no longer exists is worse than acting on none.
+    Archived entries are absent for the same reason they leave retrieval —
+    retiring an entry is already the decision that it no longer speaks.
+    """
+    docs, skipped = _candidate_docs()
+    digests = {d["name"]: content_digest(d["fm"], d["body"]) for d in docs}
+    by_name = {d["name"]: d for d in docs}
+
+    merges, edges = [], []
+    for v in load_verdicts().values():
+        a, b = v.get("a"), v.get("b")
+        if a not in by_name or b not in by_name:
+            continue
+        if not (v.get("a_digest") == digests[a] and v.get("b_digest") == digests[b]):
+            continue
+        item = {"a": a, "b": b, "judged": v.get("judged", ""),
+                "note": v.get("note", ""),
+                "a_description": by_name[a]["fm"].get("description", ""),
+                "b_description": by_name[b]["fm"].get("description", "")}
+        if v.get("verdict") == "duplicate":
+            merges.append(item)
+        elif v.get("verdict") == "overlap":
+            linked = (b in (by_name[a]["fm"].get("links") or [])
+                      or a in (by_name[b]["fm"].get("links") or []))
+            if not linked:
+                edges.append(item)
+    merges.sort(key=lambda p: (p["a"], p["b"]))
+    edges.sort(key=lambda p: (p["a"], p["b"]))
+    return {"merges": merges, "missing_edges": edges,
+            "restatements": restatements(margin=margin, docs=docs),
+            "too_short": skipped}
 
 
 def effective_confidence(fm, today=None):
@@ -1241,6 +1445,75 @@ def cmd_candidates(args):
               f"(<{MIN_CANDIDATE_TOKENS} distinct words): {', '.join(sorted(skipped))}")
 
 
+def cmd_consolidate(args):
+    report = consolidation_report(margin=args.margin)
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return
+
+    merges, edges = report["merges"], report["missing_edges"]
+    restated = report["restatements"]
+    if args.only:
+        for key in ("merges", "missing_edges", "restatements"):
+            if key != args.only:
+                report[key] = []
+        merges, edges, restated = (report["merges"], report["missing_edges"],
+                                   report["restatements"])
+
+    if merges or args.only in (None, "merges"):
+        print(f"MERGE — pairs standing at 'duplicate' ({len(merges)})")
+        if not merges:
+            print("  none. Every pair this store has judged came back "
+                  "'overlap' or 'distinct'.")
+        for p in merges:
+            print(f"\n  {p['a']} <-> {p['b']}   (judged {p['judged']})")
+            print(f"      a: {p['a_description']}")
+            print(f"      b: {p['b_description']}")
+            if p["note"]:
+                print(f"      note: {p['note']}")
+            print(f"      merge by hand, then: kb.py archive {p['b']}")
+
+    if edges or args.only in (None, "missing_edges"):
+        print(f"\nLINK — judged 'overlap', no edge between them ({len(edges)})")
+        if not edges:
+            print("  none. Every overlapping pair is linked.")
+        for p in edges:
+            print(f"\n  {p['a']} <-> {p['b']}   (judged {p['judged']})")
+            print(f"      a: {p['a_description']}")
+            print(f"      b: {p['b_description']}")
+            if p["note"]:
+                print(f"      note: {p['note']}")
+            print(f"      kb.py link {p['a']} {p['b']}")
+
+    if restated or args.only in (None, "restatements"):
+        print(f"\nRESTATED — passages that read as another entry's "
+              f"({len(restated)})")
+        if not restated:
+            print("  none.")
+        for p in restated:
+            tags = []
+            if p["linked"]:
+                tags.append("already linked")
+            if p["mentions_target"]:
+                tags.append("passage already cites it")
+            if p["verdict"]:
+                tags.append(f"judged {p['verdict']}")
+            suffix = f"  ({'; '.join(tags)})" if tags else ""
+            print(f"\n  {p['host']} -> {p['target']}{suffix}")
+            print(f"      {p['score']} vs {p['host_score']} for its own entry, "
+                  f"{p['runner_up']} for the next best")
+            for line in textwrap.wrap(p["passage"], 72)[:args.lines]:
+                print(f"      | {line}")
+            print(f"      if it restates that entry, cut it to [[{p['target']}]]")
+
+    total = len(merges) + len(edges) + len(restated)
+    print(f"\n{total} proposal(s). {CONSOLIDATE_CAVEAT}")
+    if report["too_short"]:
+        print(f"{len(report['too_short'])} entr(ies) too short to compare "
+              f"(<{MIN_CANDIDATE_TOKENS} distinct words): "
+              f"{', '.join(sorted(report['too_short']))}")
+
+
 def cmd_judge(args):
     a_type, a_path, a_fm, a_body = _require(args.a)
     b_type, b_path, b_fm, b_body = _require(args.b)
@@ -1717,6 +1990,21 @@ def main():
                         help="include pairs already settled on both axes")
     p_cand.add_argument("--json", action="store_true", help="machine-readable output")
     p_cand.set_defaults(func=cmd_candidates)
+
+    p_cons = sub.add_parser(
+        "consolidate",
+        help="what the standing verdicts still owe — merges, missing links, "
+             "restated passages")
+    p_cons.add_argument("--only", choices=("merges", "missing_edges", "restatements"),
+                        help="show one queue instead of all three")
+    p_cons.add_argument("--margin", type=float, default=RESTATEMENT_MARGIN,
+                        help="how far a passage's best entry must beat the "
+                             f"runner-up (default {RESTATEMENT_MARGIN}); lower "
+                             "trades more passages to read for more recall")
+    p_cons.add_argument("--lines", type=int, default=3,
+                        help="wrapped lines of each passage to show (default 3)")
+    p_cons.add_argument("--json", action="store_true", help="machine-readable output")
+    p_cons.set_defaults(func=cmd_consolidate)
 
     p_judge = sub.add_parser(
         "judge", help="record a judgement about one candidate pair")
