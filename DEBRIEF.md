@@ -79,11 +79,22 @@ Set up 2026-07-27 before you left.
   line — it just never reached `main`.** So the single document Jerry triages
   has been silently missing two days of work, including three bug fixes, and the
   backlog still shows "Test consolidation & audit" unchecked, which is why this
-  session nearly picked it up a third time. Both branches are based on
-  `22818bf`, so they will conflict with 07-30's and today's changes to
-  `scripts/kb.py` and `tests/`. **Not merged — three commits of unreviewed work
-  with known conflicts is Jerry's call, not a side effect of a scheduling
-  question.**
+  session nearly picked it up a third time.
+
+  **Recovered 2026-07-31 on Jerry's instruction — both branches rebased and
+  merged.** All three bug fixes are on `main`, each re-verified by reverting the
+  fix and watching its regression test fail. 305 → 321 tests, lint and triage
+  clean. Two things the merge exposed that are worth keeping:
+
+  - **The two sessions did the same backlog item twice.** 07-29 did "Test
+    consolidation & audit" and 07-30 did it again, because the first pass never
+    reached `main` so the box still read unchecked. They found *different* bugs,
+    so the duplicated effort was not wasted — but it was still duplicated, and
+    the backlog now records both passes under one item.
+  - **They also wrote the same test twice.** Both added a `non_object_params`
+    MCP test at the same spot. The 07-30 version is kept: it additionally
+    asserts the server still answers after the bad request, which is what "not
+    a crash" actually means.
 
   **Why "push to a branch" was not enough.** `AUTONOMY.md` offers three git
   routes and only the PR route ends in `main`. A session that reads "logical
@@ -93,17 +104,15 @@ Set up 2026-07-27 before you left.
   reason it is not; that is fixed below.
 
   **What Jerry needs to do (UI only — claude.ai/code/routines):**
-  1. Decide the fate of the two branches above: merge, cherry-pick the three bug
-     fixes, or discard.
-  2. If an afternoon routine was ever created via the API, check whether it is
+  1. If an afternoon routine was ever created via the API, check whether it is
      **disabled**. Per `routines-ui-not-api-for-prompts`, a trigger written with
      a repo slug as `environment_id` accepts the write, then fails its first run
      with `environment_not_found` and **auto-disables itself** — silently, which
      looks exactly like "it never ran". Re-enabling without fixing the
      environment just re-disables it; set the repo through the UI picker.
-  3. Otherwise create it in the UI, not the API: instructions (a short pointer at
+  2. Otherwise create it in the UI, not the API: instructions (a short pointer at
      `AUTONOMY.md`), repository, model, and connectors are all UI-only fields.
-  4. Note the timezone trap: the API stores `cron_expression` in **UTC** while
+  3. Note the timezone trap: the API stores `cron_expression` in **UTC** while
      the UI shows **local**. The existing 11:00 routine is cron `0 9` UTC. An
      afternoon slot of 15:00 local is `0 13` UTC.
 
