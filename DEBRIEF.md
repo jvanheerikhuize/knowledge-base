@@ -43,6 +43,8 @@ Set up 2026-07-27 before you left.
 - [ ] 2026-07-31 **The default margin's cost, recorded rather than hidden.** 1.5 holds the planted set at full recall but drops the one real case this store already knew about — `persist-insight-to-knowledge-base` steps 3–5 restating `distill-session-into-memory`. Those steps *are* found (they beat their own host) but the runner-up sits close, because procedure steps share vocabulary with half the store where distinctive prose does not. `--margin 1.0` surfaces them, at 63 passages to read instead of 22. The planted positives were topical prose and the default is tuned to them; when hunting a restated *procedure*, lower the margin.
 - [ ] 2026-07-31 **First full pass: 7 edges drawn, 22 restatement proposals read, 2 real.** `kb-roadmap` was retelling the entire contradiction-detection finding that `kb-contradiction-is-a-second-axis` exists to hold — cut to what it uniquely knows plus the link. And the `persist`/`distill` case: the restated steps went, and the one thing they added (the verified-vs-`high` rubric) moved into `distill`'s step 3, where the procedure lives. The other 20 are an entry legitimately discussing its neighbour, which is what a blocker is supposed to produce. Rewriting those three entries expired **26 verdicts** and reopened them — the design working, not a cost to route around — all re-judged, plus one genuinely new pair. Store clean on both axes, no missing edges, lint and triage clean.
 - [ ] 2026-07-31 38 new tests (**305 total, green**), `consolidate` on the MCP server as a read tool, ROADMAP Phase 3 closed as `done`, and one KB entry: `kb-consolidation-is-owed-work`.
+- [ ] 2026-07-29 **Test consolidation & audit** (AUTONOMY.md backlog item, done). Read all 231 tests against the four scripts they cover. Trimmed a handful of redundant assertions/tests (numbers re-checked that a more specific test already pinned, one strict-subset test, one confidence-decay test whose age landed on the same clamp branch as another — repurposed into a new intermediate-step test instead of dropped). Two fixed bugs the gap analysis found, each confirmed by reverting the fix and watching the new regression test fail: `kb.py set <name> links <value>` wrote a bare string instead of list syntax, silently corrupting the entry (`cmd_link` then treats the string's characters as the link list); `kb.py dupes` had no archived-entry filter where `kb.py candidates` did, so an archived entry could be flagged as a live duplicate of a current one. Also added coverage for previously-untested error paths: MCP `propose_update`/`judge` on a missing entry, malformed JSON-RPC (non-object `params`, missing `method`, `resources/read` without `uri`), `build_site`'s empty-KB rendering (mermaid and index-page placeholders), and `serve.py` malformed POST bodies / a route missing its required name. 231 → 244 tests, `kb.py lint` clean, all green. Write-up: `kb-test-audit-2026-07-29`.
+- [ ] 2026-07-30 **Test consolidation & audit, and it found a real bug.** Read all four suites (2304 lines, 267 tests) against their source. Overlap was minimal — CLI-vs-MCP layering is deliberate, not duplication — so nothing was cut. The gap sweep found `cmd_rm`'s referrer-scan loop (`for t, other in iter_entries()`) shadowing the outer `t` that had already been resolved to the *deleted* entry's own type: the ingest-log line written after the loop recorded whichever type `iter_entries()` last yielded, not the entry actually removed. Invisible in every prior test because they only ever built single-type stores. Fixed (`_other_type` instead of `t`), with a regression test I verified fails against the unfixed code before confirming it passes against the fix. Also closed two coverage gaps the same read turned up: `kb.py context --limit` and `iter_entries()`'s skip of `README.md`/`*.template.md` inside a type folder were both previously unexercised. 4 new tests (271 total, green), lint clean. [`ea3d76f`](https://github.com/jvanheerikhuize/knowledge-base/commit/ea3d76f)
 
 ## Blockers / notes
 
@@ -77,11 +79,22 @@ Set up 2026-07-27 before you left.
   line — it just never reached `main`.** So the single document Jerry triages
   has been silently missing two days of work, including three bug fixes, and the
   backlog still shows "Test consolidation & audit" unchecked, which is why this
-  session nearly picked it up a third time. Both branches are based on
-  `22818bf`, so they will conflict with 07-30's and today's changes to
-  `scripts/kb.py` and `tests/`. **Not merged — three commits of unreviewed work
-  with known conflicts is Jerry's call, not a side effect of a scheduling
-  question.**
+  session nearly picked it up a third time.
+
+  **Recovered 2026-07-31 on Jerry's instruction — both branches rebased and
+  merged.** All three bug fixes are on `main`, each re-verified by reverting the
+  fix and watching its regression test fail. 305 → 321 tests, lint and triage
+  clean. Two things the merge exposed that are worth keeping:
+
+  - **The two sessions did the same backlog item twice.** 07-29 did "Test
+    consolidation & audit" and 07-30 did it again, because the first pass never
+    reached `main` so the box still read unchecked. They found *different* bugs,
+    so the duplicated effort was not wasted — but it was still duplicated, and
+    the backlog now records both passes under one item.
+  - **They also wrote the same test twice.** Both added a `non_object_params`
+    MCP test at the same spot. The 07-30 version is kept: it additionally
+    asserts the server still answers after the bad request, which is what "not
+    a crash" actually means.
 
   **Why "push to a branch" was not enough.** `AUTONOMY.md` offers three git
   routes and only the PR route ends in `main`. A session that reads "logical
@@ -91,17 +104,15 @@ Set up 2026-07-27 before you left.
   reason it is not; that is fixed below.
 
   **What Jerry needs to do (UI only — claude.ai/code/routines):**
-  1. Decide the fate of the two branches above: merge, cherry-pick the three bug
-     fixes, or discard.
-  2. If an afternoon routine was ever created via the API, check whether it is
+  1. If an afternoon routine was ever created via the API, check whether it is
      **disabled**. Per `routines-ui-not-api-for-prompts`, a trigger written with
      a repo slug as `environment_id` accepts the write, then fails its first run
      with `environment_not_found` and **auto-disables itself** — silently, which
      looks exactly like "it never ran". Re-enabling without fixing the
      environment just re-disables it; set the repo through the UI picker.
-  3. Otherwise create it in the UI, not the API: instructions (a short pointer at
+  2. Otherwise create it in the UI, not the API: instructions (a short pointer at
      `AUTONOMY.md`), repository, model, and connectors are all UI-only fields.
-  4. Note the timezone trap: the API stores `cron_expression` in **UTC** while
+  3. Note the timezone trap: the API stores `cron_expression` in **UTC** while
      the UI shows **local**. The existing 11:00 routine is cron `0 9` UTC. An
      afternoon slot of 15:00 local is `0 13` UTC.
 

@@ -109,6 +109,17 @@ class TestListAndSearch(KbTestCase):
         result = self.run_kb("search", "unicorn-flavored")
         self.assertIn("searchable-entry", result.stdout)
 
+    def test_readme_and_template_files_in_a_type_folder_are_not_entries(self):
+        self.run_kb("new", "real-entry", "--type", "semantic")
+        folder = self.entry_path("semantic", "real-entry").parent
+        (folder / "README.md").write_text("# semantic\n\nnot an entry")
+        (folder / "scratch.template.md").write_text("---\nname: scratch\n---\n")
+        result = self.run_kb("list")
+        self.assertIn("real-entry", result.stdout)
+        self.assertNotIn("README", result.stdout)
+        self.assertNotIn("scratch", result.stdout)
+        self.assertEqual(self.run_kb("lint").returncode, 0, self.run_kb("lint").stdout)
+
     def test_search_no_matches(self):
         self.run_kb("new", "boring-entry", "--type", "semantic")
         result = self.run_kb("search", "nonexistent-keyword-xyz")
@@ -222,6 +233,15 @@ class TestContext(RankingTestCase):
         pack = json.loads(self.run_kb("context", "quasar-telemetry", "--json").stdout)
         self.assertEqual(pack["entries"], [])
         self.assertIn("no matches", pack["text"])
+
+    def test_limit_caps_how_many_ranked_hits_are_considered(self):
+        for i in range(4):
+            self.make("semantic", f"widget-{i}", "widget " * (4 - i))
+        pack = json.loads(
+            self.run_kb("context", "widget", "--limit", "2", "--json").stdout)
+        self.assertEqual(len(pack["entries"]), 2)
+        self.assertEqual({e["name"] for e in pack["entries"]},
+                         {"widget-0", "widget-1"})
 
 
 class TestShow(KbTestCase):
@@ -353,16 +373,12 @@ class TestNewDueAndLog(KbTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("not a valid date", result.stderr)
 
-    def test_new_appends_to_log(self):
-        self.run_kb("new", "logged-entry", "--type", "semantic")
-        log_path = self.root / ".kb" / "log.md"
-        self.assertTrue(log_path.is_file())
-        self.assertIn("logged-entry", log_path.read_text())
-
     def test_new_appends_multiple_log_lines(self):
         self.run_kb("new", "first-entry", "--type", "semantic")
         self.run_kb("new", "second-entry", "--type", "semantic")
-        log_text = (self.root / ".kb" / "log.md").read_text()
+        log_path = self.root / ".kb" / "log.md"
+        self.assertTrue(log_path.is_file())
+        log_text = log_path.read_text()
         self.assertIn("first-entry", log_text)
         self.assertIn("second-entry", log_text)
 
@@ -541,6 +557,14 @@ class TestSet(KbTestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("refusing", result.stderr)
 
+    def test_refuses_links_because_it_would_write_a_bare_string_not_a_list(self):
+        self.run_kb("new", "some-fact", "--type", "semantic")
+        result = self.run_kb("set", "some-fact", "links", "some-other-entry")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("refusing", result.stderr)
+        self.assertNotIn("links: some-other-entry",
+                          self.entry_path("semantic", "some-fact").read_text())
+
     def test_validates_dates_and_confidence(self):
         self.run_kb("new", "some-fact", "--type", "semantic")
         self.assertNotEqual(self.run_kb("set", "some-fact", "created", "nope").returncode, 0)
@@ -617,6 +641,17 @@ class TestMutationLog(KbTestCase):
         log = (self.root / ".kb" / "log.md").read_text()
         for action in ("created", "verified", "updated", "deleted"):
             self.assertIn(action, log)
+
+    def test_deleting_from_a_mixed_type_store_logs_its_own_type(self):
+        """Regression: cmd_rm's referrer scan iterates (type, path) pairs and
+        must not let that loop variable overwrite the deleted entry's own
+        type before the log line is written."""
+        self.run_kb("new", "semantic-victim", "--type", "semantic")
+        self.run_kb("new", "an-episode", "--type", "episodic")
+        self.run_kb("rm", "semantic-victim")
+        log = (self.root / ".kb" / "log.md").read_text()
+        self.assertIn("semantic/semantic-victim.md", log)
+        self.assertNotIn("episodic/semantic-victim.md", log)
 
 
 class TestWriteBody(KbTestCase):
@@ -845,6 +880,11 @@ class TestDupes(KbTestCase):
     def test_human_output_names_its_own_limit(self):
         out = self.run_kb("dupes").stdout
         self.assertIn("not the same claim written twice", out)
+
+    def test_an_archived_copy_is_not_flagged(self):
+        self.run_kb("archive", "copied-entry")
+        pairs = self.pair_names(self.dupes())
+        self.assertNotIn(frozenset(("original-entry", "copied-entry")), pairs)
 
 
 class TestCandidates(KbTestCase):
@@ -1335,9 +1375,11 @@ class TestConfidenceDecay(KbTestCase):
         self.assertEqual(row["effective_confidence"], "high")
         self.assertEqual(row["decayed_by"], 1)
 
-    def test_a_year_untouched_is_no_longer_verified(self):
-        self.age(365)
-        self.assertEqual(self.status_row()["effective_confidence"], "unverified")
+    def test_two_staleness_periods_drop_two_levels(self):
+        self.age(200)
+        row = self.status_row()
+        self.assertEqual(row["effective_confidence"], "medium")
+        self.assertEqual(row["decayed_by"], 2)
 
     def test_decay_bottoms_out_rather_than_running_off_the_scale(self):
         self.age(5000)

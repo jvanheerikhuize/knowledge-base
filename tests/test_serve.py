@@ -102,6 +102,30 @@ class TestCapabilities(ServeTestCase):
         self.assertEqual(status, 404)
         self.assertIn("error", body)
 
+    def test_route_missing_a_required_name_is_a_404(self):
+        base = self.start()
+        status, body = self.request(base + "api/entry", {"description": "x"})
+        self.assertEqual(status, 404)
+        self.assertIn("needs an entry name", body["error"])
+
+    def test_malformed_json_body_is_a_400(self):
+        base = self.start()
+        req = urllib.request.Request(base + "api/entry/first-fact", data=b"{not json",
+                                     method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req, timeout=10)
+        self.assertEqual(ctx.exception.code, 400)
+        self.assertIn("not valid JSON", json.loads(ctx.exception.read())["error"])
+
+    def test_non_object_json_body_is_a_400(self):
+        base = self.start()
+        req = urllib.request.Request(base + "api/entry/first-fact",
+                                     data=json.dumps(["nope"]).encode(), method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            urllib.request.urlopen(req, timeout=10)
+        self.assertEqual(ctx.exception.code, 400)
+        self.assertIn("JSON object", json.loads(ctx.exception.read())["error"])
+
 
 class TestEditing(ServeTestCase):
     def test_update_writes_frontmatter_and_body(self):

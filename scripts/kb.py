@@ -252,6 +252,8 @@ def dupe_pairs(threshold=DUPES_THRESHOLD):
             fm, body = parse_frontmatter(path)
         except OSError:
             continue
+        if is_archived(fm):
+            continue
         name = fm.get("name", path.stem)
         s = shingles(f"{fm.get('description', '')} {body}")
         if len(s) < MIN_SHINGLES:
@@ -1360,6 +1362,10 @@ def cmd_set(args):
         print(f"refusing to change '{args.field}' — it defines the entry's identity "
               f"and its file location; create a new entry instead", file=sys.stderr)
         sys.exit(1)
+    if args.field == "links":
+        print("refusing to set 'links' as a plain value — it must stay a list; "
+              "use 'kb.py link' to add or remove one", file=sys.stderr)
+        sys.exit(1)
     if args.field in ("created", "last_verified", "due"):
         try:
             datetime.date.fromisoformat(args.value)
@@ -1623,7 +1629,7 @@ def cmd_rm(args):
     t, path, fm, _ = _require(args.name)
     name = fm.get("name", path.stem)
     referrers = []
-    for t, other in iter_entries():
+    for _other_type, other in iter_entries():
         if other == path:
             continue
         try:

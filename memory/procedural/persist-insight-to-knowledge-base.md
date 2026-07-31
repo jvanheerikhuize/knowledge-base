@@ -6,7 +6,7 @@ confidence: verified
 source: Jerry, session 2026-07-27
 created: 2026-07-27
 last_verified: 2026-07-27
-links: [distill-session-into-memory, kb-is-file-based, workspace-repo-inventory-drift, kb-agent-entrypoint-is-agent-md]
+links: [distill-session-into-memory, kb-is-file-based, workspace-repo-inventory-drift, kb-agent-entrypoint-is-agent-md, audit-test-corpora-for-artificial-uniformity]
 ---
 
 Jerry's standing instruction: this repo is the store of record for knowledge

@@ -6,7 +6,7 @@ confidence: verified
 source: Jerry's chat mandate, 2026-07-27; charter committed as AUTONOMY.md
 created: 2026-07-27
 last_verified: 2026-07-27
-links: [kb-agent-entrypoint-is-agent-md, routines-ui-not-api-for-prompts, sibling-repo-access-denied-in-routines, persist-insight-to-knowledge-base, workspace-improvement-phases]
+links: [kb-agent-entrypoint-is-agent-md, routines-ui-not-api-for-prompts, sibling-repo-access-denied-in-routines, persist-insight-to-knowledge-base, workspace-improvement-phases, kb-test-audit-2026-07-29]
 due: 2026-08-05
 ---
 
