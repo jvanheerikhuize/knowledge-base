@@ -43,6 +43,12 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   never reached `main`. Pushing to a branch is a checkpoint, not an ending.
 - **Before picking a backlog item, check `git ls-remote --heads origin`.** An
   unmerged `claude/*` branch may already hold the work.
+  **Two exceptions, already dealt with:** `claude/cool-cerf-so8mrh` and
+  `claude/cool-cerf-sr8tim` were fully recovered into `main` on 2026-07-31
+  (PR #30) and hold nothing new. They still appear in `ls-remote` because a
+  routine session cannot delete a remote branch — the git relay rejects the
+  delete and the GitHub MCP tools have no delete-branch call — so Jerry has to
+  remove them. Ignore them; do not re-merge them.
 
 ## Model tiering
 

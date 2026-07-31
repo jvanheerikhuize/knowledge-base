@@ -96,6 +96,20 @@ Set up 2026-07-27 before you left.
     asserts the server still answers after the bad request, which is what "not
     a crash" actually means.
 
+  Recovery was verified line by line, not assumed: every test method and every
+  source line the two branches added is on `main`, with exactly one deliberate
+  omission — `test_non_object_params_is_an_invalid_params_error`, the weaker
+  half of the duplicate above.
+
+  **One thing left for you: delete the two branches.** They are still on the
+  remote. A routine session cannot remove one — the git relay rejects
+  `git push --delete` with `the remote end hung up unexpectedly`, and the
+  GitHub MCP tools have no delete-branch call. That matters more than tidiness
+  now, because `AUTONOMY.md` tells future sessions to treat an unmerged
+  `claude/*` branch as possibly-unfinished work; both are named there as
+  already-recovered so nobody re-merges them, but the note goes away when the
+  branches do.
+
   **Why "push to a branch" was not enough.** `AUTONOMY.md` offers three git
   routes and only the PR route ends in `main`. A session that reads "logical
   pieces of work → push directly to a work branch" follows the charter exactly
