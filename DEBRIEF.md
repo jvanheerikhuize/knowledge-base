@@ -46,6 +46,21 @@ Set up 2026-07-27 before you left.
 - [ ] 2026-07-29 **Test consolidation & audit** (AUTONOMY.md backlog item, done). Read all 231 tests against the four scripts they cover. Trimmed a handful of redundant assertions/tests (numbers re-checked that a more specific test already pinned, one strict-subset test, one confidence-decay test whose age landed on the same clamp branch as another — repurposed into a new intermediate-step test instead of dropped). Two fixed bugs the gap analysis found, each confirmed by reverting the fix and watching the new regression test fail: `kb.py set <name> links <value>` wrote a bare string instead of list syntax, silently corrupting the entry (`cmd_link` then treats the string's characters as the link list); `kb.py dupes` had no archived-entry filter where `kb.py candidates` did, so an archived entry could be flagged as a live duplicate of a current one. Also added coverage for previously-untested error paths: MCP `propose_update`/`judge` on a missing entry, malformed JSON-RPC (non-object `params`, missing `method`, `resources/read` without `uri`), `build_site`'s empty-KB rendering (mermaid and index-page placeholders), and `serve.py` malformed POST bodies / a route missing its required name. 231 → 244 tests, `kb.py lint` clean, all green. Write-up: `kb-test-audit-2026-07-29`.
 - [ ] 2026-07-30 **Test consolidation & audit, and it found a real bug.** Read all four suites (2304 lines, 267 tests) against their source. Overlap was minimal — CLI-vs-MCP layering is deliberate, not duplication — so nothing was cut. The gap sweep found `cmd_rm`'s referrer-scan loop (`for t, other in iter_entries()`) shadowing the outer `t` that had already been resolved to the *deleted* entry's own type: the ingest-log line written after the loop recorded whichever type `iter_entries()` last yielded, not the entry actually removed. Invisible in every prior test because they only ever built single-type stores. Fixed (`_other_type` instead of `t`), with a regression test I verified fails against the unfixed code before confirming it passes against the fix. Also closed two coverage gaps the same read turned up: `kb.py context --limit` and `iter_entries()`'s skip of `README.md`/`*.template.md` inside a type folder were both previously unexercised. 4 new tests (271 total, green), lint clean. [`ea3d76f`](https://github.com/jvanheerikhuize/knowledge-base/commit/ea3d76f)
 
+- [ ] 2026-07-31 **KB hygiene pass and site polish (AUTONOMY.md backlog,
+  both done) — audited, both already clean.** `kb.py triage` clean, `kb.py
+  status` shows all 26 entries `current` (none stale/isolated/overdue), so
+  there was nothing to re-verify or connect. Rebuilt the site locally and
+  checked all 31 generated pages programmatically: zero broken internal
+  links, no unresolved `[[wikilink]]` markup leaking into rendered bodies,
+  dark-mode CSS and a responsive viewport present, `data.json`'s entry count
+  matches the index. Could not fetch the live Pages URL from this session —
+  this environment's network policy blocks `jvanheerikhuize.github.io`
+  (403 at the proxy, not a fluke) — so checked the deploy pipeline instead:
+  the latest `pages.yml` run succeeded and nothing touching `memory/**` or
+  `.kb/**` has landed since, so the published site already matches the
+  store. No content changed, no code changed; both items closed as clean
+  audits rather than left unchecked for a future session to redo.
+
 ## Blockers / notes
 
 - **2026-07-31 — two routines are running, neither in the afternoon, and one of
