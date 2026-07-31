@@ -50,3 +50,10 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-30 — linked `semantic/kb-duplicate-candidates-by-nearest-neighbour.md` — -> kb-contradiction-is-a-second-axis
 - 2026-07-30 — linked `prospective/kb-roadmap.md` — -> kb-contradiction-is-a-second-axis
 - 2026-07-30 — verified `prospective/kb-roadmap.md` — confidence=high
+- 2026-07-31 — linked `prospective/holiday-autonomy-mandate.md` — -> persist-insight-to-knowledge-base
+- 2026-07-31 — linked `prospective/holiday-autonomy-mandate.md` — -> workspace-improvement-phases
+- 2026-07-31 — linked `semantic/kb-agent-entrypoint-is-agent-md.md` — -> workspace-improvement-phases
+- 2026-07-31 — linked `semantic/kb-duplicate-candidates-by-nearest-neighbour.md` — -> kb-roadmap
+- 2026-07-31 — linked `semantic/kb-forgetting-model.md` — -> memory-overview-site
+- 2026-07-31 — linked `semantic/kb-ranked-retrieval.md` — -> kb-roadmap
+- 2026-07-31 — linked `semantic/kb-ranked-retrieval.md` — -> persist-insight-to-knowledge-base
