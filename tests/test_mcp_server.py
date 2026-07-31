@@ -169,7 +169,7 @@ class TestToolListing(McpTestCase):
         self.assertEqual(
             set(tools),
             {"context", "search", "get", "triage", "status", "dupes",
-             "duplicate_candidates", "judge", "propose_update"},
+             "duplicate_candidates", "consolidate", "judge", "propose_update"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -515,7 +515,37 @@ class TestCandidatesOverMcp(McpTestCase):
         self.handshake()
         tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertTrue(tools["duplicate_candidates"]["annotations"]["readOnlyHint"])
+        self.assertTrue(tools["consolidate"]["annotations"]["readOnlyHint"])
         self.assertFalse(tools["judge"]["annotations"]["readOnlyHint"])
+
+    def test_consolidate_reports_what_a_verdict_left_undone(self):
+        self.handshake()
+        self.assertFalse(self.result_of(self.call("judge", {
+            "a": "first-fact", "b": "second-fact", "verdict": "overlap",
+            "agreement": "agree"}))["isError"])
+        result = self.result_of(self.call("consolidate", {}))
+        self.assertFalse(result["isError"])
+        edges = result["structuredContent"]["missing_edges"]
+        self.assertIn({"first-fact", "second-fact"},
+                      [{p["a"], p["b"]} for p in edges])
+        self.assertIn("Proposals, not decisions", result["content"][0]["text"])
+
+    def test_consolidate_clears_once_the_link_exists(self):
+        self.handshake()
+        self.call("judge", {"a": "first-fact", "b": "second-fact",
+                            "verdict": "overlap", "agreement": "agree"})
+        self.assertFalse(self.result_of(self.call("propose_update", {
+            "name": "first-fact", "links": ["second-fact"]}))["isError"])
+        edges = self.result_of(self.call(
+            "consolidate", {}))["structuredContent"]["missing_edges"]
+        self.assertNotIn({"first-fact", "second-fact"},
+                         [{p["a"], p["b"]} for p in edges])
+
+    def test_a_non_numeric_margin_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("consolidate", {"margin": "wide"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("must be a number", result["content"][0]["text"])
 
 
 class TestJudgeIsAWriteTool(McpTestCase):
@@ -526,6 +556,7 @@ class TestJudgeIsAWriteTool(McpTestCase):
         names = {t["name"] for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertNotIn("judge", names)
         self.assertIn("duplicate_candidates", names)
+        self.assertIn("consolidate", names)
 
 
 class TestArchiveOverMcp(McpTestCase):
