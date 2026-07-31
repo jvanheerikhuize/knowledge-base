@@ -113,10 +113,26 @@ already configured this way; inside a session just do the work you were given.
   single-type store. Fixed, with a mixed-type regression test. Also covered
   `context --limit` and `README.md`/`*.template.md` inside a type folder.
   Write-up: `audit-test-corpora-for-artificial-uniformity`.
-- [ ] **KB hygiene pass.** `scripts/kb.py triage`; re-verify ageing entries,
-  connect isolated ones, act on overdue prospective entries.
-- [ ] **Site polish.** Review the published site (GitHub Pages) for anything
-  broken or stale; regenerate if the store changed.
+- [x] **KB hygiene pass.** (2026-07-31) Audited, nothing to act on: `triage`
+  reports clean and `status` shows all 26 entries `current` — none stale,
+  isolated, overdue, or unverified past 30 days. The store has stayed this
+  clean because the consolidation/contradiction work earlier in the week
+  (`judge`, `consolidate`) already forces re-verification and linking as a
+  side effect of normal use, so a standalone hygiene pass had nothing left to
+  do. No entries changed; nothing to write up.
+- [x] **Site polish.** (2026-07-31) Reviewed: `build_site.py` output has zero
+  broken internal links (checked all 31 generated pages programmatically),
+  no unresolved `[[wikilink]]` markup in rendered bodies, dark-mode CSS and a
+  responsive viewport meta tag are both present, and `data.json`'s entry
+  count (26) matches the index. The live GitHub Pages URL itself could not be
+  fetched from this session — this environment's network policy returns 403
+  on `jvanheerikhuize.github.io` (confirmed via the proxy status endpoint,
+  not a transient error) — so this was verified against a local build plus
+  the Pages workflow's run history instead: the last `pages.yml` deploy
+  (2026-07-31T08:08Z) succeeded, and no commit touching `memory/**` or
+  `.kb/**` has landed since, so the published site matches the store as of
+  this pass. Nothing broken found; nothing regenerated because nothing was
+  stale.
 - [x] **ROADMAP Phase 3 — semantic duplicates.** (2026-07-29) Done, and the
   2026-07-28 negative result was too broad. The failure was the **global
   threshold**, not the metric: re-measured against seven planted paraphrases,
