@@ -67,7 +67,7 @@ ten-week validation window, would trade a working server for a hypothetical one.
   touches this server — the tool and resource surfaces are unaffected — so the
   migration is a lifecycle change, not a rewrite.
 
-## Phase 3 — Consolidation and forgetting · `in progress`
+## Phase 3 — Consolidation and forgetting · `done`
 
 **Gap.** `memory/AGENT.md` stated plainly that lint "does not detect
 content-level contradictions between entries — no such checker exists yet."
@@ -127,15 +127,78 @@ nothing useful.
   (`kb-agent-entrypoint-is-agent-md` ↔ `workspace-repo-inventory-drift`).
   Write-up: [[kb-duplicate-candidates-by-nearest-neighbour]].
 
-- **`kb.py consolidate`** — propose merges, and propose distilling repeated
-  `episodic` observations into one `semantic` fact. Proposals, never silent
-  rewrites. **Now unblocked** — `candidates` supplies the candidate set and
-  `judge` records which pairs are real, so `consolidate` has a queue to work
-  from: the pairs standing at `duplicate`. The first pass found none, so this
-  waits for a real merge to design against rather than a hypothetical one. The
-  nearest thing the pass did surface is `distill-session-into-memory` against
-  `persist-insight-to-knowledge-base`, judged `overlap` with a note that the
-  latter's steps 3–5 restate most of the former.
+- ✅ **`kb.py consolidate`** — shipped, and the queue this line named is not the
+  one that had anything in it.
+
+  This item was scoped as "propose merges", working from the pairs standing at
+  `duplicate`. Measured against the store's own ledger, that queue is empty and
+  structurally likely to stay empty: **87 verdicts across two full passes, zero
+  duplicates**, 44 `overlap`, 43 `distinct`. A store curated by an agent that
+  judges pairs as it writes them does not accumulate duplicates. It accumulates
+  overlap.
+
+  The defect was inside that overlap bucket, and it is one nothing else could
+  see. `judge` prints "link them if they are not linked yet" once, when the
+  verdict is passed — and then the pair settles and drops out of `candidates`
+  forever, so the advice is given exactly once and never checked. **Seven of
+  the 44 overlapping pairs had no edge between them.** `lint` cannot find that:
+  it checks links that point nowhere and entries nobody links to, and both are
+  properties of a *single* entry. A missing edge between two well-connected
+  entries is a property of a **pair**, and only the ledger knows the pair is
+  real. All seven were genuine; all seven are now drawn.
+
+  So `consolidate` reads the ledger and reports what each standing verdict
+  still owes, in three queues — unmerged duplicates, overlapping pairs with no
+  link, and restated passages. It proposes and never rewrites, for the same
+  reason `candidates` refuses to rule.
+
+- ✅ **Sub-entry consolidation** — the "distil repeated observations into one
+  fact" half, which needed its own measurement and its own metric.
+
+  Seven hand-written restatements were planted in a copy of the store, each a
+  paragraph in one entry restating a *different* entry's claim in different
+  words. Over 2728 (passage, entry) pairs:
+
+  | signal | pairs it puts up | caught |
+  |---|---|---|
+  | passage shingle-containment, best entry | 20 (0.7%) | 1 of 7 |
+  | passage as a BM25 *query*, best entry | 124 (4.5%) | **7 of 7** |
+  | …that also beats its own host, passage removed | 72 (2.6%) | **7 of 7** |
+  | …and clears a 1.5× margin over the runner-up | **28 (1.0%)** | **7 of 7** |
+
+  Containment fails one level down for exactly the reason it failed at
+  whole-entry scale in [[kb-duplicate-detection-limits]]: shingles measure
+  shared *phrasing*, and a restatement is precisely what shares none. Asking
+  "of everything here, which entry is this paragraph most like" is the framing
+  that rescued duplicate detection, applied to passages.
+
+  The host filter is the new part and it is what makes the queue readable: a
+  passage is only interesting if it scores higher against another entry than
+  against **its own entry with that passage removed** — a paragraph more at
+  home somewhere else than where it is written. Removal is load-bearing; leave
+  the passage in and its host wins trivially, every time.
+
+  **What the margin costs, stated plainly.** The default 1.5 holds the planted
+  set at 7 of 7, but it drops the one real case this store already knew about:
+  `persist-insight-to-knowledge-base` steps 3–5 restating
+  `distill-session-into-memory`. Those steps *are* found — they beat their own
+  host — but the runner-up is close, because procedure steps share vocabulary
+  (`kb.py new`, lint, triage) with half the store while distinctive prose does
+  not. `--margin 1.0` surfaces them, at 63 passages to read instead of 22. The
+  planted positives were topical prose and the default is tuned to them; that
+  is a real limit, not a rounding error.
+
+  First full pass, 2026-07-31: 22 proposals read, **two acted on**. `kb-roadmap`
+  was retelling the entire contradiction-detection finding that
+  [[kb-contradiction-is-a-second-axis]] exists to hold — cut to what it
+  uniquely knows plus the link. And the `persist`/`distill` case above, found
+  at `--margin 1.0`: the restated steps went, and the one thing they added (the
+  verified-vs-`high` rubric) moved into `distill`'s step 3, where the procedure
+  lives. The other 20 are an entry legitimately discussing its neighbour, which
+  is what a blocker is supposed to produce.
+
+  Rewriting those three entries expired 26 verdicts — the design working, not a
+  cost to route around: a judgement is bound to the text it was passed on.
 - ✅ **Contradiction detection** — shipped as `judge --agreement`, and the
   finding is that the mechanical version this line proposed does not work.
 
@@ -298,6 +361,9 @@ does not cover it.
 - `kb.py candidates` / `kb.py judge` and the MCP tools behind them — nearest-
   neighbour blocking plus a durable verdict ledger, the consolidation half of
   Phase 3 ([[kb-duplicate-candidates-by-nearest-neighbour]]).
+- `kb.py consolidate` — what a standing verdict still owes: unmerged
+  duplicates, overlapping pairs with no edge between them, and passages more
+  at home in another entry ([[kb-consolidation-is-owed-work]]).
 - `kb.py judge --agreement` and the `contradicted` status — the contradiction
   half of Phase 3, shipped as a second axis on the existing verdict rather than
   as a detector ([[kb-contradiction-is-a-second-axis]]).

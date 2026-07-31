@@ -76,6 +76,18 @@ the pair. A pair judged `contradict` stays in the queue, and both its entries
 sit at `contradicted` in `triage` and `status`, until somebody reconciles
 them.
 
+**A verdict is not the end of it.** `kb.py consolidate` reports what standing
+verdicts still owe — a `duplicate` nobody merged, an `overlap` with no link
+between the two entries, and passages that score higher against a different
+entry than against their own. That last one is how a paragraph restating
+another entry is found; `dupes` cannot see it, because shingles measure shared
+phrasing and a restatement shares none. Lint cannot see the missing links
+either: it checks one entry at a time, and a missing edge is a property of a
+pair. Everything `consolidate` prints is a proposal — most restated passages
+are an entry legitimately discussing its neighbour, so read before cutting,
+and use `--margin 1.0` when hunting for a restated *procedure* (see the
+`kb-consolidation-is-owed-work` entry for why the default misses those).
+
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
@@ -147,6 +159,7 @@ scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and i
 scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
 scripts/kb.py candidates [-n 3] [--all]  # pairs that may restate each other — read them, then judge
 scripts/kb.py judge <a> <b> duplicate|overlap|distinct --agreement agree|contradict [--note "..."]   # record both calls
+scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe: merges, missing links, restated passages
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR
@@ -173,6 +186,7 @@ python3 scripts/mcp_server.py [--read-only]
 | `triage` | what is wrong or ageing, worst first |
 | `status` | where every entry stands and what moves it |
 | `duplicate_candidates` | pairs to read for restatement *and* for disagreement |
+| `consolidate` | what judged pairs still owe — merges, missing links, restated passages |
 | `judge` | record both answers about a pair — staged, never committed |
 | `propose_update` | stage an edit — **it does not commit** |
 
