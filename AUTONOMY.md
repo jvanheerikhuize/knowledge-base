@@ -195,6 +195,18 @@ already configured this way; inside a session just do the work you were given.
   Not on the site — `actions/checkout` is depth-1, which would render every
   entry as never having changed. 13 new tests (334 total). Write-up:
   `kb-corrections-happen-in-place`.
+- [x] **ROADMAP Phase 5 — prospective memory that fires.** (2026-08-01) Both
+  bullets shipped as designed, no negative result this time. `kb.py due
+  [--within Nd]` (CLI + MCP tool) surfaces a prospective entry's due date
+  before it lapses; `.github/workflows/kb-due.yml` (daily cron) opens,
+  updates, and closes a single tracking issue via `gh issue`, with the
+  formatting split into `scripts/kb_due_issue.py` so the testable half (title
+  + body rendering) is unit tested and the untestable half (the actual `gh`
+  calls — nothing in this environment can fire a scheduled Action) stays a
+  thin, readable shell script. 18 new tests (353 total), lint and triage
+  clean, one KB entry (`kb-prospective-memory-that-fires`, `confidence: high`
+  pending the workflow's first real fire). ROADMAP Phase 5 closed. Write-up:
+  `kb-prospective-memory-that-fires`.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

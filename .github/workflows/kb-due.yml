@@ -1,0 +1,56 @@
+name: Knowledge base due reminders
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # daily, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  due:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Render due entries
+        id: render
+        run: |
+          python3 scripts/kb.py due --within 14d --json | python3 scripts/kb_due_issue.py > rendered.json
+          python3 -c "import json; print('count=' + str(json.load(open('rendered.json'))['count']))" >> "$GITHUB_OUTPUT"
+          python3 -c "import json; open('body.md', 'w').write(json.load(open('rendered.json'))['body'])"
+
+      - name: Find existing tracking issue
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(gh issue list --state open --search "\"Knowledge base: entries coming due\" in:title" \
+            --json number,title --jq '.[] | select(.title == "Knowledge base: entries coming due") | .number' \
+            | head -n1)
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update issue
+        if: steps.render.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ steps.find.outputs.number }}" ]; then
+            gh issue edit "${{ steps.find.outputs.number }}" --body-file body.md
+          else
+            gh issue create --title "Knowledge base: entries coming due" --body-file body.md
+          fi
+
+      - name: Close issue when nothing is due
+        if: steps.render.outputs.count == '0' && steps.find.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue close "${{ steps.find.outputs.number }}" --comment "Nothing due anymore — closing."

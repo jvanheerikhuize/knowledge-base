@@ -1138,6 +1138,17 @@ def _require(name):
     return hit
 
 
+def _parse_within(value):
+    """'14d' or '14' -> 14. argparse turns a raised ValueError into a clean error."""
+    s = value.strip().lower()
+    if s.endswith("d"):
+        s = s[:-1]
+    days = int(s)
+    if days < 0:
+        raise ValueError("must not be negative")
+    return days
+
+
 # Frontmatter fields whose change is bookkeeping rather than a change of claim.
 # `confidence` sits here with the others because `verify` moves it as routine
 # maintenance; a demotion that matters shows up as a body edit alongside it.
@@ -1339,6 +1350,49 @@ def triage_report():
     return report
 
 
+def due_report(within_days=None):
+    """Prospective entries whose due date has arrived or is approaching.
+
+    `triage` already flags overdue entries as a problem; this answers a
+    different question — "what is coming up" — so the scheduled workflow (and
+    an agent starting a session) can see a due date before it lapses, not just
+    after. Unparseable due dates are `triage`'s job (reported as
+    `invalid-due`), not this one's, so they are silently skipped here.
+    """
+    today = datetime.date.today()
+    cutoff = today + datetime.timedelta(days=within_days) if within_days is not None else None
+    rows = []
+    for t, path in iter_entries():
+        if t != "prospective":
+            continue
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError:
+            continue
+        if is_archived(fm):
+            continue
+        due = fm.get("due")
+        if not due:
+            continue
+        try:
+            due_date = datetime.date.fromisoformat(due)
+        except ValueError:
+            continue
+        if cutoff is not None and due_date > cutoff:
+            continue
+        rows.append({
+            "name": fm.get("name", path.stem),
+            "due": due,
+            "days": (due_date - today).days,
+            "overdue": due_date < today,
+            "description": fm.get("description", ""),
+            "path": str(path.relative_to(ROOT)),
+        })
+
+    rows.sort(key=lambda r: r["due"])
+    return rows
+
+
 def status_report():
     """Every entry with the one status that describes it, worst first.
 
@@ -1463,6 +1517,21 @@ def cmd_triage(args):
         for x in r["reasons"]:
             print(f"    - {x['code']}: {x['detail']}")
     print(f"\n{len(report)} entr(ies) need attention")
+
+
+def cmd_due(args):
+    rows = due_report(within_days=args.within)
+    if args.json:
+        print(json.dumps(rows, indent=2))
+        return
+    if not rows:
+        scope = f" within {args.within}d" if args.within is not None else ""
+        print(f"nothing due{scope}")
+        return
+    for r in rows:
+        flag = "OVERDUE " if r["overdue"] else f"in {r['days']}d".ljust(8)
+        print(f"[{flag}] {r['due']}  {r['name']:30} {r['description']}")
+    print(f"\n{len(rows)} entr(ies) due")
 
 
 def cmd_verify(args):
@@ -2145,6 +2214,14 @@ def main():
                           help="only entries flagged for this reason")
     p_triage.add_argument("--json", action="store_true", help="machine-readable output")
     p_triage.set_defaults(func=cmd_triage)
+
+    p_due = sub.add_parser(
+        "due", help="prospective entries whose due date has arrived or is approaching")
+    p_due.add_argument("--within", type=_parse_within, metavar="Nd",
+                       help="only entries due within N days, e.g. 14d "
+                            "(overdue entries always show); default: all due dates")
+    p_due.add_argument("--json", action="store_true", help="machine-readable output")
+    p_due.set_defaults(func=cmd_due)
 
     p_verify = sub.add_parser("verify", help="stamp an entry as verified today")
     p_verify.add_argument("name")

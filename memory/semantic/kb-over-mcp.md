@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/mcp_server.py, tests/test_mcp_server.py, MCP spec 2025-11-25
 created: 2026-07-28
 last_verified: 2026-07-28
-links: [kb-is-file-based, editing-the-kb-without-a-cms, kb-ranked-retrieval, kb-agent-entrypoint-is-agent-md]
+links: [kb-is-file-based, editing-the-kb-without-a-cms, kb-ranked-retrieval, kb-agent-entrypoint-is-agent-md, kb-prospective-memory-that-fires]
 ---
 
 `scripts/mcp_server.py` serves this store over the Model Context Protocol on

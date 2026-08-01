@@ -183,7 +183,7 @@ class TestToolListing(McpTestCase):
         tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
         self.assertEqual(
             set(tools),
-            {"context", "search", "get", "triage", "status", "dupes",
+            {"context", "search", "get", "triage", "due", "status", "dupes",
              "duplicate_candidates", "consolidate", "history", "judge",
              "propose_update"},
         )
@@ -262,6 +262,24 @@ class TestReadTools(McpTestCase):
         result = self.result_of(self.call("triage", {"reason": "orphan"}))
         for row in result["structuredContent"]["triage"]:
             self.assertTrue(any(x["code"] == "orphan" for x in row["reasons"]))
+
+    def test_due_reports_the_same_queue_the_cli_does(self):
+        self.kb("new", "due-soon", "--type", "prospective", "--due", "2030-01-01")
+        self.handshake()
+        result = self.result_of(self.call("due"))
+        cli = json.loads(self.kb("due", "--json").stdout)
+        self.assertEqual(result["structuredContent"]["due"], cli)
+
+    def test_due_can_be_filtered_by_within(self):
+        self.kb("new", "far-off", "--type", "prospective", "--due", "2099-01-01")
+        self.handshake()
+        result = self.result_of(self.call("due", {"within": 7}))
+        self.assertEqual(result["structuredContent"]["due"], [])
+
+    def test_due_rejects_a_negative_within(self):
+        self.handshake()
+        result = self.result_of(self.call("due", {"within": -1}))
+        self.assertTrue(result["isError"])
 
     def test_status_accounts_for_every_entry(self):
         self.handshake()

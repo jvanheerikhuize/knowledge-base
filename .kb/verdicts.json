@@ -143,6 +143,16 @@
     },
     {
       "a": "distill-session-into-memory",
+      "b": "kb-prospective-memory-that-fires",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "3b50a84dca1d",
+      "b_digest": "d21a380a0ecb",
+      "note": "unrelated: session distillation procedure vs. due-date surfacing",
+      "agreement": "agree"
+    },
+    {
+      "a": "distill-session-into-memory",
       "b": "memory-overview-site",
       "verdict": "distinct",
       "judged": "2026-07-31",
@@ -209,6 +219,16 @@
       "a_digest": "7d0ba0e594b9",
       "b_digest": "9678feb64169",
       "note": "both land on staged-not-committed",
+      "agreement": "agree"
+    },
+    {
+      "a": "editing-the-kb-without-a-cms",
+      "b": "kb-prospective-memory-that-fires",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "7d0ba0e594b9",
+      "b_digest": "d21a380a0ecb",
+      "note": "unrelated: browser editing UX vs. due-date surfacing",
       "agreement": "agree"
     },
     {
@@ -713,6 +733,16 @@
     },
     {
       "a": "kb-entry-status-model",
+      "b": "kb-prospective-memory-that-fires",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "c5709f5ca1d4",
+      "b_digest": "d21a380a0ecb",
+      "note": "status/triage are per-entry across all types; due is a filtered view scoped to prospective's due field",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-entry-status-model",
       "b": "kb-ranked-retrieval",
       "verdict": "overlap",
       "judged": "2026-07-30",
@@ -879,6 +909,16 @@
       "a_digest": "9678feb64169",
       "b_digest": "1bddaf75731b",
       "note": "a serving surface vs a working convention",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-prospective-memory-that-fires",
+      "b": "memory-overview-site",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "d21a380a0ecb",
+      "b_digest": "58b226771525",
+      "note": "unrelated: due-date surfacing vs. the published static site",
       "agreement": "agree"
     },
     {

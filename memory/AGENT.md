@@ -155,6 +155,7 @@ scripts/kb.py lint                       # schema, duplicate-slug, dangling-link
 
 scripts/kb.py status [--type T] [--status S] [--legend]   # where every entry stands, and what moves it
 scripts/kb.py triage                     # what needs attention, most urgent first
+scripts/kb.py due [--within Nd]          # prospective entries whose due date has arrived or is approaching
 scripts/kb.py verify <name> [--confidence LEVEL]   # stamp last_verified as today
 scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and its links stay
 scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
@@ -190,6 +191,7 @@ python3 scripts/mcp_server.py [--read-only]
 | `get` | one entry in full |
 | `history` | what it used to say, and which revision changed it |
 | `triage` | what is wrong or ageing, worst first |
+| `due` | prospective entries whose due date has arrived or is approaching |
 | `status` | where every entry stands and what moves it |
 | `duplicate_candidates` | pairs to read for restatement *and* for disagreement |
 | `consolidate` | what judged pairs still owe — merges, missing links, restated passages |

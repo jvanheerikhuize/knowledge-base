@@ -358,14 +358,47 @@ showed was empty and structurally likely to stay empty. Three phases running,
 the item as written has been the wrong shape and measuring first has been what
 found that. Measure the store before building for it.
 
-## Phase 5 — Prospective memory that fires · `planned`
+## Phase 5 — Prospective memory that fires · `done` (2026-08-01)
 
 **Gap.** `prospective/` entries carry `due:` dates that only surface if someone
 runs `triage`. The one memory type that is about the future is inert.
 
-- Scheduled workflow (the weekly `strict-lint` cron is already there) opens or
-  updates a GitHub issue when an entry comes due.
-- `kb.py due [--within 14d]` for the same view locally.
+Shipped both bullets as planned, plus the MCP tool that consistency with the
+rest of the surface implied:
+
+- **`kb.py due [--within Nd]`** — prospective entries whose due date has
+  arrived or is approaching, soonest first. Deliberately narrower than
+  `triage`: `triage` already reports `overdue` as a problem after the fact,
+  and reusing that path would only ever answer "what already lapsed". `due`
+  answers "what is coming", which needs its own report (`due_report()` in
+  `kb.py`) built the same way as `triage_report`/`status_report` so all three
+  agree by construction. `--within 14d` bounds the window; omitting it lists
+  every dated entry. An entry already overdue always shows regardless of the
+  window — it is, definitionally, due. Also on the MCP server as a read tool
+  (`due`), matching `triage`/`status`.
+- **`.github/workflows/kb-due.yml`** — daily cron (06:00 UTC), opens, updates,
+  or closes a single tracking issue titled "Knowledge base: entries coming
+  due" by shelling out to `gh issue create`/`edit`/`close` (the token is the
+  workflow's own `github.token`, no secret added). The formatting is split
+  into `scripts/kb_due_issue.py` (`due.json` → title + body, pure function,
+  unit tested) precisely so the untestable half — the actual GitHub calls —
+  is a thin, inspectable shell script rather than logic worth testing badly.
+  Idempotent by construction: re-running with nothing new due is a no-op
+  (`gh issue edit` on the same body), and the issue self-closes the first run
+  after its last entry clears, rather than sitting open forever.
+
+**What this does not do**, left for a later phase if it turns out to matter:
+the issue is a single running checklist, not one issue per entry — with three
+prospective entries in the store today, a per-entry issue would be more
+process than the problem warrants. If the store grows enough that one issue
+becomes unreadable, split it then.
+
+18 new tests (353 total): 8 for `due_report`/`cmd_due`, 3 for the MCP tool,
+5 for `kb_due_issue.render`/`main`, plus the existing tool-listing test
+extended to expect the new tool name. Not exercised anywhere: the workflow
+YAML itself — nothing in this environment can run a scheduled GitHub Action,
+so `gh issue create/edit/close` are trusted at the shell-script level, not
+integration-tested. Worth re-checking after its first real fire.
 
 ## Phase 6 — Ingestion without ceremony · `someday`
 
@@ -449,6 +482,9 @@ does not cover it.
 - `kb.py history` — what an entry used to say and which revision changed it,
   Phase 4 shipped as provenance rather than as validity intervals
   ([[kb-corrections-happen-in-place]]).
+- `kb.py due` (CLI + MCP) and the `kb-due.yml` daily workflow — Phase 5, the
+  prospective type now surfaces before a due date lapses, not just after
+  ([[kb-prospective-memory-that-fires]]).
 
 ---
 
