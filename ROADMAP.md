@@ -268,16 +268,95 @@ of X. The regression test that pinned the old finding
 paraphrase must not be reported as a near-verbatim *duplicate*. It is now
 reported as a *candidate*, which is a different claim, by a different command.
 
-## Phase 4 — Temporal validity · `planned`
+## Phase 4 — Temporal validity · `done`
 
-**Gap.** An entry is either true or deleted; there is no way to say "this was
-true until March." Systems that handle this well carry validity intervals so a
-superseded fact can be excluded from retrieval without losing its history.
+**Gap, as originally written.** An entry is either true or deleted; there is no
+way to say "this was true until March." The proposal was `valid_until` and
+`supersedes: <name>` in frontmatter, retrieval skipping expired entries, and the
+site rendering them as historical — so that "recency wins, and you can see
+exactly what it won against."
 
-- Optional frontmatter: `valid_until`, and `supersedes: <name>`.
-- Retrieval skips expired entries; the site renders them as historical.
-- Makes the conflict policy explicit and auditable — recency wins, and you can
-  see exactly what it won against.
+The last clause was the real requirement. Neither of the two fields serves it,
+and the store's own history says so.
+
+**What was measured.** Every commit that has ever touched `memory/` was
+replayed and every change to an entry classified: 38 creations, 30
+bookkeeping-only revisions, 22 rewrites, 6 appends, 3 deletions (all three of
+generated files or a template that moved, never an entry).
+
+| the proposal | what the history shows |
+|---|---|
+| `valid_until` — a date after which a claim lapses | **0 of 26** entries have a claim with a knowable expiry date. Every one of the 22 rewrites was a fact overtaken by an event nobody could have dated: a script deleted, a status added, a file moved. The single date-bound entry, `holiday-autonomy-mandate`, is `prospective` and already carries `due:` |
+| `supersedes: <name>` — this entry replaces that one | **0 of 22** rewrites retired a whole entry. The nearest case is the one it was written for: [[kb-duplicate-detection-limits]], whose conclusion was overturned on 2026-07-29. It was deliberately **not** superseded — its measurement and its regression test are still valid and still passing, and only the conclusion moved. `supersedes` would have mismodelled the one case it exists for, because half the entry survived |
+| retrieval skips expired entries | nothing to skip |
+
+**The mechanism behind the numbers, which is the finding.** Obsolescence in
+this store is repaired *by the change that causes it*, in the same commit. Two
+worked examples, both recovered from git rather than assumed:
+
+- `1d1c713` deletes `scripts/visualize.py` **and** rewrites all four entries
+  that cited it.
+- `9dcde20` deletes `docs/plan.md`, moves `memory/_generated/` to
+  `.kb/generated/`, **and** fixes both entries naming the old paths.
+
+The agent that changes the code owns the memory about the code and changes both
+at once, so there is never an interval in which a claim is stale and unrepaired.
+That is what leaves nothing for a validity interval to express.
+
+**A detour worth recording, because it failed.** Before concluding that, the
+obvious stronger framing was tested: bind validity to a *source* rather than a
+date — 92% of entries cite a repo path, so flag the entry when the path stops
+resolving. Replayed across all 21 commits that touched `memory/`, that check
+fired **244 times with 0 true positives** — and it never fired on the real
+breaks above, because of the same-commit repair. Its 16 standing fires today
+are all correct citations: five entries cite *sibling repos* this one cannot
+see ([[sibling-repo-access-denied-in-routines]]), `site/data.json` is a build
+output under a gitignored path, and
+[[kb-agent-entrypoint-is-agent-md]] cites `ci/lint.py` and
+`ci/regenerate_graph.py` inside a table **whose subject is that they do not
+exist**. An entry about a missing file necessarily names a missing file. File
+granularity is no better: "cited file changed since `last_verified`" fires on
+38 of 82 references, because almost everything cites `scripts/kb.py`.
+
+- ✅ **`kb.py history <name>`** — shipped instead, and it is what the original
+  "see exactly what it won against" asked for. Correction-in-place means the
+  superseded wording of a claim exists **only in git**, which no part of the
+  tooling could reach. `history` reads it back, labelling every revision by what
+  it changed — `claim` / `body` / bookkeeping — because `verify` and `link`
+  touch an entry far more often than an author does, and an unlabelled `git log`
+  buries the two revisions that matter under the twenty that stamped a date.
+  Where the claim changed, the superseded wording is quoted.
+
+  This is a small number honestly stated: **2 of 26** entries have had their
+  one-line claim rewritten, and 8 more have body edits under an unchanged claim.
+  What justifies the command is not the count but that the need has already been
+  felt twice in real work with no tool to meet it — the 2026-07-29 session had
+  to correct [[kb-duplicate-detection-limits]] in place and add a link because
+  there was no way to *show* the change, and the 2026-07-30 contradiction pass
+  recovered a prior version of that same entry from git **by hand** to use as
+  test data.
+
+  Read-only, no new frontmatter, no schema change, nothing to keep in sync; on
+  the MCP server as a read tool. It degrades honestly — no git, no repository,
+  and an uncommitted entry are three different messages.
+
+- **Deliberately not on the published site.** `actions/checkout` defaults to
+  `fetch-depth: 1`, so a site build would render every entry as having exactly
+  one revision and never having changed — worse than absent. `history` reports
+  `shallow: true` and says its history is truncated rather than lying about it.
+  Putting revisions on the site means changing the Pages workflow first, which
+  belongs with Phase 8's timeline view, not here.
+
+**The general lesson, which is the second time this repo has learned it.**
+Phase 3 recorded that a negative result can be real, reproducible, and correctly
+tested and still point at the wrong conclusion when what was measured is one
+*framing* of the question. This is the mirror image: a roadmap item's stated
+**goal** was right and its proposed **mechanism** was wrong, and the mechanism
+was specific enough to look like the goal. `consolidate` hit the same thing —
+scoped as "propose merges", shipped against a duplicate queue that measurement
+showed was empty and structurally likely to stay empty. Three phases running,
+the item as written has been the wrong shape and measuring first has been what
+found that. Measure the store before building for it.
 
 ## Phase 5 — Prospective memory that fires · `planned`
 
@@ -367,6 +446,9 @@ does not cover it.
 - `kb.py judge --agreement` and the `contradicted` status — the contradiction
   half of Phase 3, shipped as a second axis on the existing verdict rather than
   as a detector ([[kb-contradiction-is-a-second-axis]]).
+- `kb.py history` — what an entry used to say and which revision changed it,
+  Phase 4 shipped as provenance rather than as validity intervals
+  ([[kb-corrections-happen-in-place]]).
 
 ---
 

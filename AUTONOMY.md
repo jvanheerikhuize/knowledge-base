@@ -172,6 +172,29 @@ already configured this way; inside a session just do the work you were given.
   lower the `dupes` threshold to "catch more"** — that is a different command
   from `candidates`, its regression test will fail, and the next thing it finds
   is a false positive.)
+- [x] **ROADMAP Phase 4 — temporal validity.** (2026-08-01) Done, and the two
+  frontmatter fields it proposed have an empty domain. Replayed every commit
+  that has ever touched `memory/` and classified every change (38 creations, 30
+  bookkeeping-only, 22 rewrites, 6 appends, 3 deletions — all three of generated
+  files, never an entry): **0 of 26** entries have a claim with a knowable
+  expiry date, and **0 of 22** rewrites retired a whole entry. The mechanism is
+  the finding — obsolescence is repaired *by the change that causes it, in the
+  same commit* (`1d1c713` deletes `scripts/visualize.py` and rewrites all four
+  entries citing it; `9dcde20` moves the tree and fixes both citers), so there
+  is never an interval for a validity interval to describe. The stronger
+  "bind validity to a source, not a date" framing was tested too and failed
+  harder: replayed across all 21 commits it fired **244 times with 0 true
+  positives**, and all 16 of its standing fires today are correct citations —
+  sibling repos, a gitignored build output, and an entry that cites two missing
+  scripts *because its subject is that they are missing*. Shipped instead:
+  `kb.py history <name>`, since correction-in-place means the superseded wording
+  of a claim lives only in git. It labels each revision by what it changed
+  (claim / body / bookkeeping) because `verify` and `link` touch an entry far
+  more often than an author does. Small but real: 2 of 26 entries have had a
+  claim rewritten, and the need was already felt twice with no tool to meet it.
+  Not on the site — `actions/checkout` is depth-1, which would render every
+  entry as never having changed. 13 new tests (334 total). Write-up:
+  `kb-corrections-happen-in-place`.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

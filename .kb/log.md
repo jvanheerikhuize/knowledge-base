@@ -64,3 +64,9 @@ Chronological record of entries added to the knowledge base.
 - 2026-07-31 — created `semantic/kb-consolidation-is-owed-work.md`
 - 2026-07-31 — linked `semantic/kb-duplicate-candidates-by-nearest-neighbour.md` — -> kb-consolidation-is-owed-work
 - 2026-07-31 — linked `prospective/kb-roadmap.md` — -> kb-consolidation-is-owed-work
+- 2026-08-01 — created `semantic/kb-corrections-happen-in-place.md`
+- 2026-08-01 — linked `prospective/kb-roadmap.md` — -> kb-corrections-happen-in-place
+- 2026-08-01 — linked `semantic/kb-forgetting-model.md` — -> kb-corrections-happen-in-place
+- 2026-08-01 — linked `procedural/audit-test-corpora-for-artificial-uniformity.md` — -> kb-test-audit-2026-07-29
+- 2026-08-01 — linked `semantic/kb-consolidation-is-owed-work.md` — -> kb-corrections-happen-in-place
+- 2026-08-01 — linked `semantic/kb-contradiction-is-a-second-axis.md` — -> kb-corrections-happen-in-place

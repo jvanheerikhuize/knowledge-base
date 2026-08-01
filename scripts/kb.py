@@ -12,6 +12,7 @@ import json
 import math
 import pathlib
 import re
+import subprocess
 import sys
 import textwrap
 
@@ -1137,6 +1138,126 @@ def _require(name):
     return hit
 
 
+# Frontmatter fields whose change is bookkeeping rather than a change of claim.
+# `confidence` sits here with the others because `verify` moves it as routine
+# maintenance; a demotion that matters shows up as a body edit alongside it.
+HISTORY_MECHANICAL_FIELDS = ("last_verified", "confidence", "links", "archived", "due")
+
+HISTORY_CHANGES = {
+    "created": "written",
+    "claim": "claim changed",
+    "body": "edited",
+    "metadata": "verified/linked",
+}
+
+
+def _git(*args):
+    """Run a git command in the repo, or return None if git cannot answer.
+
+    Every caller treats None as "this store has no history to show" rather than
+    as an error: a KB scaffolded into a directory that is not a git repo, or a
+    machine without git, is a supported way to run and must not crash.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", *args], cwd=str(ROOT),
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout
+
+
+def _description_at(blob):
+    m = re.search(r"^description:[ \t]*(.*)$", blob, re.MULTILINE)
+    return m.group(1).strip() if m else None
+
+
+def entry_history(path, limit=0):
+    """Every revision of one entry, oldest first, with what each one changed.
+
+    Returns None when there is no history to read (no git, not a repository).
+    Returns [] when the file is real but has never been committed.
+
+    The classification is the point. `kb.py verify` touches an entry far more
+    often than an author does, so an undifferentiated `git log` buries the two
+    revisions that rewrote a claim under twenty that only stamped a date.
+    """
+    rel = str(path.relative_to(ROOT))
+    if _git("rev-parse", "--git-dir") is None:
+        return None
+    # A repository with no commits at all makes `git log` exit non-zero, which
+    # is not the same failure as having no repository: it means this entry has
+    # no history yet, exactly like an entry that is simply untracked.
+    log = _git("log", "--format=%H%x00%ad%x00%s", "--date=short", "--follow", "--", rel)
+    if log is None:
+        return []
+
+    revisions = []
+    for line in log.strip().splitlines():
+        if not line:
+            continue
+        parts = line.split("\0")
+        if len(parts) != 3:
+            continue
+        revisions.append(parts)
+    revisions.reverse()  # oldest first: a history reads forwards
+
+    out = []
+    previous_claim = None
+    for index, (sha, date, subject) in enumerate(revisions):
+        blob = _git("show", f"{sha}:{rel}")
+        claim = _description_at(blob) if blob is not None else None
+        if index == 0:
+            change = "created"
+        elif claim != previous_claim:
+            change = "claim"
+        elif _revision_touched_prose(revisions[index - 1][0], sha, rel):
+            change = "body"
+        else:
+            change = "metadata"
+        out.append({
+            "commit": sha[:7],
+            "date": date,
+            "subject": subject,
+            "change": change,
+            "claim": claim,
+        })
+        previous_claim = claim
+
+    if limit and len(out) > limit:
+        out = out[-limit:]
+    return out
+
+
+def _revision_touched_prose(before_sha, after_sha, rel):
+    """True if the revision changed anything but bookkeeping frontmatter."""
+    diff = _git("diff", "--unified=0", before_sha, after_sha, "--", rel)
+    if diff is None:
+        return True
+    for line in diff.splitlines():
+        if not line[:1] in ("+", "-") or line[:3] in ("+++", "---"):
+            continue
+        content = line[1:]
+        if any(content.startswith(f"{field}:") for field in HISTORY_MECHANICAL_FIELDS):
+            continue
+        if content.strip():
+            return True
+    return False
+
+
+def history_is_shallow():
+    """A shallow clone has a truncated history and must say so before it lies.
+
+    Actions/checkout defaults to depth 1, so a history read in CI would show
+    one revision and look like an entry that has never changed.
+    """
+    out = _git("rev-parse", "--is-shallow-repository")
+    return out is not None and out.strip() == "true"
+
+
 def triage_report():
     """Entries needing human attention, worst first.
 
@@ -1724,6 +1845,56 @@ def cmd_show(args):
     sys.exit(1)
 
 
+HISTORY_CAVEAT = (
+    "An entry is corrected in place, so this is the only record of what the "
+    "current claim replaced."
+)
+
+
+def cmd_history(args):
+    entry_type, path, fm, _ = _require(args.name)
+    name = fm.get("name") or path.stem
+    revisions = entry_history(path, limit=args.limit)
+
+    if revisions is None:
+        print(f"no history for '{name}' — {ROOT} is not a git repository, "
+              "or git is unavailable", file=sys.stderr)
+        sys.exit(1)
+    if not revisions:
+        print(f"'{name}' has never been committed — nothing to show yet")
+        return
+
+    if args.json:
+        print(json.dumps({
+            "name": name,
+            "type": entry_type,
+            "path": str(path.relative_to(ROOT)),
+            "shallow": history_is_shallow(),
+            "revisions": revisions,
+        }, indent=2))
+        return
+
+    print(f"\n{name}  ({entry_type})")
+    print(f"{len(revisions)} revision{'s' if len(revisions) != 1 else ''}, oldest first\n")
+    if history_is_shallow():
+        print("  ! shallow clone — this history is truncated and may be missing "
+              "revisions\n")
+
+    for revision in revisions:
+        label = HISTORY_CHANGES[revision["change"]]
+        print(f"  {revision['date']}  {revision['commit']}  {label:15} "
+              f"{revision['subject']}")
+        if revision["change"] in ("created", "claim") and revision["claim"]:
+            for line in textwrap.wrap(revision["claim"], width=76):
+                print(f"      | {line}")
+    claim_changes = sum(1 for r in revisions if r["change"] == "claim")
+    if claim_changes:
+        print(f"\n  the one-line claim has been rewritten {claim_changes} time"
+              f"{'s' if claim_changes != 1 else ''} — the quoted blocks above are "
+              "every wording it has had, oldest first")
+    print(f"\n{HISTORY_CAVEAT}")
+
+
 def cmd_new(args):
     if args.type not in TYPES:
         print(f"type must be one of: {', '.join(TYPES)}", file=sys.stderr)
@@ -1939,6 +2110,14 @@ def main():
     p_show = sub.add_parser("show", help="print one entry")
     p_show.add_argument("name")
     p_show.set_defaults(func=cmd_show)
+
+    p_history = sub.add_parser(
+        "history", help="what one entry has said, and which revision changed it")
+    p_history.add_argument("name")
+    p_history.add_argument("--limit", type=int, default=0,
+                           help="show only the most recent N revisions (0 for all)")
+    p_history.add_argument("--json", action="store_true", help="machine-readable output")
+    p_history.set_defaults(func=cmd_history)
 
     p_new = sub.add_parser("new", help="scaffold a new entry")
     p_new.add_argument("name")

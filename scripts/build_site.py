@@ -153,7 +153,18 @@ def entry_actions(e, slug, depth=0) -> str:
 
 def _inline(text: str, known: set) -> str:
     out = html.escape(text)
-    out = re.sub(r"`([^`]+)`", lambda m: f"<code>{m.group(1)}</code>", out)
+
+    # Code spans are held aside rather than rendered in place, so the emphasis
+    # and wikilink passes below cannot reach inside them. An entry documenting
+    # the `[[wikilink]]` syntax means the literal text, not a link to an entry
+    # called "wikilink" — which is what it used to be rendered as.
+    code_spans: list[str] = []
+
+    def stash(m):
+        code_spans.append(m.group(1))
+        return f"\0code{len(code_spans) - 1}\0"
+
+    out = re.sub(r"`([^`]+)`", stash, out)
 
     def wikilink(m):
         target = m.group(1)
@@ -165,6 +176,8 @@ def _inline(text: str, known: set) -> str:
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<![*\w])\*([^*\n]+)\*(?!\w)", r"<em>\1</em>", out)
+    out = re.sub(r"\0code(\d+)\0",
+                 lambda m: f"<code>{code_spans[int(m.group(1))]}</code>", out)
     return out
 
 

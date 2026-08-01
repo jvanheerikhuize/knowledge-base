@@ -173,6 +173,42 @@ def tool_get(args):
     }
 
 
+def tool_history(args):
+    """What one entry has said over time. Reads git; changes nothing."""
+    name = str(args.get("name") or "").strip()
+    if not name:
+        raise ToolError("name is required")
+    entry_type, path, fm, _ = _require_entry(name)
+    entry_name = _entry_name(path, fm)
+    revisions = kb.entry_history(path, limit=_int(args, "limit", 0))
+    if revisions is None:
+        raise ToolError(
+            f"no history for '{entry_name}' — the knowledge base is not in a git "
+            "repository, or git is unavailable")
+
+    shallow = kb.history_is_shallow()
+    payload = {
+        "name": entry_name,
+        "type": entry_type,
+        "path": str(path.relative_to(kb.ROOT)),
+        "shallow": shallow,
+        "revisions": revisions,
+    }
+    if not revisions:
+        return f"'{entry_name}' has never been committed — nothing to show yet", payload
+
+    lines = [f"{entry_name} ({entry_type}) — {len(revisions)} revision(s), oldest first"]
+    if shallow:
+        lines.append("! shallow clone — this history is truncated")
+    for revision in revisions:
+        lines.append(f"  {revision['date']}  {revision['commit']}  "
+                     f"{kb.HISTORY_CHANGES[revision['change']]:15} {revision['subject']}")
+        if revision["change"] in ("created", "claim") and revision["claim"]:
+            lines.append(f"      | {revision['claim']}")
+    lines.append(f"\n{kb.HISTORY_CAVEAT}")
+    return "\n".join(lines), payload
+
+
 def tool_context(args):
     query = str(args.get("query") or "").strip()
     if not query:
@@ -653,6 +689,33 @@ READ_TOOLS = [
             },
         },
         "handler": tool_consolidate,
+    },
+    {
+        "name": "history",
+        "title": "What one entry has said over time",
+        "description": (
+            "The revisions of one entry, oldest first, each labelled with what "
+            "it changed: the claim itself, the body, or only bookkeeping "
+            "(`verify` and `link` touch an entry far more often than an author "
+            "does, and an unlabelled log buries the rewrites under them). "
+            "Where the one-line claim changed, the superseded wording is "
+            "quoted. Entries here are corrected in place rather than retired "
+            "on a date, so this is the only record of what the current claim "
+            "replaced — read it before trusting an entry you are about to "
+            "contradict."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "entry name or filename stem"},
+                "limit": {"type": "integer",
+                          "description": "show only the most recent N revisions "
+                                         "(0 or omitted for all)"},
+            },
+            "required": ["name"],
+        },
+        "handler": tool_history,
     },
 ]
 

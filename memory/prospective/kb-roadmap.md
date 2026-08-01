@@ -6,7 +6,7 @@ confidence: high
 source: research 2026-07-27 into current agent-memory practice, mapped against this repo's actual CLI surface
 created: 2026-07-27
 last_verified: 2026-07-30
-links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-consolidation-is-owed-work]
+links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-consolidation-is-owed-work, kb-corrections-happen-in-place]
 due: 2026-10-27
 ---
 
@@ -28,8 +28,10 @@ ones until the store is technically complete and practically useless.
 time, and an unranked substring match stops delivering that somewhere in the
 low dozens of entries. Then MCP exposure (Phase 2), because every consumer
 currently shells out and parses text, and the neighbouring projects have all
-converged on serving the store as a tool. Then consolidation and decay
-(Phases 3–4), which are what keep the first two honest as the store grows.
+converged on serving the store as a tool. Then consolidation, decay, and
+temporal validity (Phases 3–4), which are what keep the first two honest as the
+store grows — though the last of those turned out to need no new frontmatter at
+all, per [[kb-corrections-happen-in-place]].
 
 **Two constraints the roadmap must not break.** Every phase is stdlib-only and
 git-backed — BM25, shingling, and stdio JSON-RPC were chosen precisely because
