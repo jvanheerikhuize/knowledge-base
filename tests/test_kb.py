@@ -549,6 +549,70 @@ class TestTriage(KbTestCase):
         self.assertEqual([r["name"] for r in by_reason], ["due-task"])
 
 
+class TestDue(KbTestCase):
+    def _iso(self, days_from_today):
+        return (datetime.date.today() + datetime.timedelta(days=days_from_today)).isoformat()
+
+    def test_no_prospective_entries_reports_nothing_due(self):
+        self.run_kb("new", "a-entry", "--type", "semantic")
+        result = self.run_kb("due")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nothing due", result.stdout)
+
+    def test_lists_overdue_and_upcoming_sorted_by_due_date(self):
+        self.run_kb("new", "far-off", "--type", "prospective", "--due", self._iso(30))
+        self.run_kb("new", "past-due", "--type", "prospective", "--due", self._iso(-5))
+        result = self.run_kb("due", "--json")
+        rows = json.loads(result.stdout)
+        self.assertEqual([r["name"] for r in rows], ["past-due", "far-off"])
+        self.assertTrue(rows[0]["overdue"])
+        self.assertFalse(rows[1]["overdue"])
+
+    def test_within_excludes_entries_beyond_the_window(self):
+        self.run_kb("new", "soon", "--type", "prospective", "--due", self._iso(5))
+        self.run_kb("new", "later", "--type", "prospective", "--due", self._iso(30))
+        result = self.run_kb("due", "--within", "14d", "--json")
+        rows = json.loads(result.stdout)
+        self.assertEqual([r["name"] for r in rows], ["soon"])
+
+    def test_within_still_shows_overdue_entries(self):
+        self.run_kb("new", "long-overdue", "--type", "prospective", "--due", self._iso(-100))
+        result = self.run_kb("due", "--within", "14d", "--json")
+        rows = json.loads(result.stdout)
+        self.assertEqual([r["name"] for r in rows], ["long-overdue"])
+
+    def test_within_accepts_bare_integer(self):
+        self.run_kb("new", "soon", "--type", "prospective", "--due", self._iso(5))
+        result = self.run_kb("due", "--within", "14", "--json")
+        rows = json.loads(result.stdout)
+        self.assertEqual([r["name"] for r in rows], ["soon"])
+
+    def test_within_rejects_garbage(self):
+        result = self.run_kb("due", "--within", "not-a-number")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_ignores_non_prospective_and_archived_and_undated(self):
+        self.run_kb("new", "no-due-date", "--type", "prospective", "--due", self._iso(5))
+        # strip the due line to simulate a prospective entry without one
+        path = self.entry_path("prospective", "no-due-date")
+        text = path.read_text()
+        text = "\n".join(line for line in text.splitlines(keepends=True) if not line.startswith("due:"))
+        path.write_text(text)
+        self.run_kb("new", "archived-due", "--type", "prospective", "--due", self._iso(-1))
+        self.run_kb("archive", "archived-due")
+        result = self.run_kb("due", "--json")
+        rows = json.loads(result.stdout)
+        self.assertEqual(rows, [])
+
+    def test_unparseable_due_date_is_skipped_not_crashed(self):
+        self.run_kb("new", "bogus-date", "--type", "prospective", "--due", "2030-01-01")
+        self.edit_frontmatter("prospective", "bogus-date", due="not-a-date")
+        result = self.run_kb("due", "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = json.loads(result.stdout)
+        self.assertEqual(rows, [])
+
+
 class TestStatus(KbTestCase):
     """`status` covers every entry exactly once; `triage` covers only problems."""
 

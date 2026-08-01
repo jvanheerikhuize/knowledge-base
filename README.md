@@ -91,6 +91,7 @@ flowchart TB
     subgraph Pipeline["Scaffolder / CI"]
         SCAF["scripts/scaffold.sh"]
         GHA[".github/workflows/kb-lint.yml"]
+        GHD[".github/workflows/kb-due.yml"]
     end
 
     Sources --> Ingestion --> KB
@@ -101,6 +102,7 @@ flowchart TB
     KB <--> SERVE
     GHA --> SITE
     GHA --> CLI
+    GHD --> CLI
     SCAF -. drops memory/+.kb/+scripts/ into any repo .-> KB
 ```
 

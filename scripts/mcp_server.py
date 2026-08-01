@@ -242,6 +242,27 @@ def tool_triage(args):
     return "\n".join(lines), {"triage": report}
 
 
+def tool_due(args):
+    within = args.get("within")
+    if within is not None:
+        try:
+            within = int(within)
+            if within < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ToolError(f"within must be a non-negative integer number of days, got {args.get('within')!r}")
+    rows = kb.due_report(within_days=within)
+    if not rows:
+        scope = f" within {within}d" if within is not None else ""
+        return f"nothing due{scope}", {"due": []}
+    lines = []
+    for r in rows:
+        flag = "OVERDUE" if r["overdue"] else f"in {r['days']}d"
+        lines.append(f"[{flag}] {r['due']}  {r['name']} — {r['description']}")
+    lines.append(f"\n{len(rows)} entr(ies) due")
+    return "\n".join(lines), {"due": rows}
+
+
 def tool_status(args):
     report = kb.status_report()
     entry_type = _optional_type(args)
@@ -588,6 +609,25 @@ READ_TOOLS = [
             },
         },
         "handler": tool_triage,
+    },
+    {
+        "name": "due",
+        "title": "What's coming due",
+        "description": (
+            "Prospective entries whose `due:` date has arrived or is approaching, "
+            "soonest first. Unlike `triage`, this surfaces a due date before it "
+            "lapses, not just after."
+        ),
+        "annotations": {"readOnlyHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "within": {"type": "integer", "minimum": 0,
+                           "description": "only entries due within this many days "
+                                          "(overdue entries always show)"},
+            },
+        },
+        "handler": tool_due,
     },
     {
         "name": "status",
