@@ -256,6 +256,131 @@ class TestShow(KbTestCase):
         self.assertNotEqual(result.returncode, 0)
 
 
+class TestHistory(KbTestCase):
+    """`history` reads git, so these tests build a real repo in the temp store.
+
+    The classification is the part worth pinning: `verify` and `link` touch an
+    entry far more often than an author does, and the command is only useful if
+    those revisions stay visually out of the way of the ones that changed a
+    claim.
+    """
+
+    def git(self, *args):
+        result = subprocess.run(
+            ["git", "-c", "user.email=t@example.com", "-c", "user.name=Test", *args],
+            cwd=self.root, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
+
+    def init_repo(self):
+        self.git("init", "-q", "-b", "main")
+
+    def commit(self, message):
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", message)
+
+    def test_without_a_git_repo_it_says_so_instead_of_crashing(self):
+        self.run_kb("new", "lonely-fact", "--type", "semantic")
+        result = self.run_kb("history", "lonely-fact")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a git repository", result.stderr)
+
+    def test_an_uncommitted_entry_reports_no_history_yet(self):
+        self.init_repo()
+        self.run_kb("new", "brand-new", "--type", "semantic")
+        result = self.run_kb("history", "brand-new")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("never been committed", result.stdout)
+
+    def test_an_untracked_entry_in_a_live_repo_reports_no_history_yet(self):
+        self.init_repo()
+        self.run_kb("new", "committed-fact", "--type", "semantic")
+        self.commit("add committed-fact")
+        self.run_kb("new", "untracked-fact", "--type", "semantic")
+        result = self.run_kb("history", "untracked-fact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("never been committed", result.stdout)
+
+    def test_missing_entry_exits_nonzero(self):
+        self.init_repo()
+        result = self.run_kb("history", "does-not-exist")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no entry named", result.stderr)
+
+    def test_first_revision_is_written_and_quotes_the_claim(self):
+        self.init_repo()
+        self.run_kb("new", "first-claim", "--type", "semantic")
+        self.edit_frontmatter("semantic", "first-claim", description="the original claim")
+        self.commit("add first-claim")
+        result = self.run_kb("history", "first-claim")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("written", result.stdout)
+        self.assertIn("the original claim", result.stdout)
+
+    def test_a_verify_only_revision_is_not_reported_as_an_edit(self):
+        self.init_repo()
+        self.run_kb("new", "steady-fact", "--type", "semantic")
+        self.commit("add steady-fact")
+        self.run_kb("verify", "steady-fact", "--confidence", "high")
+        self.commit("verify steady-fact")
+
+        history = json.loads(self.run_kb("history", "steady-fact", "--json").stdout)
+        changes = [r["change"] for r in history["revisions"]]
+        self.assertEqual(changes, ["created", "metadata"])
+
+    def test_a_changed_description_is_reported_as_a_changed_claim(self):
+        self.init_repo()
+        self.run_kb("new", "moving-fact", "--type", "semantic")
+        self.edit_frontmatter("semantic", "moving-fact", description="eight statuses")
+        self.commit("add moving-fact")
+        self.edit_frontmatter("semantic", "moving-fact", description="ten statuses")
+        self.commit("correct moving-fact")
+
+        result = self.run_kb("history", "moving-fact")
+        self.assertIn("claim changed", result.stdout)
+        # the superseded wording is the whole point: it is nowhere else.
+        self.assertIn("eight statuses", result.stdout)
+        self.assertIn("the one-line claim has been rewritten 1 time", result.stdout)
+
+    def test_a_body_rewrite_under_an_unchanged_claim_is_reported_as_an_edit(self):
+        self.init_repo()
+        self.run_kb("new", "reworded-fact", "--type", "semantic")
+        self.commit("add reworded-fact")
+        path = self.entry_path("semantic", "reworded-fact")
+        path.write_text(path.read_text() + "\nA new paragraph of prose.\n")
+        self.commit("expand reworded-fact")
+
+        history = json.loads(self.run_kb("history", "reworded-fact", "--json").stdout)
+        self.assertEqual([r["change"] for r in history["revisions"]], ["created", "body"])
+
+    def test_limit_keeps_the_most_recent_revisions(self):
+        self.init_repo()
+        self.run_kb("new", "busy-fact", "--type", "semantic")
+        self.commit("add busy-fact")
+        for n in range(3):
+            self.edit_frontmatter("semantic", "busy-fact", description=f"claim {n}")
+            self.commit(f"revise busy-fact {n}")
+
+        full = json.loads(self.run_kb("history", "busy-fact", "--json").stdout)
+        limited = json.loads(
+            self.run_kb("history", "busy-fact", "--limit", "2", "--json").stdout)
+        self.assertEqual(len(full["revisions"]), 4)
+        self.assertEqual(len(limited["revisions"]), 2)
+        self.assertEqual(limited["revisions"], full["revisions"][-2:])
+
+    def test_json_carries_the_path_and_the_shallow_flag(self):
+        self.init_repo()
+        self.run_kb("new", "described-fact", "--type", "semantic")
+        self.commit("add described-fact")
+        history = json.loads(self.run_kb("history", "described-fact", "--json").stdout)
+        self.assertEqual(history["name"], "described-fact")
+        self.assertEqual(history["type"], "semantic")
+        self.assertEqual(history["path"], "memory/semantic/described-fact.md")
+        self.assertFalse(history["shallow"])
+        self.assertEqual(history["revisions"][0]["change"], "created")
+
+
 class TestLint(KbTestCase):
     def test_lint_clean_kb(self):
         self.run_kb("new", "clean-entry", "--type", "semantic")

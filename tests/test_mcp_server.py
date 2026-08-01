@@ -184,7 +184,8 @@ class TestToolListing(McpTestCase):
         self.assertEqual(
             set(tools),
             {"context", "search", "get", "triage", "status", "dupes",
-             "duplicate_candidates", "consolidate", "judge", "propose_update"},
+             "duplicate_candidates", "consolidate", "history", "judge",
+             "propose_update"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -572,6 +573,45 @@ class TestCandidatesOverMcp(McpTestCase):
         result = self.result_of(self.call("consolidate", {"margin": "wide"}))
         self.assertTrue(result["isError"])
         self.assertIn("must be a number", result["content"][0]["text"])
+
+
+class TestHistoryOverMcp(McpTestCase):
+    def git(self, *args):
+        result = subprocess.run(
+            ["git", "-c", "user.email=t@example.com", "-c", "user.name=Test", *args],
+            cwd=self.root, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_history_is_a_read_tool_and_labels_each_revision(self):
+        self.git("init", "-q", "-b", "main")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "the store as first written")
+        self.kb("set", "first-fact", "description", "a corrected claim")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "correct first-fact")
+
+        self.handshake()
+        tools = {t["name"]: t for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertTrue(tools["history"]["annotations"]["readOnlyHint"])
+
+        result = self.result_of(self.call("history", {"name": "first-fact"}))
+        self.assertFalse(result["isError"])
+        changes = [r["change"] for r in result["structuredContent"]["revisions"]]
+        self.assertEqual(changes, ["created", "claim"])
+        self.assertIn("claim changed", result["content"][0]["text"])
+
+    def test_without_a_repository_it_is_an_error_not_an_empty_history(self):
+        self.handshake()
+        result = self.result_of(self.call("history", {"name": "first-fact"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("git", result["content"][0]["text"])
+
+    def test_history_of_a_missing_entry_is_an_error(self):
+        self.git("init", "-q", "-b", "main")
+        self.handshake()
+        result = self.result_of(self.call("history", {"name": "no-such-entry"}))
+        self.assertTrue(result["isError"])
 
 
 class TestJudgeIsAWriteTool(McpTestCase):
