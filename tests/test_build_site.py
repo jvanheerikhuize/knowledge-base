@@ -40,6 +40,23 @@ class MarkdownTests(unittest.TestCase):
         self.assertIn("missing", out)
         self.assertNotIn('href="nope.html"', out)
 
+    def test_a_code_span_is_inert(self):
+        # An entry documenting the syntax means the literal text. Rendering it
+        # as a wikilink styled it as a dangling link to an entry nobody meant.
+        out = self.render("resolved `[[wikilinks]]`, links out and backlinks")
+        self.assertIn("<code>[[wikilinks]]</code>", out)
+        self.assertNotIn("missing", out)
+
+    def test_a_resolvable_wikilink_inside_a_code_span_is_still_inert(self):
+        out = self.render("write `[[other-entry]]` to link it")
+        self.assertIn("<code>[[other-entry]]</code>", out)
+        self.assertNotIn('href="other-entry.html"', out)
+
+    def test_emphasis_markers_inside_a_code_span_are_left_alone(self):
+        out = self.render("the glob `**/*.py` matches")
+        self.assertIn("<code>**/*.py</code>", out)
+        self.assertNotIn("<strong>", out)
+
     def test_unordered_and_ordered_lists(self):
         self.assertIn("<ul><li>a</li><li>b</li></ul>", self.render("- a\n- b"))
         self.assertIn("<ol><li>a</li><li>b</li></ol>", self.render("1. a\n2. b"))
