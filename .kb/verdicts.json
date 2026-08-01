@@ -52,6 +52,56 @@
       "agreement": "agree"
     },
     {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-consolidation-is-owed-work",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "97945a761f80",
+      "b_digest": "d8d25189dc67",
+      "note": "unrelated subjects",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-contradiction-is-a-second-axis",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "97945a761f80",
+      "b_digest": "cd9911f20682",
+      "note": "unrelated subjects",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-corrections-happen-in-place",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "97945a761f80",
+      "b_digest": "37b14d39ec72",
+      "note": "provenance of claims vs uniformity in test corpora; shared method words only",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-forgetting-model",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "97945a761f80",
+      "b_digest": "1a1d76b3f41d",
+      "note": "unrelated subjects",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "97945a761f80",
+      "b_digest": "08489a6daa37",
+      "note": "the procedure was distilled from that audit",
+      "agreement": "agree"
+    },
+    {
       "a": "distill-session-into-memory",
       "b": "editing-the-kb-without-a-cms",
       "verdict": "distinct",
@@ -285,10 +335,10 @@
       "a": "kb-agent-entrypoint-is-agent-md",
       "b": "kb-roadmap",
       "verdict": "distinct",
-      "judged": "2026-07-31",
+      "judged": "2026-08-01",
       "a_digest": "93c2654408d2",
-      "b_digest": "bf513cf11dae",
-      "note": "which contract is authoritative vs what the store builds next",
+      "b_digest": "34a03dbcca83",
+      "note": "where agents start vs what gets built next",
       "agreement": "agree"
     },
     {
@@ -343,6 +393,16 @@
     },
     {
       "a": "kb-consolidation-is-owed-work",
+      "b": "kb-corrections-happen-in-place",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "d8d25189dc67",
+      "b_digest": "37b14d39ec72",
+      "note": "both name a defect no existing tool could see; different defects",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-consolidation-is-owed-work",
       "b": "kb-duplicate-candidates-by-nearest-neighbour",
       "verdict": "overlap",
       "judged": "2026-07-31",
@@ -379,6 +439,36 @@
       "a_digest": "d8d25189dc67",
       "b_digest": "1a1d76b3f41d",
       "note": "this entry makes no claim about decay or archiving; adjacent roadmap phases, not a shared claim",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-consolidation-is-owed-work",
+      "b": "kb-roadmap",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "d8d25189dc67",
+      "b_digest": "34a03dbcca83",
+      "note": "the roadmap plans the consolidation work; the entry records what shipped",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-consolidation-is-owed-work",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "d8d25189dc67",
+      "b_digest": "08489a6daa37",
+      "note": "pair-level link debt vs a test-suite audit",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-contradiction-is-a-second-axis",
+      "b": "kb-corrections-happen-in-place",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "cd9911f20682",
+      "b_digest": "37b14d39ec72",
+      "note": "both are 'the roadmap item was the wrong shape, measured'; different phases, different findings",
       "agreement": "agree"
     },
     {
@@ -439,6 +529,76 @@
       "a_digest": "cd9911f20682",
       "b_digest": "bf513cf11dae",
       "note": "consolidated 2026-07-31 \u2014 the roadmap entry no longer retells the finding, it points here",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-duplicate-candidates-by-nearest-neighbour",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "a37be1bfb423",
+      "note": "history of one entry vs blocking over pairs",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-duplicate-detection-limits",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "4dc736de7ec2",
+      "note": "the near-miss supersession case that 'supersedes' would have mismodelled",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-entry-status-model",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "c5709f5ca1d4",
+      "note": "provenance of a claim vs the status board",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-forgetting-model",
+      "verdict": "overlap",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "1a1d76b3f41d",
+      "note": "both describe how a claim that stopped being true is handled: decay/archive vs correction in place",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-over-mcp",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "9678feb64169",
+      "note": "unrelated subjects; both merely mention the MCP surface",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-ranked-retrieval",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "702a697b8dea",
+      "note": "history is not part of ranking",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "memory-overview-site",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "58b226771525",
+      "note": "the site does not render revisions; the entry only says why not",
       "agreement": "agree"
     },
     {
@@ -525,10 +685,20 @@
       "a": "kb-duplicate-detection-limits",
       "b": "kb-roadmap",
       "verdict": "overlap",
-      "judged": "2026-07-31",
+      "judged": "2026-08-01",
       "a_digest": "4dc736de7ec2",
-      "b_digest": "bf513cf11dae",
-      "note": "the roadmap plans it; the entry records what the measurement found",
+      "b_digest": "34a03dbcca83",
+      "note": "the roadmap carries the lesson; the entry carries the measurement",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-duplicate-detection-limits",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "4dc736de7ec2",
+      "b_digest": "08489a6daa37",
+      "note": "unrelated subjects",
       "agreement": "agree"
     },
     {
@@ -555,10 +725,20 @@
       "a": "kb-entry-status-model",
       "b": "kb-roadmap",
       "verdict": "distinct",
-      "judged": "2026-07-31",
+      "judged": "2026-08-01",
       "a_digest": "c5709f5ca1d4",
-      "b_digest": "bf513cf11dae",
+      "b_digest": "34a03dbcca83",
       "note": "what the board shows vs what the store builds next",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-entry-status-model",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "c5709f5ca1d4",
+      "b_digest": "08489a6daa37",
+      "note": "unrelated subjects",
       "agreement": "agree"
     },
     {
@@ -605,10 +785,20 @@
       "a": "kb-forgetting-model",
       "b": "kb-roadmap",
       "verdict": "overlap",
-      "judged": "2026-07-31",
+      "judged": "2026-08-01",
       "a_digest": "1a1d76b3f41d",
-      "b_digest": "bf513cf11dae",
+      "b_digest": "34a03dbcca83",
       "note": "the roadmap plans the forgetting work; the entry records what shipped",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-forgetting-model",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "distinct",
+      "judged": "2026-08-01",
+      "a_digest": "1a1d76b3f41d",
+      "b_digest": "08489a6daa37",
+      "note": "unrelated subjects",
       "agreement": "agree"
     },
     {
@@ -675,9 +865,9 @@
       "a": "kb-over-mcp",
       "b": "kb-roadmap",
       "verdict": "overlap",
-      "judged": "2026-07-31",
+      "judged": "2026-08-01",
       "a_digest": "9678feb64169",
-      "b_digest": "bf513cf11dae",
+      "b_digest": "34a03dbcca83",
       "note": "the roadmap plans MCP exposure; the entry records what shipped",
       "agreement": "agree"
     },
@@ -725,8 +915,8 @@
       "a": "kb-roadmap",
       "b": "twin-sovereignty-constraint",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "bf513cf11dae",
+      "judged": "2026-08-01",
+      "a_digest": "34a03dbcca83",
       "b_digest": "64b47c7c6194",
       "note": "the roadmap binds itself to the no-vendor-model constraint",
       "agreement": "agree"
@@ -735,10 +925,10 @@
       "a": "kb-roadmap",
       "b": "workspace-improvement-phases",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "bf513cf11dae",
+      "judged": "2026-08-01",
+      "a_digest": "34a03dbcca83",
       "b_digest": "706b96ed2b57",
-      "note": "P2.2 defers this repo's remaining work to the KB roadmap",
+      "note": "workspace-level phases vs this repo's own roadmap",
       "agreement": "agree"
     },
     {

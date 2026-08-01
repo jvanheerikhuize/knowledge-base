@@ -6,7 +6,7 @@ confidence: verified
 source: knowledge-base test-consolidation audit, session 2026-07-30
 created: 2026-07-30
 last_verified: 2026-07-30
-links: [kb-duplicate-detection-limits, persist-insight-to-knowledge-base]
+links: [kb-duplicate-detection-limits, persist-insight-to-knowledge-base, kb-test-audit-2026-07-29]
 ---
 
 Found while doing the AUTONOMY.md "test consolidation & audit" backlog item:

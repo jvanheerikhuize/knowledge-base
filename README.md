@@ -204,6 +204,7 @@ python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not parap
 python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each other — for you to judge
 python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both calls at once
 python3 scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe — proposals only
+python3 scripts/kb.py history <name>   # what it used to say — corrections here are made in place
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -437,6 +438,7 @@ no process to keep running — the client spawns it.
 | `context` | the budgeted, provenance-carrying brief for a task — the one call to make at the start of a task |
 | `search` | BM25 hits, best first, with the same type/recency/confidence weighting as the CLI |
 | `get` | one entry in full: raw markdown plus parsed frontmatter |
+| `history` | what an entry used to say and which revision changed it — the superseded wording is nowhere else, since entries are corrected in place |
 | `triage` | the queue of entries that are wrong or ageing, worst first |
 | `status` | every entry in exactly one status, with the command that moves it |
 | `dupes` | entry pairs whose text overlaps near-verbatim — copies, not paraphrases |

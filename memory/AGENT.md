@@ -149,6 +149,7 @@ scripts/kb.py list [--type TYPE]         # list entries, optionally filtered
 scripts/kb.py search "<query>" [--limit N] [--type T]   # ranked search, best first
 scripts/kb.py context "<task>" [--budget N]             # paste-ready context pack for a task
 scripts/kb.py show <name>                # print one entry
+scripts/kb.py history <name> [--limit N] # what it used to say, and which revision changed it
 scripts/kb.py new --type TYPE "<name>"   # scaffold a new entry
 scripts/kb.py lint                       # schema, duplicate-slug, dangling-link, and staleness checks
 
@@ -166,8 +167,12 @@ scripts/kb.py edit <name>                # open the file in $EDITOR
 scripts/kb.py rm <name> [--force]        # delete, refusing while still linked
 ```
 
-Mutations are appended to `../.kb/log.md`, so the history of the store is
-readable without reading git.
+Mutations are appended to `../.kb/log.md`, so *what happened* to the store is
+readable without reading git. What an entry actually **said** before a
+correction is not in there — entries are corrected in place, so the superseded
+wording exists only in git. `kb.py history <name>` is how you read it back;
+check it before contradicting an entry, in case the store has already been
+round this loop. See [[kb-corrections-happen-in-place]].
 
 ## Using this store as MCP tools
 
@@ -183,6 +188,7 @@ python3 scripts/mcp_server.py [--read-only]
 | `context` | the first call of a task — a budgeted brief with provenance |
 | `search` | ranked hits without the packaging |
 | `get` | one entry in full |
+| `history` | what it used to say, and which revision changed it |
 | `triage` | what is wrong or ageing, worst first |
 | `status` | where every entry stands and what moves it |
 | `duplicate_candidates` | pairs to read for restatement *and* for disagreement |
