@@ -1890,8 +1890,8 @@ def cmd_history(args):
     claim_changes = sum(1 for r in revisions if r["change"] == "claim")
     if claim_changes:
         print(f"\n  the one-line claim has been rewritten {claim_changes} time"
-              f"{'s' if claim_changes != 1 else ''} — the quoted lines above are "
-              "what it said before")
+              f"{'s' if claim_changes != 1 else ''} — the quoted blocks above are "
+              "every wording it has had, oldest first")
     print(f"\n{HISTORY_CAVEAT}")
 
 
