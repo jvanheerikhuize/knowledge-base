@@ -912,6 +912,7 @@ def rank(query, types=None, include_episodic=True, docs=None,
             "confidence": fm.get("confidence", ""),
             "effective_confidence": effective,
             "decayed_by": decayed_by,
+            "authority": fm.get("authority", ""),
             "archived": fm.get("archived", ""),
             "last_verified": fm.get("last_verified", ""),
             "score": round(score, 3),
@@ -965,8 +966,17 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
         confidence = hit["confidence"] or "unknown"
         if hit.get("decayed_by"):
             confidence = f"{hit['effective_confidence']} (recorded as {hit['confidence']}, aged)"
+        # A binding rule and an overridable preference can read with the same
+        # imperative grammar ("Jerry asked that...", "must"); this is the one
+        # structural signal that a context pack — what an agent actually acts
+        # on — carries the difference forward. See kb-instruction-content-lint.
+        authority_tag = ""
+        if hit.get("authority") == "rule":
+            authority_tag = "  [RULE — binding, do not treat as optional]"
+        elif hit.get("authority") == "preference":
+            authority_tag = "  [preference — overridable]"
         header = (
-            f"### {hit['name']}  ({hit['type']})\n"
+            f"### {hit['name']}  ({hit['type']}){authority_tag}\n"
             f"> {hit['description']}\n"
             f"> confidence: {confidence} · "
             f"last verified: {hit['last_verified'] or 'never'} · "
@@ -2113,6 +2123,10 @@ def cmd_search(args):
     shown = hits[: args.limit] if args.limit else hits
     for i, h in enumerate(shown, 1):
         flags = ""
+        if h["authority"] == "rule":
+            flags += "  [RULE]"
+        elif h["authority"] == "preference":
+            flags += "  [preference]"
         if h["archived"]:
             flags += "  [archived]"
         if h["decayed_by"]:
@@ -2192,6 +2206,62 @@ HISTORY_CAVEAT = (
     "An entry is corrected in place, so this is the only record of what the "
     "current claim replaced."
 )
+
+
+_LOG_LINE_RE = re.compile(
+    r'^- (?P<date>\d{4}-\d{2}-\d{2}) — (?P<action>\S+) '
+    r'`(?P<type>[a-z]+)/(?P<slug>[^/]+)\.md`(?: — (?P<detail>.*))?$'
+)
+
+
+def parse_log():
+    """`.kb/log.md` structured, most recent first.
+
+    ROADMAP Phase 10: the log already records every mutation, but as a flat
+    append-only file nobody reads bottom-to-top. This is the read side —
+    still backed by the same file, still not the record of record (that's
+    git); it only reorders and makes it filterable.
+    """
+    if not LOG_FILE.is_file():
+        return []
+    records = []
+    for line in LOG_FILE.read_text(encoding="utf-8").splitlines():
+        m = _LOG_LINE_RE.match(line)
+        if not m:
+            continue
+        records.append({
+            "date": m.group("date"),
+            "action": m.group("action"),
+            "type": m.group("type"),
+            "name": m.group("slug"),
+            "detail": m.group("detail") or "",
+        })
+    records.reverse()
+    return records
+
+
+def cmd_log(args):
+    records = parse_log()
+    if args.type:
+        records = [r for r in records if r["type"] == args.type]
+    if args.action:
+        records = [r for r in records if r["action"] == args.action]
+    if args.name:
+        records = [r for r in records if r["name"] == args.name]
+    shown = records[: args.limit] if args.limit else records
+
+    if args.json:
+        print(json.dumps(shown, indent=2))
+        return
+
+    if not shown:
+        print("no matching log entries")
+        return
+    for r in shown:
+        detail = f"  — {r['detail']}" if r["detail"] else ""
+        print(f"{r['date']}  {r['action']:10} {r['type']}/{r['name']}{detail}")
+    if len(records) > len(shown):
+        print(f"\n{len(records) - len(shown)} more — raise --limit to see them (0 for all).")
 
 
 def cmd_history(args):
@@ -2295,6 +2365,67 @@ def _append_log(entry_type, slug, today, action="created", detail=""):
         f.write(f"- {today} — {action} `{entry_type}/{slug}.md`{suffix}\n")
 
 
+# Instruction-shaped-content detection (ROADMAP Phase 10). A knowledge base
+# served to agents over MCP is an injection surface: an entry that influences
+# tool selection is a privileged execution path. Measured before shipping,
+# against the 29 real entries in this store plus 9 planted attack payloads
+# (see kb-instruction-content-lint): these four signals, unioned, caught 7/9
+# planted attacks with 0 false positives on the real store. The two misses —
+# a base64-obfuscated payload and an override phrase worded differently from
+# the patterns below — are an honest limit of regex matching, not chased by
+# widening the patterns further (that trade recall for false positives on a
+# store that talks about its own governance in plain prose). Content inside
+# code spans/fences is exempted from the prose signals so an entry that
+# documents these phrases as examples (like the write-up entry itself) does
+# not flag itself.
+_CODE_FENCE_RE = re.compile(r'```[a-zA-Z]*\n(.*?)```', re.DOTALL)
+_INLINE_CODE_RE = re.compile(r'`([^`]+)`')
+_SECOND_PERSON_DIRECTIVE_RE = re.compile(
+    r'\byou (must|should always|are now|may)\b', re.IGNORECASE
+)
+_OVERRIDE_PHRASE_RE = re.compile(
+    r'ignore (all )?previous instructions'
+    r'|disregard (your|the|any) (instructions|guidelines)'
+    r'|supersedes? (all|any) other'
+    r'|sole source of truth'
+    r'|no restrictions\b'
+    r'|developer mode'
+    r'|safety checks?'
+    r'|bypass the usual'
+    r'|higher priority than the user',
+    re.IGNORECASE,
+)
+_HTML_COMMENT_RE = re.compile(r'<!--.*?-->', re.DOTALL)
+_DESTRUCTIVE_COMMAND_RE = re.compile(
+    r'rm -rf'
+    r'|curl[^`\n]*(\|\s*(sh|bash)\b|\$\(cat)'
+    r'|git push[^`\n]*--force',
+    re.IGNORECASE,
+)
+
+
+def _strip_code_spans(body):
+    return _INLINE_CODE_RE.sub("", _CODE_FENCE_RE.sub("", body))
+
+
+def _scan_instruction_content(body):
+    """Return human-readable reasons this entry body reads as an instruction
+    directed at the agent rather than documentation for one. Empty list means
+    clean. See the module comment above for how this was measured."""
+    reasons = []
+    prose = _strip_code_spans(body)
+    if _SECOND_PERSON_DIRECTIVE_RE.search(prose):
+        reasons.append("direct second-person directive (e.g. 'you must', 'you are now')")
+    if _OVERRIDE_PHRASE_RE.search(prose):
+        reasons.append("override phrase (e.g. 'ignore previous instructions', 'sole source of truth')")
+    if _HTML_COMMENT_RE.search(prose):
+        reasons.append("hidden HTML comment")
+    code_spans = _CODE_FENCE_RE.findall(body) + _INLINE_CODE_RE.findall(body)
+    if any(_DESTRUCTIVE_COMMAND_RE.search(span) for span in code_spans):
+        reasons.append("destructive shell command embedded in a code span")
+    return reasons
+
+
 def cmd_lint(args):
     problems = []  # always fatal
     warnings = []  # fatal only with --strict
@@ -2313,11 +2444,14 @@ def cmd_lint(args):
     for t, path in iter_entries():
         rel = path.relative_to(ROOT)
         try:
-            fm, _ = parse_frontmatter(path)
+            fm, body = parse_frontmatter(path)
         except OSError as e:
             problems.append(f"{rel}: could not read file ({e})")
             continue
         name = fm.get("name", path.stem)
+
+        for reason in _scan_instruction_content(body):
+            warnings.append(f"{rel}: possible instruction-shaped content — {reason}")
 
         if name in seen_names:
             problems.append(f"duplicate slug '{name}': {seen_names[name]} vs {rel}")
@@ -2327,6 +2461,10 @@ def cmd_lint(args):
         confidence = fm.get("confidence")
         if confidence not in set(CONFIDENCE_LEVELS):
             problems.append(f"{rel}: missing/invalid confidence field")
+
+        authority = fm.get("authority")
+        if authority and authority not in ("rule", "preference"):
+            problems.append(f"{rel}: authority '{authority}' must be 'rule' or 'preference' (or omitted)")
 
         for field in required_fields:
             if not fm.get(field):
@@ -2468,6 +2606,16 @@ def main():
                            help="show only the most recent N revisions (0 for all)")
     p_history.add_argument("--json", action="store_true", help="machine-readable output")
     p_history.set_defaults(func=cmd_history)
+
+    p_log = sub.add_parser(
+        "log", help="what changed in the store, most recent first (reads .kb/log.md)")
+    p_log.add_argument("--limit", type=int, default=20,
+                       help="show only the most recent N records (0 for all; default 20)")
+    p_log.add_argument("--type", choices=TYPES, help="only this memory type")
+    p_log.add_argument("--action", help="only this action, e.g. created, verified, linked")
+    p_log.add_argument("--name", help="only this entry's slug")
+    p_log.add_argument("--json", action="store_true", help="machine-readable output")
+    p_log.set_defaults(func=cmd_log)
 
     p_new = sub.add_parser("new", help="scaffold a new entry")
     p_new.add_argument("name")

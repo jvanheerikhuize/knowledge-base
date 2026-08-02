@@ -7,6 +7,7 @@ source: Jerry, 2026-07-14; settings verified in ~/.claude/settings.json on 2026-
 created: 2026-07-27
 last_verified: 2026-07-27
 links: [persist-insight-to-knowledge-base, asdlc-governed-change-rules]
+authority: preference
 ---
 
 Jerry asked (2026-07-14) that agent context be purged after every completed

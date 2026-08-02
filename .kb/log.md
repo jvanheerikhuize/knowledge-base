@@ -79,3 +79,9 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-02 — linked `semantic/kb-duplicate-detection-limits.md` — -> kb-golden-set-lives-in-the-wording
 - 2026-08-02 — linked `semantic/kb-forgetting-model.md` — -> kb-golden-set-lives-in-the-wording
 - 2026-08-02 — verified `semantic/kb-ranked-retrieval.md` — confidence=verified
+- 2026-08-02 — updated `semantic/twin-sovereignty-constraint.md` — authority=rule
+- 2026-08-02 — updated `procedural/purge-context-after-each-change.md` — authority=preference
+- 2026-08-02 — created `semantic/kb-instruction-content-lint.md`
+- 2026-08-02 — linked `semantic/kb-over-mcp.md` — -> kb-instruction-content-lint
+- 2026-08-02 — linked `semantic/asdlc-governed-change-rules.md` — -> kb-instruction-content-lint
+- 2026-08-02 — linked `prospective/kb-roadmap.md` — -> kb-instruction-content-lint

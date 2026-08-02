@@ -47,6 +47,11 @@
       "type": "string",
       "format": "date",
       "description": "when this entry was retired from retrieval; it stays readable and stays in the graph"
+    },
+    "authority": {
+      "type": "string",
+      "enum": ["rule", "preference"],
+      "description": "optional: mark an entry that reads with imperative force as a non-negotiable 'rule' (violating it breaks something) or an overridable 'preference' (a working choice), so retrieval can carry the difference forward. Leave unset for entries that are neither — most facts, procedures, and logs."
     }
   }
 }

@@ -31,6 +31,7 @@ from kb import (  # noqa: E402
     TYPES,
     iter_entries,
     parse_frontmatter,
+    parse_log,
     stats_report,
     status_report,
     triage_report,
@@ -288,6 +289,7 @@ def collect():
                 "type": t,
                 "description": fm.get("description", ""),
                 "confidence": fm.get("confidence", "unverified"),
+                "authority": fm.get("authority", ""),
                 "created": fm.get("created", ""),
                 "last_verified": fm.get("last_verified", ""),
                 "source": fm.get("source", ""),
@@ -371,6 +373,11 @@ code{background:rgba(127,127,127,.15);padding:.1rem .35rem;border-radius:.25rem;
 pre{background:var(--card);border:1px solid var(--line);border-radius:.5rem;
 padding:.9rem;overflow-x:auto}
 pre code{background:none;padding:0}
+table.log{border-collapse:collapse;width:100%;font-size:.88rem}
+table.log td{border-bottom:1px solid var(--line);padding:.4rem .6rem .4rem 0;vertical-align:top}
+table.log td.date{white-space:nowrap;color:var(--muted)}
+table.log td.action{white-space:nowrap;color:var(--muted)}
+table.log .detail{color:var(--muted);margin-left:.4rem}
 .tablewrap{overflow-x:auto}
 .tablewrap table{border-collapse:collapse;width:100%;font-size:.92rem}
 .tablewrap th,.tablewrap td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left}
@@ -646,7 +653,8 @@ def build_index(entries, triage=(), statuses=(), slug=None, stats=None) -> str:
 </div>
 <p><a href="status.html">Status board</a> · <a href="graph.html">Memory graph</a>
  · <a href="types.html">Memory types</a>
- · <a href="triage.html">Triage ({triage_count})</a> · <a href="data.json">Raw data</a></p>
+ · <a href="triage.html">Triage ({triage_count})</a> · <a href="changes.html">Changes</a>
+ · <a href="data.json">Raw data</a></p>
 <div class="controls">
 <input id="q" type="search" placeholder="Search names, descriptions, and bodies…"
  autocomplete="off">
@@ -781,9 +789,61 @@ def build_triage(entries, triage, slug=None) -> str:
     return page("Triage", body)
 
 
+ACTION_LABELS = {
+    "created": "created",
+    "updated": "field changed",
+    "verified": "verified",
+    "linked": "linked",
+    "unlinked": "unlinked",
+    "archived": "archived",
+    "unarchived": "unarchived",
+    "deleted": "deleted",
+}
+
+
+def build_changes(records, entries) -> str:
+    """Reviewable view of `.kb/log.md` — ROADMAP Phase 10: the log already
+    records every mutation, but as an append-only file nobody reads. This
+    reads the same file, most recent first, without needing git or a shell.
+    """
+    known = {e["name"] for e in entries}
+    rows = []
+    for r in records:
+        target = (
+            f'<a href="entry/{r["name"]}.html">{html.escape(r["name"])}</a>'
+            if r["name"] in known else html.escape(r["name"]) + " (deleted)"
+        )
+        detail = f'<span class="detail">{html.escape(r["detail"])}</span>' if r["detail"] else ""
+        rows.append(
+            "<tr>"
+            f'<td class="date">{r["date"]}</td>'
+            f'<td>{tag(r["type"])}</td>'
+            f'<td class="action">{ACTION_LABELS.get(r["action"], html.escape(r["action"]))}</td>'
+            f"<td>{target}{detail}</td>"
+            "</tr>"
+        )
+    intro = (
+        f"<p>{len(records)} mutations recorded in <code>.kb/log.md</code>, most recent "
+        "first. This is a read view of that file, not a separate record — git "
+        "history is still the record of record.</p>"
+    )
+    body = (
+        '<nav class="crumbs"><a href="index.html">← all memory</a></nav>'
+        '<header class="top"><h1>Changes</h1></header>'
+        + intro
+        + (f'<table class="log">{"".join(rows)}</table>' if rows
+           else '<p class="empty">No mutations recorded yet.</p>')
+    )
+    return page("Changes", body)
+
+
 def build_entry(e, entries, slug=None) -> str:
     known = {o["name"] for o in entries}
     rows = [("type", tag(e["type"])), ("confidence", html.escape(e["confidence"]))]
+    if e.get("authority") == "rule":
+        rows.append(("authority", '<span class="tag conf">RULE — binding, do not treat as optional</span>'))
+    elif e.get("authority") == "preference":
+        rows.append(("authority", '<span class="tag conf">preference — overridable</span>'))
     if e.get("status"):
         s = STATUS_BY_KEY[e["status"]]
         rows.append(
@@ -857,6 +917,9 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     (out_dir / "triage.html").write_text(build_triage(entries, triage, slug), encoding="utf-8")
     (out_dir / "status.html").write_text(
         build_status(entries, statuses, slug), encoding="utf-8"
+    )
+    (out_dir / "changes.html").write_text(
+        build_changes(parse_log(), entries), encoding="utf-8"
     )
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
