@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "rule": "A query must be phrased the way somebody would actually ask, NOT in the entry's own vocabulary. Queries lifted from an entry's name or description score 1.000 against every ranker ever measured here, including one that ignores the body entirely — they test nothing. If you add a query, write the question first and only then check which entry should answer it. See ROADMAP Phase 7.",
+  "queries": [
+    {
+      "query": "how do I make something I learned survive past this session",
+      "expect": "persist-insight-to-knowledge-base"
+    },
+    {
+      "query": "can I check out one of the other repositories from here",
+      "expect": "sibling-repo-access-denied-in-routines"
+    },
+    {
+      "query": "what should I do about an entry nobody has looked at in months",
+      "expect": "kb-entry-status-model",
+      "also_ok": ["kb-forgetting-model"]
+    },
+    {
+      "query": "does any of this need a database or a running service",
+      "expect": "kb-is-file-based"
+    },
+    {
+      "query": "how does an agent call this store from its own tools",
+      "expect": "kb-over-mcp"
+    },
+    {
+      "query": "why not just relax the similarity cutoff so it catches more copies",
+      "expect": "kb-duplicate-detection-limits",
+      "also_ok": ["kb-duplicate-candidates-by-nearest-neighbour"]
+    },
+    {
+      "query": "finding two notes that say the same thing in different words",
+      "expect": "kb-duplicate-candidates-by-nearest-neighbour",
+      "also_ok": ["kb-duplicate-detection-limits"]
+    },
+    {
+      "query": "two notes disagree with each other, what now",
+      "expect": "kb-contradiction-is-a-second-axis"
+    },
+    {
+      "query": "where did the previous wording of a claim go after it was corrected",
+      "expect": "kb-corrections-happen-in-place"
+    },
+    {
+      "query": "get told about a deadline before it slips past",
+      "expect": "kb-prospective-memory-that-fires"
+    },
+    {
+      "query": "how does the search decide what comes back first",
+      "expect": "kb-ranked-retrieval"
+    },
+    {
+      "query": "is any of this published anywhere people can read it",
+      "expect": "memory-overview-site"
+    },
+    {
+      "query": "changing an entry from a browser without cloning",
+      "expect": "editing-the-kb-without-a-cms"
+    },
+    {
+      "query": "why can't the scheduled job's instructions be set programmatically",
+      "expect": "routines-ui-not-api-for-prompts"
+    },
+    {
+      "query": "may the twin depend on a paid model provider",
+      "expect": "twin-sovereignty-constraint"
+    },
+    {
+      "query": "how many repositories does Jerry actually have on disk",
+      "expect": "workspace-repo-inventory-drift",
+      "also_ok": ["workspace-audit-2026-07-27"]
+    },
+    {
+      "query": "rules about hand-editing generated documentation in the governed repo",
+      "expect": "asdlc-governed-change-rules"
+    },
+    {
+      "query": "should I wipe what I am holding between pieces of work",
+      "expect": "purge-context-after-each-change"
+    },
+    {
+      "query": "turning a finished conversation into something durable",
+      "expect": "distill-session-into-memory",
+      "also_ok": ["persist-insight-to-knowledge-base"]
+    },
+    {
+      "query": "which file is the real contract for working in this repo",
+      "expect": "kb-agent-entrypoint-is-agent-md"
+    },
+    {
+      "query": "am I allowed to merge my own pull request while he is away",
+      "expect": "holiday-autonomy-mandate"
+    },
+    {
+      "query": "what is planned next for this thing",
+      "expect": "kb-roadmap"
+    },
+    {
+      "query": "what did the test audit actually turn up",
+      "expect": "kb-test-audit-2026-07-29",
+      "also_ok": ["audit-test-corpora-for-artificial-uniformity"]
+    },
+    {
+      "query": "how do I look for blind spots in a test suite",
+      "expect": "audit-test-corpora-for-artificial-uniformity"
+    },
+    {
+      "query": "overlapping notes with no link between them",
+      "expect": "kb-consolidation-is-owed-work"
+    },
+    {
+      "query": "does an old fact lose trust on its own",
+      "expect": "kb-forgetting-model",
+      "also_ok": ["kb-entry-status-model"]
+    },
+    {
+      "query": "the numbered improvement plan for the repos folder",
+      "expect": "workspace-improvement-phases"
+    },
+    {
+      "query": "state of every repo as of the audit in late July",
+      "expect": "workspace-audit-2026-07-27",
+      "also_ok": ["workspace-repo-inventory-drift"]
+    },
+    {
+      "query": "how would we notice if search quality got worse",
+      "expect": "kb-golden-set-lives-in-the-wording"
+    }
+  ]
+}

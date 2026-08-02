@@ -39,9 +39,10 @@ on every push that changes memory content.
 
 ```
 memory/       the knowledge base itself, one folder per memory type (human-readable)
-.kb/          fixed tooling machinery: templates/, schema/, log.md
+.kb/          fixed tooling machinery: templates/, schema/, log.md, verdicts.json, golden.json
 scripts/      kb.py (CLI), mcp_server.py (MCP over stdio), build_site.py (static overview), serve.py (local editor), scaffold.sh
-tests/        stdlib unittest suites for kb.py, mcp_server.py, serve.py, and build_site.py
+tests/        stdlib unittest suites for kb.py, mcp_server.py, serve.py, and build_site.py,
+              plus test_retrieval_golden.py, which scores retrieval against the real store
 .mcp.json     registers the MCP server with any client that reads project config
 .github/      CI workflows: lint on change, publish the overview to Pages
 site/         generated static overview (git-ignored; built in CI, published to Pages)
@@ -207,6 +208,8 @@ python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each ot
 python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both calls at once
 python3 scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe — proposals only
 python3 scripts/kb.py history <name>   # what it used to say — corrections here are made in place
+python3 scripts/kb.py stats            # counts, graph density, age, growth — the store in aggregate
+python3 scripts/kb.py eval [--all]     # score retrieval against the golden query set
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -229,6 +232,33 @@ enters an agent's context unattributed.
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
 dangling links, and warns on stale, unverified, orphaned, or overdue
 entries (`--strict` turns warnings fatal; CI runs that weekly).
+
+## Measuring retrieval
+
+`kb.py eval` scores the ranker against `.kb/golden.json` — a fixed set of
+task-shaped questions with the entry each one should return — and reports
+`success@1`, MRR, and recall@3/@5. `tests/test_retrieval_golden.py` runs the
+same set against the real store in CI, so retrieval getting worse is a failing
+test rather than a feeling.
+
+Two things about that set are load-bearing, and both were measured rather than
+assumed (ROADMAP Phase 7):
+
+- **The queries must not reuse the entry's own words.** Queries generated from
+  entry titles or descriptions — the obvious way to build a golden set — score
+  a perfect 1.000 against *every* ranker measured here, including one that
+  never reads an entry body. Such a set cannot fail, so it tests nothing. The
+  wording is the whole fixture, and a test asserts the queries stay that way.
+- **The set detects breakage, not tuning.** At this store size, removing IDF,
+  flattening the field weights, or dropping the type/confidence/recency signals
+  all land inside the noise band (paired bootstrap, 95% CI spanning zero).
+  Removing the entry bodies does not. So the thresholds in the test are floors
+  well below today's scores, and no tuned constant is asserted anywhere.
+
+`kb.py stats` is the other half: what the store is made of rather than what it
+answers — counts by type and confidence (as written and as read today, after
+decay), link density, orphan and unlinked counts, median age, and growth by
+month. The same block ships in the site's `data.json`.
 
 ## Forgetting
 

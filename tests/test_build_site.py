@@ -125,6 +125,20 @@ class BuildTests(unittest.TestCase):
                     "backlinks", "body", "path"):
             self.assertIn(key, first)
 
+    def test_data_json_carries_the_aggregate_stats(self):
+        stats = json.loads((self.out / "data.json").read_text())["stats"]
+        self.assertEqual(stats["entries"], self.count)
+        for key in ("by_type", "by_confidence", "links", "age_days",
+                    "created_by_month"):
+            self.assertIn(key, stats)
+
+    def test_index_reports_link_density_and_median_age(self):
+        index = (self.out / "index.html").read_text()
+        stats = json.loads((self.out / "data.json").read_text())["stats"]
+        self.assertIn(f"<b>{stats['links']['per_entry']}</b> per entry", index)
+        self.assertIn(f"<b>{stats['age_days']['median']}d</b> median since verified",
+                      index)
+
     def test_index_links_to_every_entry_page(self):
         index = (self.out / "index.html").read_text()
         for page in (self.out / "entry").glob("*.html"):
@@ -166,6 +180,13 @@ class EmptyStoreTests(unittest.TestCase):
         index = build_site.build_index([])
         self.assertIn("<b>0</b> entries", index)
         self.assertIn("<b>—</b> newest", index)
+
+    def test_index_page_without_a_stats_block_reads_the_store_anyway_not(self):
+        # build_index is pure over its arguments: omitting stats must render
+        # placeholders, not silently measure the real repo.
+        index = build_site.build_index([])
+        self.assertIn("<b>0.0</b> per entry", index)
+        self.assertIn("<b>—d</b> median since verified", index)
 
 
 class StatusPageTests(unittest.TestCase):

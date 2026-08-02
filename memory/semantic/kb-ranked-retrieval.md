@@ -5,8 +5,8 @@ description: retrieval ranks with BM25 plus three memory-specific signals (type,
 confidence: verified
 source: scripts/kb.py rank()/context_pack(); implemented and tested 2026-07-27
 created: 2026-07-27
-last_verified: 2026-07-27
-links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base]
+last_verified: 2026-08-02
+links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base, kb-golden-set-lives-in-the-wording]
 ---
 
 The store is deliberately infra-free (see [[kb-is-file-based]]), so a vector
@@ -23,6 +23,18 @@ Generic IR is not enough on its own, though. Three signals specific to a
 | Type prior | a procedure or a durable fact answers "what do I need to know" better than a `working` scratch file or a `parametric` boundary doc |
 | Recency — `episodic` only | a log entry decays in usefulness; a fact does not. Applying recency store-wide would quietly punish exactly the entries meant to be timeless. Half-life 90 days |
 | Confidence | a small multiplier (0.88–1.10) that reorders near-ties. Deliberately too small to let a trusted-but-irrelevant entry outrank a real match |
+
+Each of those three is a design argument, not a measured gain, and as of
+2026-08-02 it is known to be unmeasurable here: ablating the type prior, the
+recency term, or the confidence multiplier moves retrieval quality by about
+one query on the 29-query golden set, which is inside the noise band
+([[kb-golden-set-lives-in-the-wording]]). They are kept because they are cheap
+and principled, not because anything shows they help — and the same
+measurement says the field weighting's *implementation* has a real cost:
+repeating tokens inflates term frequency before BM25 saturates it, so `k1=1.5`
+is effectively mistuned for this scorer. Not corrected, because the fix is not
+distinguishable from the bug at this store size; the numbers are in ROADMAP
+Phase 7.
 
 `kb.py context "<task>"` is the command an agent should reach for first. It
 runs the same ranking and packs the result into a paste-ready brief under a

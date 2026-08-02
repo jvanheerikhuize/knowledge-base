@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-07-28 against the live 20-entry store; scripts/kb.py dupe_pairs, tests/test_kb.py TestDupes
 created: 2026-07-28
 last_verified: 2026-07-28
-links: [kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, kb-duplicate-candidates-by-nearest-neighbour]
+links: [kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, kb-duplicate-candidates-by-nearest-neighbour, kb-golden-set-lives-in-the-wording]
 ---
 
 `kb.py dupes` finds **text recorded twice**. It does not find **the same claim

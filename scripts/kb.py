@@ -1020,6 +1020,95 @@ def _trim_to_tokens(body, budget):
     return head.rstrip() + TRIM_MARKER
 
 
+# --- Measuring retrieval ----------------------------------------------------
+# A fixed set of task-shaped questions with the entry each one must return, so
+# a change to the ranker (or to the store) shows up as a number rather than as
+# a feeling. What the set can and cannot see is measured in ROADMAP Phase 7:
+# it detects gross breakage and is blind to parameter tuning, which is why
+# nothing here asserts a tuned constant.
+GOLDEN_FILE = KB_DIR / "golden.json"
+
+
+def load_golden(path=None):
+    """The golden query set. A missing file means nobody has written one."""
+    path = GOLDEN_FILE if path is None else path
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"error: could not load {path}: {e}", file=sys.stderr)
+        sys.exit(2)
+    queries = []
+    for q in data.get("queries", []):
+        if not isinstance(q, dict) or not q.get("query") or not q.get("expect"):
+            continue
+        queries.append({
+            "query": str(q["query"]),
+            "expect": str(q["expect"]),
+            "also_ok": [str(x) for x in (q.get("also_ok") or [])],
+        })
+    return queries
+
+
+def eval_report(golden=None, docs=None, rank_fn=None):
+    """Score retrieval against the golden query set.
+
+    Three numbers, because they answer different questions. `success@1` is
+    what a caller reading one hit gets. `MRR` is how far down the right entry
+    sits when it is not first. `recall@3`/`recall@5` are what `kb.py context`
+    actually delivers, since a context pack is a handful of entries and not a
+    single answer — that is the metric to watch when the store grows.
+
+    `also_ok` names are a defensible answer to the same question. They count
+    for recall (the pack is useful) but never for `success@1` (the question
+    had one best answer). `rank_fn` is injectable so a caller can score a
+    deliberately degraded ranker and find out whether the set can still tell
+    the difference — see `tests/test_retrieval_golden.py`.
+    """
+    golden = load_golden() if golden is None else golden
+    docs = entry_documents() if docs is None else docs
+    rank_fn = (lambda q: rank(q, docs=docs)) if rank_fn is None else rank_fn
+    known = {fm.get("name", path.stem) for _, path, fm, _, _ in docs}
+
+    rows = []
+    for g in golden:
+        names = [h["name"] for h in rank_fn(g["query"])]
+        acceptable = {g["expect"], *g["also_ok"]}
+        position = names.index(g["expect"]) + 1 if g["expect"] in names else None
+        rows.append({
+            "query": g["query"],
+            "expect": g["expect"],
+            "also_ok": g["also_ok"],
+            "rank": position,
+            "reciprocal_rank": round(1 / position, 4) if position else 0.0,
+            "acceptable_rank": next(
+                (i + 1 for i, n in enumerate(names) if n in acceptable), None),
+            "top": names[:5],
+            # An expectation naming an entry that no longer exists is a broken
+            # fixture, not a retrieval failure. Kept separate for that reason.
+            "unresolved": sorted(n for n in acceptable if n not in known),
+        })
+
+    n = len(rows)
+    def share(pred):
+        return round(sum(1 for r in rows if pred(r)) / n, 4) if n else 0.0
+
+    return {
+        "summary": {
+            "queries": n,
+            "entries": len(docs),
+            "success_at_1": share(lambda r: r["rank"] == 1),
+            "mrr": round(sum(r["reciprocal_rank"] for r in rows) / n, 4) if n else 0.0,
+            "recall_at_3": share(lambda r: r["acceptable_rank"] is not None
+                                 and r["acceptable_rank"] <= 3),
+            "recall_at_5": share(lambda r: r["acceptable_rank"] is not None
+                                 and r["acceptable_rank"] <= 5),
+            "unresolved": sorted({name for r in rows for name in r["unresolved"]}),
+        },
+        "queries": rows,
+    }
+
 
 def _load_schema():
     if not SCHEMA_FILE.is_file():
@@ -1457,6 +1546,107 @@ def status_report():
     return report
 
 
+def stats_report():
+    """What the store is made of, as counts rather than as a list to read.
+
+    `triage` and `status` answer "what needs doing" one entry at a time. This
+    answers the questions that are only visible in aggregate — is the store
+    growing or drifting, is the graph connected, is the confidence mix honest,
+    is retrieval scoring the way it did last month.
+    """
+    today = datetime.date.today()
+
+    entries = []
+    inbound = collections.Counter()
+    for t, path in iter_entries():
+        try:
+            fm, body = parse_frontmatter(path)
+        except OSError:
+            continue
+        entries.append((t, path, fm, body))
+        for link in fm.get("links") or []:
+            inbound[link] += 1
+
+    by_type = collections.Counter()
+    by_confidence = collections.Counter()
+    by_effective = collections.Counter()
+    by_month = collections.Counter()
+    ages, words, edges = [], [], 0
+    archived = orphans = unlinked = never_verified = decayed = 0
+
+    for t, path, fm, body in entries:
+        name = fm.get("name", path.stem)
+        by_type[t] += 1
+        by_confidence[fm.get("confidence", "")] += 1
+        effective, decayed_by = effective_confidence(fm, today)
+        by_effective[effective] += 1
+        if decayed_by:
+            decayed += 1
+        if is_archived(fm):
+            archived += 1
+
+        links = fm.get("links") or []
+        edges += len(links)
+        if not links:
+            unlinked += 1
+        if not inbound[name]:
+            orphans += 1
+
+        lv = fm.get("last_verified")
+        if lv:
+            try:
+                ages.append((today - datetime.date.fromisoformat(str(lv))).days)
+            except ValueError:
+                pass
+        else:
+            never_verified += 1
+
+        created = fm.get("created")
+        if created:
+            by_month[str(created)[:7]] += 1
+        words.append(len(body.split()))
+
+    total = len(entries)
+
+    def median(values):
+        if not values:
+            return None
+        s = sorted(values)
+        mid = len(s) // 2
+        if len(s) % 2:
+            return s[mid]
+        middle = (s[mid - 1] + s[mid]) / 2
+        return int(middle) if middle.is_integer() else middle
+
+    return {
+        "entries": total,
+        "archived": archived,
+        "by_type": {t: by_type[t] for t in TYPES if by_type[t]},
+        "by_confidence": {c: by_confidence[c] for c in CONFIDENCE_LEVELS
+                          if by_confidence[c]},
+        "by_effective_confidence": {c: by_effective[c] for c in CONFIDENCE_LEVELS
+                                    if by_effective[c]},
+        "decayed": decayed,
+        "links": {
+            "edges": edges,
+            # Average outbound degree: how many other entries a typical entry
+            # points at. The graph is undirected in practice (links are
+            # reciprocated by convention), so this is the honest density
+            # number rather than edges/possible-pairs, which is ~0 at any size.
+            "per_entry": round(edges / total, 2) if total else 0.0,
+            "orphans": orphans,
+            "unlinked": unlinked,
+        },
+        "age_days": {
+            "median": median(ages),
+            "oldest": max(ages) if ages else None,
+            "never_verified": never_verified,
+        },
+        "body_words": {"median": median(words), "total": sum(words)},
+        "created_by_month": [[m, by_month[m]] for m in sorted(by_month)],
+    }
+
+
 def cmd_status(args):
     report = status_report()
     if args.type:
@@ -1496,6 +1686,57 @@ def cmd_status(args):
                         for k in STATUS_ORDER if counts[k])
     print(f"\n{len(report)} entries — {summary}")
     print("Run 'kb.py status --legend' for what each status means.")
+
+
+def cmd_stats(args):
+    s = stats_report()
+    if args.json:
+        print(json.dumps(s, indent=2))
+        return
+    if not s["entries"]:
+        print("empty store")
+        return
+
+    def row(label, value):
+        print(f"  {label:<22} {value}")
+
+    live = s["entries"] - s["archived"]
+    print(f"{s['entries']} entries ({live} in retrieval, {s['archived']} archived)")
+
+    print("\nBY TYPE")
+    for t, n in s["by_type"].items():
+        row(t, n)
+
+    print("\nCONFIDENCE (as written → as read today)")
+    for c in CONFIDENCE_LEVELS:
+        written = s["by_confidence"].get(c, 0)
+        read = s["by_effective_confidence"].get(c, 0)
+        if written or read:
+            row(c, f"{written} → {read}")
+    if s["decayed"]:
+        row("decayed by age", s["decayed"])
+
+    print("\nGRAPH")
+    row("links", s["links"]["edges"])
+    row("per entry", s["links"]["per_entry"])
+    row("nothing links to it", s["links"]["orphans"])
+    row("links to nothing", s["links"]["unlinked"])
+
+    print("\nAGE AND SIZE")
+    age = s["age_days"]
+    row("median days verified", age["median"] if age["median"] is not None else "—")
+    row("oldest", f"{age['oldest']}d" if age["oldest"] is not None else "—")
+    if age["never_verified"]:
+        row("never verified", age["never_verified"])
+    row("median body words", s["body_words"]["median"])
+    row("total body words", s["body_words"]["total"])
+
+    if s["created_by_month"]:
+        print("\nCREATED")
+        widest = max(n for _, n in s["created_by_month"])
+        for month, n in s["created_by_month"]:
+            bar = "#" * max(1, round(n * 24 / widest))
+            print(f"  {month}  {bar} {n}")
 
 
 def cmd_triage(args):
@@ -1900,6 +2141,39 @@ def cmd_context(args):
     print(pack["text"])
 
 
+def cmd_eval(args):
+    report = eval_report()
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return
+
+    s = report["summary"]
+    if not s["queries"]:
+        print(f"no golden queries — {GOLDEN_FILE.name} is missing or empty")
+        return
+
+    rows = report["queries"] if args.all else [r for r in report["queries"]
+                                               if r["rank"] != 1]
+    for r in rows:
+        place = f"#{r['rank']}" if r["rank"] else "absent"
+        print(f"{place:>7}  {r['query']}")
+        print(f"         want {r['expect']}, got {', '.join(r['top'][:3]) or '(nothing)'}")
+    if rows:
+        print()
+
+    print(f"{s['queries']} queries over {s['entries']} entries: "
+          f"success@1 {s['success_at_1']:.3f}  MRR {s['mrr']:.3f}  "
+          f"recall@3 {s['recall_at_3']:.3f}  recall@5 {s['recall_at_5']:.3f}")
+    if not args.all:
+        print("Only queries whose top hit is wrong are listed; --all shows every query.")
+    if s["unresolved"]:
+        print(f"\nerror: {len(s['unresolved'])} expected entr(ies) no longer exist: "
+              f"{', '.join(s['unresolved'])}", file=sys.stderr)
+        print(f"Fix {GOLDEN_FILE.name} — an expectation that cannot resolve "
+              "scores as a miss forever.", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_show(args):
     for t, path in iter_entries():
         try:
@@ -2176,6 +2450,13 @@ def main():
     p_context.add_argument("--json", action="store_true", help="machine-readable output")
     p_context.set_defaults(func=cmd_context)
 
+    p_eval = sub.add_parser(
+        "eval", help="score retrieval against the golden query set")
+    p_eval.add_argument("--all", action="store_true",
+                        help="list every query, not only the ones ranked wrong")
+    p_eval.add_argument("--json", action="store_true", help="machine-readable output")
+    p_eval.set_defaults(func=cmd_eval)
+
     p_show = sub.add_parser("show", help="print one entry")
     p_show.add_argument("name")
     p_show.set_defaults(func=cmd_show)
@@ -2207,6 +2488,11 @@ def main():
                           help="explain each status and how to leave it")
     p_status.add_argument("--json", action="store_true", help="machine-readable output")
     p_status.set_defaults(func=cmd_status)
+
+    p_stats = sub.add_parser(
+        "stats", help="what the store is made of — counts, graph, age, growth")
+    p_stats.add_argument("--json", action="store_true", help="machine-readable output")
+    p_stats.set_defaults(func=cmd_stats)
 
     p_triage = sub.add_parser("triage", help="queue of entries needing attention")
     p_triage.add_argument("--type", choices=TYPES, help="only this memory type")
