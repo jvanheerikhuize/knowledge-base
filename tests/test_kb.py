@@ -1613,5 +1613,133 @@ class TestConfidenceDecay(KbTestCase):
         self.assertIn("verified -> unverified, aged", out)
 
 
+class TestEval(KbTestCase):
+    """`kb.py eval` against a planted store, so the numbers are known exactly.
+
+    The real store's scores are asserted in tests/test_retrieval_golden.py;
+    this only checks the command's own behaviour.
+    """
+
+    def setUp(self):
+        super().setUp()
+        for slug, description in (
+            ("tides-of-mars", "why the red planet has no ocean swell"),
+            ("bread-proofing", "dough left to rise in a warm kitchen"),
+        ):
+            self.run_kb("new", slug, "--type", "semantic")
+            self.run_kb("set", slug, "description", description)
+
+    def write_golden(self, queries):
+        path = self.root / ".kb" / "golden.json"
+        path.write_text(json.dumps({"version": 1, "queries": queries}))
+
+    def test_no_golden_file_is_reported_rather_than_scored(self):
+        result = self.run_kb("eval")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no golden queries", result.stdout)
+
+    def test_a_query_that_lands_first_scores_a_clean_sweep(self):
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        report = json.loads(self.run_kb("eval", "--json").stdout)
+        self.assertEqual(report["summary"]["success_at_1"], 1.0)
+        self.assertEqual(report["summary"]["mrr"], 1.0)
+        self.assertEqual(report["queries"][0]["rank"], 1)
+
+    def test_an_also_ok_entry_counts_for_recall_but_not_for_success_at_1(self):
+        self.write_golden([{"query": "dough rise warm kitchen",
+                            "expect": "tides-of-mars",
+                            "also_ok": ["bread-proofing"]}])
+        summary = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertEqual(summary["success_at_1"], 0.0)
+        self.assertEqual(summary["recall_at_3"], 1.0)
+
+    def test_an_entry_that_never_appears_scores_zero_not_a_crash(self):
+        self.write_golden([{"query": "quenelle sabayon consommé",
+                            "expect": "bread-proofing"}])
+        report = json.loads(self.run_kb("eval", "--json").stdout)
+        self.assertIsNone(report["queries"][0]["rank"])
+        self.assertEqual(report["summary"]["mrr"], 0.0)
+
+    def test_an_expectation_naming_a_missing_entry_fails_the_command(self):
+        self.write_golden([{"query": "ocean swell", "expect": "no-such-entry"}])
+        result = self.run_kb("eval")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no longer exist", result.stderr)
+        self.assertIn("no-such-entry", result.stderr)
+
+    def test_malformed_query_rows_are_skipped_not_fatal(self):
+        self.write_golden([
+            {"query": "ocean swell red planet", "expect": "tides-of-mars"},
+            {"query": "missing an expectation"},
+            {"expect": "missing a query"},
+            "not even a dict",
+        ])
+        summary = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertEqual(summary["queries"], 1)
+
+    def test_unreadable_golden_file_is_an_error(self):
+        (self.root / ".kb" / "golden.json").write_text("{not json")
+        result = self.run_kb("eval")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("could not load", result.stderr)
+
+    def test_only_wrong_answers_are_listed_unless_all_is_asked_for(self):
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        self.assertNotIn("ocean swell", self.run_kb("eval").stdout)
+        self.assertIn("ocean swell", self.run_kb("eval", "--all").stdout)
+
+
+class TestStats(KbTestCase):
+    def test_an_empty_store_says_so(self):
+        self.assertIn("empty store", self.run_kb("stats").stdout)
+
+    def test_counts_split_by_type_and_confidence(self):
+        self.run_kb("new", "one-fact", "--type", "semantic")
+        self.run_kb("new", "a-run", "--type", "episodic")
+        self.run_kb("set", "one-fact", "confidence", "verified")
+        stats = json.loads(self.run_kb("stats", "--json").stdout)
+        self.assertEqual(stats["entries"], 2)
+        self.assertEqual(stats["by_type"], {"semantic": 1, "episodic": 1})
+        self.assertEqual(stats["by_confidence"]["verified"], 1)
+
+    def test_the_graph_numbers_count_both_directions(self):
+        self.run_kb("new", "hub", "--type", "semantic")
+        self.run_kb("new", "spoke", "--type", "semantic")
+        self.run_kb("link", "hub", "spoke")
+        stats = json.loads(self.run_kb("stats", "--json").stdout)
+        self.assertEqual(stats["links"]["edges"], 1)
+        self.assertEqual(stats["links"]["per_entry"], 0.5)
+        # hub points at spoke and nothing points back at hub.
+        self.assertEqual(stats["links"]["orphans"], 1)
+        self.assertEqual(stats["links"]["unlinked"], 1)
+
+    def test_an_archived_entry_is_counted_apart_from_the_live_ones(self):
+        self.run_kb("new", "retired", "--type", "semantic")
+        self.run_kb("archive", "retired")
+        stats = json.loads(self.run_kb("stats", "--json").stdout)
+        self.assertEqual(stats["entries"], 1)
+        self.assertEqual(stats["archived"], 1)
+        self.assertIn("1 archived", self.run_kb("stats").stdout)
+
+    def test_decay_is_reported_against_what_was_written(self):
+        self.run_kb("new", "aged", "--type", "semantic")
+        self.run_kb("set", "aged", "confidence", "verified")
+        old = (datetime.date.today() - datetime.timedelta(days=400)).isoformat()
+        self.edit_frontmatter("semantic", "aged", last_verified=old)
+        stats = json.loads(self.run_kb("stats", "--json").stdout)
+        self.assertEqual(stats["by_confidence"], {"verified": 1})
+        self.assertEqual(stats["by_effective_confidence"], {"unverified": 1})
+        self.assertEqual(stats["decayed"], 1)
+
+    def test_growth_is_grouped_by_month(self):
+        self.run_kb("new", "recent", "--type", "semantic")
+        month = datetime.date.today().isoformat()[:7]
+        stats = json.loads(self.run_kb("stats", "--json").stdout)
+        self.assertEqual(stats["created_by_month"], [[month, 1]])
+        self.assertIn(month, self.run_kb("stats").stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

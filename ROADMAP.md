@@ -413,16 +413,139 @@ depends on remembering to capture.
   which is the missing half of the existing "keeping a scaffolded copy in sync"
   flow.
 
-## Phase 7 — Measure whether the memory is any good · `someday`
+## Phase 7 — Measure whether the memory is any good · `done` (2026-08-02)
 
-**Gap.** There are 98 tests of the tooling and none of the memory. Nothing
-tells you whether retrieval got better or worse as the store grew.
+**Gap.** There were 353 tests of the tooling and none of the memory. Nothing
+told you whether retrieval got better or worse as the store grew.
 
-- **Retrieval golden set** — a small fixture of query → expected-entry pairs,
-  asserted as a regression test. Catches the day a new entry starts shadowing
-  an old one.
-- **`kb.py stats`** — counts by type and confidence, link density, orphan rate,
-  median entry age, growth over time. Surfaced as a panel on the site.
+Both bullets shipped — `.kb/golden.json` plus `kb.py eval` and
+`tests/test_retrieval_golden.py`, and `kb.py stats`. But the measurement that
+came first says something the item as written did not anticipate, and it is
+the reason the test asserts what it does.
+
+### A golden set is only worth shipping if it can fail
+
+The obvious way to build one is to walk the store and turn each entry into a
+query. Measured, that produces a fixture that **cannot fail**. Scoring 28
+title-derived queries (`kb-over-mcp` → "kb over mcp") against fourteen
+deliberately degraded rankers:
+
+| query set | rankers scoring a perfect 1.000 |
+|---|---|
+| derived from entry titles | **14 of 14** — including one that never reads an entry body, and one with no term weighting at all |
+| derived from entry descriptions | 12 of 14 |
+| paraphrases, written as questions | 0 of 14 |
+
+A title-derived set passes for a ranker with no ranking in it. It would have
+sat in CI going green for years while measuring the tokenizer. So the fixture
+is 28 **task-shaped questions**, written as a question first and only then
+matched to the entry that should answer it — "am I allowed to merge my own
+pull request while he is away", not "holiday autonomy mandate". The wording is
+the entire fixture, and `test_no_query_restates_its_own_entry_title` asserts it
+stays that way (no query may reuse more than 60% of the words in its entry's
+name; the set's current worst is 50%). Without that guard the natural repair
+for a failing query — nudge it toward the entry's vocabulary — silently turns
+the suite back into decoration.
+
+### What the set can and cannot see
+
+Against the real store as it stood when the study ran, 28 queries over 28
+entries: **success@1 0.536, MRR 0.668, recall@3 0.786, recall@5 0.857.**
+`recall@5` is the number that matters most, because `kb.py context` hands back
+a handful of entries rather than one. Every ablation below is from that 28/28
+run, paired on the same queries.
+
+The shipped set then reads **29 queries over 29 entries at 0.517 / 0.649 /
+0.759 / 0.828**, because this session's own write-up joined the store with a
+query of its own — and promptly demonstrated the failure mode the phase was
+built to catch. Two of them:
+
+- **A long new entry shadows older ones.** `kb-golden-set-lives-in-the-wording`
+  now sits in the top five for several questions it does not answer, on
+  generic vocabulary. Three queries lost a rank or two to it. That is
+  precisely the "a new entry starts shadowing an old one" case the roadmap
+  named, observed on the first entry added after the instrument existed.
+- **A self-documenting store can contaminate its own fixture.** The write-up
+  originally illustrated the paraphrase rule by *quoting a real query*.
+  Because the entry lives in the store being searched, it became the top hit
+  for that query and displaced the correct answer — recall@5 fell to 0.793
+  and came back to 0.828 once the example was invented instead of lifted.
+  `test_no_entry_quotes_a_golden_query` now fails the build on any recurrence.
+  Worth stating plainly: this hazard exists because the documentation and the
+  corpus are the same files, which is a property of this repo, not of golden
+  sets in general.
+
+Ablating one signal at a time, with a paired bootstrap over queries (4,000
+resamples, 95% CI on ΔMRR):
+
+| variant | success@1 | MRR | ΔMRR vs live | distinguishable |
+|---|---|---|---|---|
+| live ranker | 0.536 | 0.668 | — | — |
+| no IDF | 0.536 | 0.668 | −0.000 | no |
+| flat field weights | 0.536 | 0.660 | −0.008 | no |
+| no type weights | 0.536 | 0.672 | +0.004 | no |
+| no confidence weights | 0.571 | 0.694 | +0.025 | no |
+| no episodic recency | 0.536 | 0.674 | +0.006 | no |
+| none of the three memory signals | 0.571 | 0.694 | +0.025 | no |
+| no length normalisation (b=0) | 0.536 | 0.650 | −0.018 | no |
+| boolean term overlap | 0.464 | 0.599 | −0.069 | no |
+| **no tf saturation (k1→∞)** | 0.607 | 0.728 | **+0.059** | **yes** |
+| **name only, bodies removed** | 0.214 | 0.263 | **−0.406** | **yes** |
+
+Two of eleven ablations are distinguishable. Everything the ranker's design
+turns on — IDF, field weighting, and all three memory-specific signals
+([[kb-ranked-retrieval]]) — moves the score by about one query, which at n=28
+is noise. **This set is a breakage detector, not a tuning instrument.** The
+regression test is written accordingly: floors ~4 queries below today's
+scores, no tuned constant asserted anywhere, and a `TestTheSetCanStillFail`
+case that scores the body-blind ranker and fails if it ever clears those
+floors — the day the store outgrows the fixture, the fix is new queries, not a
+lower bar.
+
+### The one real finding, deliberately not acted on
+
+Raising `k1` helps because `FIELD_WEIGHTS` weights fields by **repeating their
+tokens**, which inflates raw term frequency before BM25 saturates it. That is
+the standard motivation for BM25F, but the primary source could not be
+retrieved from this session (see Sources), so treat the attribution as
+recalled rather than checked — the mechanism below was measured here and does
+not depend on it. The principled fix was measured too: proper
+BM25F (per-field normalised tf, weighted, saturated once at the end) scores
++0.030 MRR at the standard `k1=1.5`, CI [−0.000, +0.084] — **not
+distinguishable** from what shipped, and not distinguishable from just raising
+`k1` either.
+
+Nothing was retuned. Picking a constant that wins by one query on a 28-query
+set written in the same session that measured it is fitting noise, and the
+cost of being wrong is a ranker tuned to its own test. The numbers are
+recorded here so a future session with a larger store and a larger set can
+re-run the comparison and decide on evidence.
+
+### `kb.py stats`
+
+Counts by type; confidence as written *and* as read today, so decay
+([[kb-forgetting-model]]) is visible as a number rather than inferred; link
+density with orphan and unlinked counts; median age since verification; median
+and total body words; and creation by month as a small bar chart. The same
+block is emitted into the site's `data.json`, and the two genuinely new
+numbers — links per entry, median days since verified — join the index strip.
+No separate stats page: the index already carries six of these tiles and the
+status board carries the rest, so a new page would restate the site to itself.
+
+Not on the MCP server. `eval` is a CI instrument and `stats` is a human view;
+neither answers a question an agent asks mid-task, which is the bar the
+existing six tools meet.
+
+**Honest limits.** One author wrote all 28 queries and all the `also_ok`
+judgements, in the session that measured them; a second person would write a
+different set and get different absolute numbers. The comparisons above are
+paired on the same queries, so they survive that, but the 0.536 does not
+transfer. And 28 queries is few enough that every CI here is wide — which is
+itself the finding.
+
+27 new tests (380 total): 10 against the real store in
+`tests/test_retrieval_golden.py`, 8 for `kb.py eval`, 6 for `kb.py stats`,
+3 for the site's stats block.
 
 ## Phase 8 — Site and graph · `someday`
 
@@ -485,6 +608,12 @@ does not cover it.
 - `kb.py due` (CLI + MCP) and the `kb-due.yml` daily workflow — Phase 5, the
   prospective type now surfaces before a due date lapses, not just after
   ([[kb-prospective-memory-that-fires]]).
+- `.kb/golden.json`, `kb.py eval`, and `tests/test_retrieval_golden.py` —
+  Phase 7's first half: retrieval scored against task-shaped questions, with
+  the fixture's own discriminating power measured and asserted
+  ([[kb-golden-set-lives-in-the-wording]]).
+- `kb.py stats` — Phase 7's second half: the store in aggregate, also emitted
+  into the site's `data.json`.
 
 ---
 
@@ -525,6 +654,15 @@ that are not backed by a line here are judgement, not citation.
   returned 403 from this session, so the full text was not retrieved. It is
   cited for the terminology. The numbers in Phase 3 are this store's own
   measurement and rest on nothing in it.
+
+- Field-weighted BM25 / BM25F (2026-08-02) — **not retrieved.** Both
+  [Robertson & Zaragoza, *The Probabilistic Relevance Framework: BM25 and
+  Beyond*](https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf)
+  and the Wikipedia summary returned 403 from this session, as arXiv did on
+  2026-07-29 — outbound fetches are broadly blocked here, not flaky. Phase 7's
+  BM25F reasoning is therefore recalled, not checked. What *is* checked is the
+  measurement: the BM25F variant was implemented and scored against the golden
+  set, and its numbers stand on that run alone.
 
 **Near-neighbour projects — re-checked 2026-07-28.** The Phase 2 sentence
 originally named four; two are confirmed, two are dropped as uncited.

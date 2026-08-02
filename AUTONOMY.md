@@ -207,6 +207,54 @@ already configured this way; inside a session just do the work you were given.
   clean, one KB entry (`kb-prospective-memory-that-fires`, `confidence: high`
   pending the workflow's first real fire). ROADMAP Phase 5 closed. Write-up:
   `kb-prospective-memory-that-fires`.
+- [x] **ROADMAP Phase 7 — measure whether the memory is any good.** (2026-08-02)
+  Both bullets shipped, and the measurement that came first changed what the
+  first one had to be. **A golden set built the obvious way cannot fail:**
+  queries generated from entry titles score a perfect 1.000 against all
+  fourteen degraded rankers measured — including one that never reads an entry
+  body and one with no term weighting at all; description-derived queries pass
+  12 of 14. Only task-shaped paraphrases discriminate, so the fixture is 28
+  questions written question-first, and a test asserts no query reuses more
+  than 60% of its entry's title words (worst today: 50%) — otherwise the
+  natural repair for a failing query quietly turns the suite back into
+  decoration. Second finding: at this size the set sees **breakage, not
+  tuning**. Paired bootstrap over queries (4,000 resamples, 95% CI on ΔMRR)
+  makes 2 of 11 ablations distinguishable — removing bodies (−0.406) and
+  removing tf saturation (+0.059). IDF, field weighting, and all three
+  memory-specific signals move the score by about one query, i.e. noise. So
+  the test asserts floors ~4 queries below current scores, no tuned constant
+  anywhere, plus a `TestTheSetCanStillFail` case that fails the day the
+  fixture stops discriminating. The one real defect found — weighting fields
+  by repeating tokens inflates tf before BM25 saturates it — was **not** acted
+  on: proper BM25F scores +0.030 MRR, CI [−0.000, +0.084], not distinguishable
+  from either what shipped or from just raising `k1`, and tuning a constant on
+  a 28-query set written in the same session is fitting noise. Numbers recorded
+  for a future session with a bigger store. Also shipped `kb.py stats` (counts,
+  confidence as-written vs as-read, link density, orphan/unlinked, median age,
+  growth by month), emitted into the site's `data.json`, with two new tiles on
+  the index — no separate stats page, the index and status board already carry
+  the rest. 27 new tests (380 total). Write-up:
+  `kb-golden-set-lives-in-the-wording`.
+- [ ] **ROADMAP Phase 10 — treat memory as untrusted input.** *(research tier.)*
+  The store is now served to agents over MCP, so an entry that influences tool
+  selection is a privileged execution path. Three bullets in the ROADMAP: a
+  lint check for instruction-shaped content, keeping system-rule memory
+  distinguishable from preference memory, and surfacing `.kb/log.md` as a
+  reviewable "what changed" view. **Measure before building** — the last four
+  phases each found the item as written had the wrong shape, and this one has
+  an obvious way to be wrong: a store written by one person and one agent has
+  no adversary in it, so a detector tuned on it may have no true positives to
+  find (compare the Phase 4 result: 244 fires, 0 true positives). Plant the
+  attacks first, count what a check would catch, and if the honest answer is
+  "the risk is real but the signal is not", ship the *distinguishability* half
+  (rule vs preference) and say so.
+- [ ] **ROADMAP Phase 6 — ingestion without ceremony.** *(execution tier —
+  well-defined, good fit for a Sonnet session.)* `kb.py distill <transcript>`
+  extracting candidate atomic facts into staged `confidence: unverified`
+  drafts, and `kb.py import` for pulling entries back from a scaffolded copy.
+  Note that the review gate is the point: the failure mode is a store filling
+  with restated context, which is exactly what `consolidate`'s restatement
+  queue would then have to clean up.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

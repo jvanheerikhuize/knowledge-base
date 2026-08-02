@@ -31,6 +31,7 @@ from kb import (  # noqa: E402
     TYPES,
     iter_entries,
     parse_frontmatter,
+    stats_report,
     status_report,
     triage_report,
 )
@@ -611,8 +612,14 @@ def build_status(entries, statuses, slug=None) -> str:
     return page("Status", body)
 
 
-def build_index(entries, triage=(), statuses=(), slug=None) -> str:
+# The page builders are pure over what they are handed, so an omitted stats
+# block renders as "nothing measured" rather than quietly reading the store.
+NO_STATS = {"links": {"per_entry": 0.0}, "age_days": {"median": None}}
+
+
+def build_index(entries, triage=(), statuses=(), slug=None, stats=None) -> str:
     triage_count = len(triage)
+    stats = NO_STATS if stats is None else stats
     current = sum(1 for r in statuses if r["status"] == "current")
     by_type = {t: [e for e in entries if e["type"] == t] for t in TYPES}
     chips = "".join(
@@ -631,10 +638,11 @@ def build_index(entries, triage=(), statuses=(), slug=None) -> str:
 <div class="stats">
 <div><b>{len(entries)}</b> entries</div>
 <div><b>{len([t for t in TYPES if by_type[t]])}</b> types in use</div>
-<div><b>{link_count}</b> links</div>
+<div><b>{link_count}</b> links, <b>{stats['links']['per_entry']}</b> per entry</div>
 <div><b>{html.escape(newest)}</b> newest</div>
 <div><b>{conf['verified'] + conf['high']}</b> verified or high confidence</div>
 <div><b>{current}/{len(statuses)}</b> current</div>
+<div><b>{stats['age_days']['median'] if stats['age_days']['median'] is not None else '—'}d</b> median since verified</div>
 </div>
 <p><a href="status.html">Status board</a> · <a href="graph.html">Memory graph</a>
  · <a href="types.html">Memory types</a>
@@ -823,6 +831,7 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     entries = collect()
     triage = triage_report()
     statuses = status_report()
+    stats = stats_report()
     by_name = {r["name"]: r for r in statuses}
     for e in entries:
         r = by_name.get(e["name"])
@@ -841,7 +850,7 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     (out_dir / "style.css").write_text(CSS.strip() + "\n", encoding="utf-8")
     (out_dir / "app.js").write_text(APP_JS.strip() + "\n", encoding="utf-8")
     (out_dir / "index.html").write_text(
-        build_index(entries, triage, statuses, slug), encoding="utf-8"
+        build_index(entries, triage, statuses, slug, stats), encoding="utf-8"
     )
     (out_dir / "types.html").write_text(build_types(entries), encoding="utf-8")
     (out_dir / "graph.html").write_text(build_graph(entries), encoding="utf-8")
@@ -859,6 +868,7 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
                 "count": len(payload),
                 "repo": slug,
                 "triage": triage,
+                "stats": stats,
                 "status_model": STATUS_MODEL,
                 "status": statuses,
                 "entries": payload,

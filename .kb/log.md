@@ -74,3 +74,8 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-01 — linked `prospective/kb-roadmap.md` — -> kb-prospective-memory-that-fires
 - 2026-08-01 — linked `semantic/kb-entry-status-model.md` — -> kb-prospective-memory-that-fires
 - 2026-08-01 — linked `semantic/kb-over-mcp.md` — -> kb-prospective-memory-that-fires
+- 2026-08-02 — created `semantic/kb-golden-set-lives-in-the-wording.md`
+- 2026-08-02 — linked `semantic/kb-ranked-retrieval.md` — -> kb-golden-set-lives-in-the-wording
+- 2026-08-02 — linked `semantic/kb-duplicate-detection-limits.md` — -> kb-golden-set-lives-in-the-wording
+- 2026-08-02 — linked `semantic/kb-forgetting-model.md` — -> kb-golden-set-lives-in-the-wording
+- 2026-08-02 — verified `semantic/kb-ranked-retrieval.md` — confidence=verified
