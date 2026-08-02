@@ -232,6 +232,45 @@ class StatusPageTests(unittest.TestCase):
             self.assertIn(record["status"], build_site.STATUS_ORDER)
 
 
+class ChangesPageTests(unittest.TestCase):
+    """`build_changes` — the reviewable view of `.kb/log.md` (ROADMAP Phase 10)."""
+
+    entries = [{"name": "known-entry", "type": "semantic"}]
+
+    def test_empty_log_shows_the_placeholder(self):
+        out = build_site.build_changes([], self.entries)
+        self.assertIn('<p class="empty">No mutations recorded yet.</p>', out)
+
+    def test_a_record_renders_date_action_type_and_link(self):
+        records = [{
+            "date": "2026-08-02", "action": "created",
+            "type": "semantic", "name": "known-entry", "detail": "",
+        }]
+        out = build_site.build_changes(records, self.entries)
+        self.assertIn("2026-08-02", out)
+        self.assertIn("created", out)
+        self.assertIn('href="entry/known-entry.html"', out)
+
+    def test_detail_is_shown_and_escaped(self):
+        records = [{
+            "date": "2026-08-02", "action": "linked",
+            "type": "semantic", "name": "known-entry", "detail": "-> <script>x</script>",
+        }]
+        out = build_site.build_changes(records, self.entries)
+        self.assertIn("&lt;script&gt;", out)
+        self.assertNotIn("<script>x</script>", out)
+
+    def test_a_deleted_entry_is_not_linked(self):
+        records = [{
+            "date": "2026-08-02", "action": "deleted",
+            "type": "semantic", "name": "gone-entry", "detail": "",
+        }]
+        out = build_site.build_changes(records, self.entries)
+        self.assertNotIn('href="entry/gone-entry.html"', out)
+        self.assertIn("gone-entry", out)
+        self.assertIn("(deleted)", out)
+
+
 class TriageAndEditingTests(unittest.TestCase):
     """The affordances that let the site be triaged and edited, not just read."""
 
@@ -252,6 +291,16 @@ class TriageAndEditingTests(unittest.TestCase):
 
     def test_index_links_to_triage(self):
         self.assertIn('href="triage.html"', (self.out / "index.html").read_text())
+
+    def test_index_links_to_changes(self):
+        self.assertIn('href="changes.html"', (self.out / "index.html").read_text())
+
+    def test_changes_page_is_built_and_lists_real_log_mutations(self):
+        # The real .kb/log.md always has at least one "created" entry — the
+        # store did not spring into existence with zero mutations.
+        html = (self.out / "changes.html").read_text()
+        self.assertTrue((self.out / "changes.html").exists())
+        self.assertIn("created", html)
 
     def test_entry_page_links_into_github(self):
         html = self.entry.read_text()

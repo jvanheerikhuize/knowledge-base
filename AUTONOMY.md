@@ -235,19 +235,28 @@ already configured this way; inside a session just do the work you were given.
   the index — no separate stats page, the index and status board already carry
   the rest. 27 new tests (380 total). Write-up:
   `kb-golden-set-lives-in-the-wording`.
-- [ ] **ROADMAP Phase 10 — treat memory as untrusted input.** *(research tier.)*
-  The store is now served to agents over MCP, so an entry that influences tool
-  selection is a privileged execution path. Three bullets in the ROADMAP: a
-  lint check for instruction-shaped content, keeping system-rule memory
-  distinguishable from preference memory, and surfacing `.kb/log.md` as a
-  reviewable "what changed" view. **Measure before building** — the last four
-  phases each found the item as written had the wrong shape, and this one has
-  an obvious way to be wrong: a store written by one person and one agent has
-  no adversary in it, so a detector tuned on it may have no true positives to
-  find (compare the Phase 4 result: 244 fires, 0 true positives). Plant the
-  attacks first, count what a check would catch, and if the honest answer is
-  "the risk is real but the signal is not", ship the *distinguishability* half
-  (rule vs preference) and say so.
+- [x] **ROADMAP Phase 10 — treat memory as untrusted input.** (2026-08-02)
+  All three bullets shipped, and this is the first phase in this series where
+  "measure before building" said build it. Planted 9 prompt-injection-style
+  attacks against the real 29-entry store (no adversary in it, the honest
+  starting condition) and measured five candidate lint detectors: unlike
+  Phase 4's temporal-validity detector (244 fires, 0 true positives), a union
+  of four cheap regex signals (second-person directive, override phrase,
+  hidden HTML comment, destructive command in a code span) caught 7 of 9
+  attacks with **0 false positives** on the real store. Shipped as a `kb.py
+  lint` warning (fatal under `--strict`). Second bullet: reading three
+  existing entries side by side showed the rule-vs-preference risk was
+  already live, not hypothetical — `asdlc-governed-change-rules` ("hard
+  rules... will break a session if ignored") and
+  `purge-context-after-each-change` ("Jerry's standing working preference")
+  read with identical imperative grammar and identical frontmatter shape.
+  Shipped an optional `authority: rule | preference` field, surfaced as
+  `[RULE]` / `[preference]` in `kb.py search` and `kb.py context` — a context
+  pack is what an agent acts on, so that's where it has to show, not just in
+  frontmatter. Third bullet: `kb.py log` (CLI, filterable, `--json`) and
+  `changes.html` on the site read `.kb/log.md` most-recent-first instead of
+  leaving it an append-only file nobody reads bottom-to-top. 21 new tests (401
+  total), lint and triage clean. Write-up: `kb-instruction-content-lint`.
 - [ ] **ROADMAP Phase 6 — ingestion without ceremony.** *(execution tier —
   well-defined, good fit for a Sonnet session.)* `kb.py distill <transcript>`
   extracting candidate atomic facts into staged `confidence: unverified`

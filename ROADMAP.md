@@ -566,18 +566,6 @@ live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
 - Must hold [[twin-sovereignty-constraint]]: no API key, no vendor LLM, no
   agent required in the loop for any of it to work.
 
-## Phase 10 — Treat memory as untrusted input · `someday`
-
-A knowledge base that feeds agents is an injection surface. A memory entry that
-influences tool selection is a privileged execution path, and model robustness
-does not cover it.
-
-- Lint check for instruction-shaped content in entry bodies.
-- Keep system-rule memory and preference memory distinguishable, so a
-  preference cannot be read as a rule.
-- `.kb/log.md` already records every mutation; surface it as a reviewable
-  "what changed" view rather than an append-only file nobody reads.
-
 ---
 
 ## Done
@@ -614,6 +602,23 @@ does not cover it.
   ([[kb-golden-set-lives-in-the-wording]]).
 - `kb.py stats` — Phase 7's second half: the store in aggregate, also emitted
   into the site's `data.json`.
+- Phase 10 — treat memory as untrusted input, and this time "measure before
+  building" said build it. Five candidate lint detectors were run against 29
+  real entries plus 9 planted prompt-injection-style attacks; unlike Phase 4's
+  temporal-validity detector (244 fires, 0 true positives), a union of four
+  cheap regex signals caught 7 of 9 attacks with 0 false positives on the real
+  store, so `kb.py lint` now flags it (warning; fatal under `--strict`). The
+  same pass found the second bullet's risk was already live, not
+  hypothetical: three existing entries used identical imperative grammar for
+  a non-negotiable constraint and for an admitted "working preference," with
+  nothing distinguishing them. Shipped an optional `authority: rule |
+  preference` field, surfaced as `[RULE]` / `[preference]` in `kb.py search`
+  and `kb.py context` — a context pack is what an agent acts on, so that is
+  where the distinction has to show. Third bullet: `kb.py log` (CLI, filters,
+  `--json`) and `changes.html` on the site read `.kb/log.md` most-recent-first
+  instead of leaving it an append-only file nobody reads bottom-to-top; the
+  file itself, and git under it, stay the only record. 21 new tests (401
+  total). Write-up: [[kb-instruction-content-lint]].
 
 ---
 

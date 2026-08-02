@@ -47,6 +47,20 @@ The file is never rewritten — `kb.py verify <name>` is what resets the clock.
 When you see `medium (recorded as verified, aged)` in a context pack, that is
 this: trust the first number, and treat the gap as a prompt to re-check.
 
+**Rule vs. preference.** Frontmatter carries an optional `authority` field,
+`rule` or `preference`, left unset for everything else (most entries — facts,
+procedures, logs). This store has entries that read with identical imperative
+grammar ("Jerry asked...", "must") whether they describe a non-negotiable
+constraint or a working habit he can override — `asdlc-governed-change-rules`
+("Rules that will break a session if ignored") versus
+`purge-context-after-each-change` ("Jerry's standing working preference") is
+the case that motivated it. Set `authority: rule` on an entry where ignoring
+it breaks something (a CI gate, a design constraint, a cross-repo contract);
+`authority: preference` where it is a working choice that can be overridden
+for good reason. `kb.py search` and `kb.py context` show it as `[RULE]` /
+`[preference]` next to the entry, since a context pack is what an agent
+actually acts on. Tag sparingly — most entries are neither.
+
 **Before you add an entry, check you are not restating one.** `kb.py dupes`
 catches text recorded twice, but it will *not* catch you making the same claim
 in different words — that was measured, and lexical similarity ranks topical
