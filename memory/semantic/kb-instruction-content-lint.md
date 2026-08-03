@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-08-02 in this repo; ROADMAP Phase 10
 created: 2026-08-02
 last_verified: 2026-08-02
-links: [kb-over-mcp, asdlc-governed-change-rules, twin-sovereignty-constraint, purge-context-after-each-change, kb-corrections-happen-in-place]
+links: [kb-over-mcp, asdlc-governed-change-rules, twin-sovereignty-constraint, purge-context-after-each-change, kb-corrections-happen-in-place, kb-timeline-and-heatmap-are-frontmatter-only]
 authority: rule
 ---
 

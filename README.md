@@ -536,11 +536,18 @@ project-scoped MCP config picks it up with no setup. Registering it by hand:
 
 `scripts/build_site.py` renders `memory/` into a static site under `site/`:
 
-- an index of every entry with per-type filters and instant client-side search
+- an index of every entry with per-type filters and instant client-side
+  search; the search box and type filter sync to `?q=`/`?type=` in the URL, so
+  a search is a link you can share or bookmark
 - one page per entry with its frontmatter, rendered body, resolved
   `[[wikilinks]]`, outgoing links, and backlinks
 - a status board (`status.html`) placing every entry in exactly one status,
   with the legend and the command that moves it
+- a timeline (`timeline.html`): growth by creation month as bars, a type ×
+  status heat map so decay concentration is visible at a glance, and every
+  creation/re-verification event newest first — built from frontmatter dates
+  only, since the Pages checkout is depth-1 and a git-derived timeline would
+  be silently wrong
 - a Mermaid graph page and a memory-type reference page
 - `site/data.json` — every entry as structured data, including bodies,
   links, and backlinks

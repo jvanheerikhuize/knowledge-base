@@ -649,12 +649,6 @@ itself the finding.
 `tests/test_retrieval_golden.py`, 8 for `kb.py eval`, 6 for `kb.py stats`,
 3 for the site's stats block.
 
-## Phase 8 — Site and graph · `someday`
-
-- Timeline view over `created` / `last_verified`.
-- Staleness and confidence heat map, so decay is visible at a glance.
-- Saved searches as shareable URLs.
-
 ## Phase 9 — Cross-repo integration · `someday`
 
 Named as this repo's role in the workspace: keep wikilinks consistent across
@@ -728,6 +722,17 @@ live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
   instead of leaving it an append-only file nobody reads bottom-to-top; the
   file itself, and git under it, stay the only record. 21 new tests (401
   total). Write-up: [[kb-instruction-content-lint]].
+- Phase 8 — site and graph. (2026-08-03) Execution, not research: all three
+  bullets read data `kb.py stats`/`status_report()` already compute. Shipped
+  `timeline.html` — growth by creation month as bars, a type × status heat
+  map (alpha-blended by count, not CSS `opacity`, so high-decay cells stay
+  legible), and every creation/re-verification event newest first — plus
+  shareable searches on the index (`?q=`/`?type=` synced via
+  `URLSearchParams`/`history.replaceState`, and a copy-link button). Built
+  from frontmatter dates only: the Pages checkout is depth-1, so a
+  git-derived view would render every entry as never having changed, the same
+  constraint that already kept `kb.py history` off the site. 10 new tests
+  (438 total). Write-up: [[kb-timeline-and-heatmap-are-frontmatter-only]].
 
 ---
 
