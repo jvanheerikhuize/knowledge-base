@@ -257,13 +257,38 @@ already configured this way; inside a session just do the work you were given.
   `changes.html` on the site read `.kb/log.md` most-recent-first instead of
   leaving it an append-only file nobody reads bottom-to-top. 21 new tests (401
   total), lint and triage clean. Write-up: `kb-instruction-content-lint`.
-- [ ] **ROADMAP Phase 6 — ingestion without ceremony.** *(execution tier —
-  well-defined, good fit for a Sonnet session.)* `kb.py distill <transcript>`
-  extracting candidate atomic facts into staged `confidence: unverified`
-  drafts, and `kb.py import` for pulling entries back from a scaffolded copy.
-  Note that the review gate is the point: the failure mode is a store filling
-  with restated context, which is exactly what `consolidate`'s restatement
-  queue would then have to clean up.
+- [x] **ROADMAP Phase 6 — ingestion without ceremony.** (2026-08-03) Done, and
+  `distill <transcript>` was not buildable for a reason no amount of care in
+  the extractor would fix: **the claim an entry makes is not in the material
+  it came from.** The control settles it — an entry's one-line description is
+  not recoverable even from *its own body* (mean coverage 0.290, **1 of 30**
+  entries reaching half), and session material does no better (code+tests 2 of
+  30, commit message 3 of 30, all of it together 11 of 30 and only because
+  ROADMAP/DEBRIEF prose distilled by hand in the same session is in it). The
+  input fails too: a real Claude Code transcript is 53.3% tool results, 31.4%
+  tool call inputs, 10.5% attachments, **0.7%** assistant prose, and **0 bytes**
+  of reasoning — `thinking` blocks persist encrypted, signature only. Shipped
+  instead: `kb.py capture` (CLI + MCP), which runs the restatement check
+  `AGENT.md` has always asked an author to do by hand and *then* files what you
+  wrote as `confidence: unverified`; `--extend` appends to the entry that
+  already holds the claim. Both its numbers reuse existing constants: the
+  restatement margin fires 29/30 on true restatements and never wrongly, and
+  7/30 on genuinely new claims where every fire named an entry the author had
+  linked; the top neighbour of a body is a real link 70% of the time, so
+  exactly one is prefilled. **`kb.py import` deliberately not built** — no
+  scaffolded copy is visible from a routine session, so it would ship against
+  a flow with no observed instance; the ROADMAP records the condition that
+  revives it. 27 new tests (428 total). Write-up:
+  `kb-capture-is-a-check-not-an-extractor`.
+- [ ] **ROADMAP Phase 8 — site and graph.** *(execution tier — three
+  well-defined views over data that already exists.)* Timeline over
+  `created`/`last_verified`, a staleness/confidence heat map so decay is
+  visible at a glance, and saved searches as shareable URLs. `kb.py stats`
+  already computes most of the underlying numbers and `data.json` already
+  ships them, so this is presentation work, not new measurement. One caveat
+  worth checking first: the Pages workflow checks out at depth 1, which is why
+  `history` is not on the site — a timeline built from frontmatter dates is
+  fine, one built from git is not.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

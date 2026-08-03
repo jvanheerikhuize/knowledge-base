@@ -400,18 +400,120 @@ YAML itself — nothing in this environment can run a scheduled GitHub Action,
 so `gh issue create/edit/close` are trusted at the shell-script level, not
 integration-tested. Worth re-checking after its first real fire.
 
-## Phase 6 — Ingestion without ceremony · `someday`
+## Phase 6 — Ingestion without ceremony · `done` (2026-08-03)
 
-**Gap.** `memory/working/distill.template.md` is filled in by hand, so capture
-depends on remembering to capture.
+**Gap, as originally written.** `memory/working/distill.template.md` is filled
+in by hand, so capture depends on remembering to capture. The proposal was
+`kb.py distill <transcript>` — extract candidate atomic facts from a session
+log into staged `confidence: unverified` drafts — plus `kb.py import` to pull
+entries back from a scaffolded copy.
 
-- **`kb.py distill <transcript>`** — extract candidate atomic facts from a
-  session log into a staging area as `confidence: unverified` drafts, for
-  review before they join the store. Atomic extraction plus an explicit review
-  gate is what keeps a store from filling with restated context.
-- **`kb.py import`** — pull entries from a scaffolded copy in another repo,
-  which is the missing half of the existing "keeping a scaffolded copy in sync"
-  flow.
+The gap is real. The mechanism proposed for it does not exist: **the claim an
+entry makes is not present in the material it came from.** Measured three ways
+before writing any of it.
+
+### The claim is written, not extracted
+
+The control ran first, because it bounds everything else: take each of the 30
+entries and ask whether its own one-line `description` can be recovered from
+**its own body** — the most favourable possible corpus, the text the
+description was written to summarise.
+
+| corpus a candidate sentence is drawn from | mean coverage of the description | entries with a candidate ≥ 0.5 |
+|---|---|---|
+| the entry's own body (control, ceiling) | 0.290 | 1 / 30 |
+| session material: code + tests only | 0.224 | 2 / 30 |
+| session material: ROADMAP/DEBRIEF prose only | 0.297 | 9 / 30 |
+| commit message only | 0.269 | 3 / 30 |
+| all of the above together | 0.408 | 11 / 30 |
+
+Coverage is the share of the description's content words present in the
+best-matching candidate sentence. The control is the finding: **no sentence in
+an entry says what the entry says.** A description is a synthesis produced at
+write time, and extraction cannot produce it because it is not in there to
+extract. The one corpus that does better than the control does so by being
+five times larger, and by containing prose — ROADMAP and DEBRIEF paragraphs —
+that a *human or agent had already distilled by hand in the same session*.
+Extraction "works" exactly where the work was already done.
+
+Ground truth throughout: the 19 commits that created an entry, with the entry
+itself excluded from its own session's material.
+
+### What a transcript actually holds
+
+The other half of the proposal is the input. A real Claude Code transcript
+(this session's, 275,094 characters over 267 blocks) is:
+
+| | share |
+|---|---|
+| tool results (file dumps, command output) | 53.3% |
+| tool call inputs | 31.4% |
+| attachments and system reminders | 10.5% |
+| the assistant's own prose | **0.7%** |
+| the assistant's reasoning | **0 bytes — `thinking` blocks persist encrypted, content stripped, signature only** |
+
+So `distill <transcript>` would be handed a corpus that is 85% machinery, whose
+reasoning is cryptographically unavailable, to look for a claim that is not
+written down in it. And the agent that would run it is the same agent that has
+the session in context — it does not need extraction; it needs somewhere to put
+what it already knows.
+
+### What shipped instead: `kb.py capture`
+
+The deciding is the work, so the tool does the checking. `capture` takes a
+claim **you have written**, in your words, and runs the check `memory/AGENT.md`
+has always asked an author to do by hand: *which entry does this already
+belong to?*
+
+Two numbers set its behaviour, both measured on this store, neither a new
+tuned constant:
+
+- **The restatement test transfers.** Scoring the passage as a BM25 query over
+  every entry is `restatements()` with the host term dropped, because a claim
+  being captured has no host yet. Fed a true restatement (each entry's own
+  description handed back in), the top-ranked entry is the source entry
+  **30 of 30**, and the existing `RESTATEMENT_MARGIN` of 1.5 over the runner-up
+  fires on **29 of 30** — never on the wrong entry. Fed a genuinely new claim
+  (each entry held out of the corpus first), the same margin fires on **7 of
+  30**, and every one of those 7 names an entry the author had in fact linked
+  to. A fire is never noise: it is the entry this claim restates, or the entry
+  it belongs next to.
+- **Only the top neighbour is prefilled as a link.** Against the 132 hand-set
+  links in this store, the top-ranked neighbour of an entry's body is an edge
+  its author actually drew **70%** of the time; precision falls to 51% by rank
+  3. The rest are printed for the author to add, because a wrong edge is not
+  free — `candidates`, `consolidate`, and the graph all read it.
+
+`kb.py capture [file|-|--text]` with `--check` reports and writes nothing;
+with `--type` and `--name` it files the passage as a `confidence: unverified`
+entry, description defaulted to its first sentence, top neighbour linked; with
+`--extend NAME` it appends the passage to an entry that already holds the claim,
+which is the whole point of running the check first. Same three modes as the
+MCP `capture` tool, staged in the working tree and never committed, like every
+other write on that surface.
+
+The backlog's own warning — "the failure mode is a store filling with restated
+context" — is what the design turns on. It is not defended by a review gate
+bolted onto an extractor; it is defended by making *"you are restating
+[[kb-consolidation-is-owed-work]]"* the first thing the tool says.
+
+### `kb.py import`, deliberately not built
+
+Nothing in the workspace has a scaffolded copy that this session can see
+(routine sessions reach one repo — [[sibling-repo-access-denied-in-routines]]),
+so an import command would ship against a flow with no observed instance, which
+is how Phase 3's merge-only `consolidate` nearly became dead code. Copying
+entry files back and running `kb.py lint` covers it today. Revive this when a
+scaffolded copy exists **and** has diverged; the collision case (same slug,
+different content) is the only part worth code, and it should be written
+against a real collision rather than an imagined one.
+
+27 new tests (428 total): 17 for `capture` on the CLI, 2 more for capture into
+an empty store — its whole premise is comparison, so day one is its own case —
+8 over MCP, and the tool-listing test extended. `new` and `capture` now share
+`scaffold_entry`,
+which raises instead of exiting so the in-process MCP server survives a bad
+slug — asserted, since a `sys.exit` there used to take the server down with it.
 
 ## Phase 7 — Measure whether the memory is any good · `done` (2026-08-02)
 
@@ -602,6 +704,13 @@ live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
   ([[kb-golden-set-lives-in-the-wording]]).
 - `kb.py stats` — Phase 7's second half: the store in aggregate, also emitted
   into the site's `data.json`.
+- `kb.py capture` (CLI + MCP) — Phase 6, shipped as a check rather than as the
+  extractor the phase proposed. Measured first: an entry's one-line claim is
+  not recoverable even from its own body (1 of 30 entries), so there was
+  nothing for a `distill <transcript>` to extract — and a real transcript is
+  85% tool traffic with its reasoning persisted encrypted. What capture does
+  instead is run the restatement check `AGENT.md` asks an author to do by hand
+  ([[kb-capture-is-a-check-not-an-extractor]]).
 - Phase 10 — treat memory as untrusted input, and this time "measure before
   building" said build it. Five candidate lint detectors were run against 29
   real entries plus 9 planted prompt-injection-style attacks; unlike Phase 4's

@@ -1899,5 +1899,190 @@ class TestStats(KbTestCase):
         self.assertIn(month, self.run_kb("stats").stdout)
 
 
+class TestCapture(KbTestCase):
+    """Filing a claim you have already written, with the restatement check
+    that `memory/AGENT.md` asks an author to do by hand run first.
+
+    Borrows TestCandidates' corpus but deliberately leaves `stated-again` out
+    of the store, so `RESTATEMENT` is what capture is actually handed in
+    practice: a paraphrase of something already held, in words that appear
+    nowhere. Capturing text already in the store verbatim is the easy case,
+    and `dupes` covers it.
+    """
+
+    CLAIM = TestCandidates.CLAIM
+    RESTATEMENT = TestCandidates.RESTATEMENT
+    FILLER = TestCandidates.FILLER
+    write_body = TestCandidates.write_body
+
+    def setUp(self):
+        super().setUp()
+        bodies = {"stated-plainly": self.CLAIM}
+        bodies.update(self.FILLER)
+        for slug, prose in bodies.items():
+            self.run_kb("new", slug, "--type", "semantic")
+            self.write_body(slug, prose)
+
+    def capture(self, text, *args):
+        return self.run_kb("capture", "--text", text, *args)
+
+    def ranked_lines(self, stdout):
+        return [ln.strip() for ln in stdout.splitlines()
+                if ln.startswith("  ") and "  " in ln.strip()]
+
+    def test_check_ranks_the_entry_a_paraphrase_belongs_to_first(self):
+        result = self.capture(self.RESTATEMENT, "--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("stated-plainly", self.ranked_lines(result.stdout)[0])
+
+    def test_the_margin_is_not_claimed_for_a_paraphrase_it_cannot_carry(self):
+        """The rank is the signal; the decisive margin is an extra, and this
+        paraphrase — written to be one `dupes` must miss — does not clear it
+        in a seven-entry store. Asserted rather than tuned away: lowering the
+        margin to force it is how the store starts trusting noise."""
+        result = self.capture(self.RESTATEMENT, "--check")
+        self.assertNotIn("decisive", result.stdout)
+
+    def test_text_the_store_already_holds_does_clear_the_margin(self):
+        result = self.capture(self.CLAIM, "--check")
+        self.assertIn("stated-plainly", self.ranked_lines(result.stdout)[0])
+        self.assertIn("decisive", result.stdout)
+        self.assertIn("extend it instead", result.stdout)
+
+    def test_check_writes_nothing(self):
+        before = sorted(p.name for p in (self.root / "memory" / "semantic").iterdir())
+        self.capture(self.RESTATEMENT, "--check")
+        after = sorted(p.name for p in (self.root / "memory" / "semantic").iterdir())
+        self.assertEqual(before, after)
+
+    def test_a_genuinely_new_claim_is_not_called_decisive(self):
+        result = self.capture(
+            "Sled dogs are harnessed in pairs along a gangline, and the two "
+            "nearest the sled carry most of the load while the lead pair sets "
+            "the pace and takes direction from the driver's voice.",
+            "--check")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("decisive", result.stdout)
+
+    def test_writing_files_the_passage_as_an_unverified_entry(self):
+        passage = ("Sled dogs are harnessed in pairs along a gangline. The two "
+                   "nearest the sled carry most of the load.")
+        result = self.capture(passage, "--type", "semantic", "--name", "sled-dogs")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        text = self.entry_path("semantic", "sled-dogs").read_text()
+        self.assertIn("confidence: unverified", text)
+        self.assertIn("description: Sled dogs are harnessed in pairs along a gangline",
+                      text)
+        self.assertIn("nearest the sled carry most of the load", text)
+        self.assertNotIn("Body content in markdown", text)
+
+    def test_the_top_neighbour_is_prefilled_as_the_one_link(self):
+        self.capture(self.RESTATEMENT, "--type", "semantic", "--name", "said-thrice")
+        fm_line = [ln for ln in self.entry_path("semantic", "said-thrice").read_text()
+                   .splitlines() if ln.startswith("links:")][0]
+        self.assertEqual(fm_line, "links: [stated-plainly]")
+
+    def test_a_captured_entry_passes_lint(self):
+        self.capture("A projection distorts angle, area, or distance: never all "
+                     "three at once, so cartographers pick what to preserve.",
+                     "--type", "semantic", "--name", "projections")
+        result = self.run_kb("lint")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_description_can_be_given_instead_of_taken_from_the_passage(self):
+        self.capture("Some long passage about tides and the moon and bulges.",
+                     "--type", "semantic", "--name", "tide-note",
+                     "--description", "why there are two high waters a day")
+        text = self.entry_path("semantic", "tide-note").read_text()
+        self.assertIn("description: why there are two high waters a day", text)
+
+    def test_extend_appends_to_an_existing_entry_instead_of_making_a_twin(self):
+        before = sorted(p.name for p in (self.root / "memory" / "semantic").iterdir())
+        result = self.capture("Measured again on a second store, unchanged.",
+                              "--extend", "stated-plainly")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        after = sorted(p.name for p in (self.root / "memory" / "semantic").iterdir())
+        self.assertEqual(before, after)
+        body = self.entry_path("semantic", "stated-plainly").read_text()
+        self.assertIn("Measured again on a second store, unchanged.", body)
+        self.assertIn(self.CLAIM.split(".")[0], body)
+        self.assertIn("extended `semantic/stated-plainly.md`",
+                      (self.root / ".kb" / "log.md").read_text())
+
+    def test_extend_and_a_new_name_together_are_refused(self):
+        result = self.capture("Somewhere between the two.", "--extend",
+                              "stated-plainly", "--type", "semantic",
+                              "--name", "said-thrice")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not both", result.stderr)
+        self.assertFalse(self.entry_path("semantic", "said-thrice").exists())
+        self.assertNotIn("Somewhere between the two.",
+                         self.entry_path("semantic", "stated-plainly").read_text())
+
+    def test_extend_rejects_an_unknown_entry(self):
+        result = self.capture("anything at all", "--extend", "no-such-entry")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no entry named", result.stderr)
+
+    def test_writing_needs_a_type_and_a_name(self):
+        result = self.capture("A passage with nowhere to go.")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--type and --name are required", result.stderr)
+
+    def test_an_empty_passage_is_refused(self):
+        result = self.capture("   \n  ")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("nothing to capture", result.stderr)
+
+    def test_the_passage_can_come_from_a_file_or_from_stdin(self):
+        src = self.root / "note.md"
+        src.write_text("Espresso is fixed with grind, dose, and pour duration.\n")
+        from_file = self.run_kb("capture", str(src), "--check")
+        self.assertEqual(from_file.returncode, 0, from_file.stderr)
+        self.assertIn("espresso", from_file.stdout)
+
+        from_stdin = subprocess.run(
+            [sys.executable, str(self.root / "scripts" / "kb.py"), "capture", "--check"],
+            cwd=self.root, capture_output=True, text=True,
+            input="Espresso is fixed with grind, dose, and pour duration.\n")
+        self.assertEqual(from_stdin.returncode, 0, from_stdin.stderr)
+        self.assertIn("espresso", from_stdin.stdout)
+
+    def test_json_reports_the_check_without_writing(self):
+        result = self.capture(self.CLAIM, "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["neighbours"][0]["name"], "stated-plainly")
+        self.assertTrue(report["neighbours"][0]["decisive"])
+        self.assertFalse(self.entry_path("semantic", "stated-plainly")
+                         .with_name("said-thrice.md").exists())
+
+    def test_a_missing_source_file_is_an_error_not_a_traceback(self):
+        result = self.run_kb("capture", str(self.root / "gone.md"), "--check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("could not read", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+
+class TestCaptureIntoAnEmptyStore(KbTestCase):
+    """Capture's whole premise is comparison against what is already held, so
+    the day-one store — nothing to compare against — is its own case."""
+
+    def test_it_says_there_is_nothing_to_compare_against_and_still_writes(self):
+        result = self.run_kb("capture", "--text", "The first thing worth keeping.",
+                             "--type", "semantic", "--name", "first-fact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no existing entry reads like this", result.stdout)
+        text = self.entry_path("semantic", "first-fact").read_text()
+        self.assertIn("links: []", text)
+        self.assertIn("The first thing worth keeping.", text)
+
+    def test_a_prospective_capture_still_needs_a_due_date(self):
+        result = self.run_kb("capture", "--text", "Re-check the deploy in a month.",
+                             "--type", "prospective", "--name", "recheck-deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--due is required", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
