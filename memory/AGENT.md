@@ -65,9 +65,23 @@ actually acts on. Tag sparingly — most entries are neither.
 catches text recorded twice, but it will *not* catch you making the same claim
 in different words — that was measured, and lexical similarity ranks topical
 neighbours above real restatements (see the `kb-duplicate-detection-limits`
-entry). So the check that matters is the one you do: `kb.py search` the claim
-first, read what comes back, and extend an existing entry rather than adding a
-near-twin.
+entry). So the check that matters is the one you do: read the claim's nearest
+entries first, and extend one rather than adding a near-twin.
+
+`kb.py capture` runs that check for you and then files what you wrote:
+
+```
+kb.py capture --type semantic --name <slug> --text "<the claim, in your words>"
+kb.py capture --check --text "<the claim>"      # neighbours only, writes nothing
+kb.py capture --extend <name> --text "<the claim>"   # it belongs in that entry
+```
+
+It prints the entries the claim reads most like, marks the top one when the
+match is decisive, and — measured on this store — a decisive mark is never
+noise: it is either the entry you are restating or one you should link to. It
+does **not** write the claim for you. Nothing can: an entry's claim is not
+recoverable even from its own body, let alone from a session transcript, which
+is why there is no `distill` command (see `kb-capture-is-a-check-not-an-extractor`).
 
 After the fact, `kb.py candidates` will put your new entry's nearest neighbours
 in front of you — but only as pairs to *read*, never as a verdict. Judging them

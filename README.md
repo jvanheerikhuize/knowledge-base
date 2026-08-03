@@ -196,6 +196,8 @@ python3 scripts/kb.py search "<query>" --limit 10   # ranked, best first
 python3 scripts/kb.py context "<task>" --budget 2000  # paste-ready context pack
 python3 scripts/kb.py new --type semantic "<name>"
 python3 scripts/kb.py new --type prospective "<name>" --due 2026-12-31
+python3 scripts/kb.py capture --type semantic --name "<slug>" --text "<the claim>"
+python3 scripts/kb.py capture --check --text "<the claim>"   # neighbours only
 python3 scripts/kb.py lint
 
 python3 scripts/kb.py status           # where every entry stands, and what moves it
@@ -232,6 +234,31 @@ enters an agent's context unattributed.
 `kb.py lint` enforces the frontmatter schema, catches duplicate slugs and
 dangling links, and warns on stale, unverified, orphaned, or overdue
 entries (`--strict` turns warnings fatal; CI runs that weekly).
+
+## Adding a claim: `capture`
+
+`kb.py capture` files a claim **you have written** and runs the restatement
+check first — which existing entries does this read like? It takes the passage
+from `--text`, a file, or stdin; `--check` reports and writes nothing,
+`--type` with `--name` files it as `confidence: unverified`, and
+`--extend <name>` appends it to the entry that already holds the claim rather
+than adding a near-twin. The same three modes exist as an MCP tool.
+
+There is deliberately **no `distill <transcript>`**. It was measured before it
+was built and there is nothing in a transcript to extract: an entry's one-line
+claim is not recoverable even from its own body (1 of 30 entries), a real
+Claude Code transcript is 85% tool traffic with its `thinking` blocks
+persisted encrypted, and the agent that would run it is the one that still has
+the session in context. The claim is synthesised when it is written — so the
+tool checks what you wrote instead of pretending to write it
+([[kb-capture-is-a-check-not-an-extractor]], ROADMAP Phase 6).
+
+Two measured numbers set its behaviour, both reusing constants that were
+already in the codebase: the top-ranked neighbour of a true restatement is the
+right entry 30 of 30 times (and the existing `RESTATEMENT_MARGIN` of 1.5 fires
+on 29 of those, never wrongly), and the top-ranked neighbour of an entry's body
+is a link its author actually drew 70% of the time — which is why exactly one
+link is prefilled and the rest are printed for you to choose.
 
 ## Measuring retrieval
 
@@ -477,16 +504,18 @@ no process to keep running — the client spawns it.
 | `duplicate_candidates` | each entry's nearest neighbours, as a short list of pairs for the agent to judge by reading them — the contradiction check runs over the same list |
 | `judge` | record both answers about a pair: how much it overlaps, and whether the two disagree — staged, never committed |
 | `propose_update` | stage an edit to an entry in the working tree — **never commits**; also archives and un-archives |
+| `capture` | check a claim you have written against the store, then file it as a staged `unverified` entry or append it to the entry that already holds it |
 
 Entries are also published as MCP *resources* (`kb://entry/<name>`, plus
 `kb://agent` for the entry-point doc), so a client can attach one directly
 rather than going through a tool call.
 
-**Writes are proposals.** `propose_update` edits the working tree and stops
-there. Git stays the review gate and the only durable write path, exactly as
-`serve.py` settled it for the browser — an agent can suggest a change, a human
-reads `git diff` and commits it. `--read-only` drops the tool from `tools/list`
-entirely, which is the right mode when the client is not yours.
+**Writes are proposals.** `propose_update` and `capture` edit the working tree
+and stop there. Git stays the review gate and the only durable write path,
+exactly as `serve.py` settled it for the browser — an agent can suggest a
+change, a human reads `git diff` and commits it. `--read-only` drops both tools
+from `tools/list` entirely, which is the right mode when the client is not
+yours.
 
 **Protocol.** Speaks MCP `2025-11-25` and negotiates down to `2025-06-18` or
 `2025-03-26`. It does **not** implement `2026-07-28`: that revision removes the

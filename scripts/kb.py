@@ -727,6 +727,50 @@ def restatements(margin=RESTATEMENT_MARGIN, docs=None):
     return out
 
 
+def nearest_entries(passage, docs=None, limit=5):
+    """Which existing entries a not-yet-written claim reads most like.
+
+    The restatement test from `restatements()` with the host term dropped,
+    because a claim being captured has no host yet: score the passage as a
+    BM25 query over every entry and rank. Two things were measured on this
+    store before this was wired into `capture` (see
+    [[kb-capture-is-a-check-not-an-extractor]]):
+
+    - Fed a **true** restatement (each entry's own description handed back in),
+      the top-ranked entry is the source entry 30 of 30 times, and the existing
+      `RESTATEMENT_MARGIN` of 1.5 over the runner-up fires on 29 of 30 — never
+      on the wrong entry.
+    - Fed a **genuinely new** claim (each entry held out of the corpus first),
+      the same margin fires on 7 of 30, and all 7 name an entry the author had
+      in fact linked to. So a fire is never noise: it is either the entry this
+      claim restates or the entry it belongs next to.
+
+    Returns `[{"name", "score", "ratio", "decisive"}]`, best first, where
+    `ratio` is over the runner-up and `decisive` is `ratio >= margin`.
+    """
+    if docs is None:
+        docs, _ = _candidate_docs()
+    if not docs:
+        return []
+    for d in docs:
+        d["doc_tokens"] = tokenize(
+            f"{d['name']} {d['fm'].get('description', '')} {d['body']}")
+    score = _bm25_scorer(docs)
+    q = tokenize(passage)
+    ranked_docs = sorted(((score(q, d["doc_tokens"]), d["name"]) for d in docs),
+                         key=lambda t: (-t[0], t[1]))
+    runner_up = ranked_docs[1][0] if len(ranked_docs) > 1 else 0.0
+    out = []
+    for i, (s, name) in enumerate(ranked_docs[:limit or None]):
+        if s <= 0:
+            break
+        ratio = (s / max(runner_up, 1e-9)) if i == 0 else 0.0
+        out.append({"name": name, "score": round(s, 1),
+                    "ratio": round(ratio, 2) if i == 0 else None,
+                    "decisive": bool(i == 0 and ratio >= RESTATEMENT_MARGIN)})
+    return out
+
+
 def consolidation_report(margin=RESTATEMENT_MARGIN):
     """Everything the standing verdicts still owe, in three queues.
 
@@ -2308,49 +2352,224 @@ def cmd_history(args):
     print(f"\n{HISTORY_CAVEAT}")
 
 
-def cmd_new(args):
-    if args.type not in TYPES:
-        print(f"type must be one of: {', '.join(TYPES)}", file=sys.stderr)
-        sys.exit(1)
-    if args.type == "prospective" and not args.due:
-        print("--due is required for --type prospective", file=sys.stderr)
-        sys.exit(1)
-    if args.due:
+class EntryError(Exception):
+    """A caller-fixable problem with a requested entry (bad type, bad date,
+    colliding slug). Raised rather than exited so the MCP server, which runs
+    in-process, can turn it into a tool error instead of dying."""
+
+    def __init__(self, message, code=1):
+        super().__init__(message)
+        self.code = code
+
+
+def scaffold_entry(entry_type, name, due=None, description=None, body=None,
+                   links=(), source=None):
+    """Write a new entry from the template. Shared by `new` and `capture`.
+
+    Returns the destination path; raises EntryError on anything the caller
+    could fix.
+    """
+    if entry_type not in TYPES:
+        raise EntryError(f"type must be one of: {', '.join(TYPES)}")
+    if entry_type == "prospective" and not due:
+        raise EntryError("--due is required for --type prospective")
+    if due:
         try:
-            datetime.date.fromisoformat(args.due)
+            datetime.date.fromisoformat(due)
         except ValueError:
-            print(f"--due is not a valid date: {args.due!r}", file=sys.stderr)
-            sys.exit(1)
-    slug = re.sub(r"[^a-z0-9]+", "-", args.name.lower()).strip("-")
+            raise EntryError(f"--due is not a valid date: {due!r}") from None
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     if not slug:
-        print(f"name must contain at least one letter or digit: {args.name!r}", file=sys.stderr)
-        sys.exit(1)
-    folder = MEMORY / args.type
+        raise EntryError(f"name must contain at least one letter or digit: {name!r}")
+    folder = MEMORY / entry_type
     folder.mkdir(parents=True, exist_ok=True)
     dest = folder / f"{slug}.md"
     if dest.exists():
-        print(f"entry already exists: {dest.relative_to(ROOT)}", file=sys.stderr)
-        sys.exit(1)
+        raise EntryError(f"entry already exists: {dest.relative_to(ROOT)}")
     today = datetime.date.today().isoformat()
     try:
         text = TEMPLATE.read_text(encoding="utf-8")
     except OSError as e:
-        print(f"error: could not read template {TEMPLATE}: {e}", file=sys.stderr)
-        sys.exit(2)
+        raise EntryError(f"error: could not read template {TEMPLATE}: {e}", code=2) from None
     text = text.replace("REPLACE-ME-kebab-case-slug", slug)
-    text = text.replace("type: semantic", f"type: {args.type}")
+    text = text.replace("type: semantic", f"type: {entry_type}")
     text = text.replace("created: 1970-01-01", f"created: {today}")
     text = text.replace("last_verified: 1970-01-01", f"last_verified: {today}")
-    if args.type == "prospective":
-        text = text.replace("due: 1970-01-01", f"due: {args.due}")
+    if entry_type == "prospective":
+        text = text.replace("due: 1970-01-01", f"due: {due}")
     else:
         text = "".join(
             line for line in text.splitlines(keepends=True)
             if not line.startswith("due:")
         )
+    if description:
+        text = text.replace("description: one-line summary",
+                            f"description: {_fm_scalar(description)}")
+    if source:
+        text = text.replace("source: where this came from",
+                            f"source: {_fm_scalar(source)}")
+    if links:
+        text = text.replace("links: []", f"links: [{', '.join(links)}]")
+    if body is not None:
+        m = re.match(r"(---\n.*?\n---\n)(.*)", text, re.S)
+        if not m:
+            raise EntryError(f"error: template {TEMPLATE} has no frontmatter block", code=2)
+        text = f"{m.group(1)}\n{body.strip()}\n"
     dest.write_text(text, encoding="utf-8")
+    _append_log(entry_type, slug, today)
+    return dest
+
+
+def _fm_scalar(value):
+    """A one-line frontmatter value, made safe for the parser above.
+
+    `parse_frontmatter` is line-based and splits on the *first* colon, so a
+    colon inside the value is harmless; it also never unquotes, so adding
+    quotes would store the quotes. That leaves exactly one value shape that
+    misparses — one that looks like a list — and one that breaks the block:
+    a newline. Both are handled here and nothing else is touched.
+    """
+    value = " ".join(str(value).split())
+    if value.startswith("[") and value.endswith("]"):
+        value = value[1:-1].strip()
+    return value
+
+
+def _scaffold_or_exit(**kwargs):
+    try:
+        return scaffold_entry(**kwargs)
+    except EntryError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(e.code)
+
+
+def cmd_new(args):
+    dest = _scaffold_or_exit(entry_type=args.type, name=args.name, due=args.due)
     print(f"created {dest.relative_to(ROOT)}")
-    _append_log(args.type, slug, today)
+
+
+def _first_sentence(text, limit=200):
+    """The claim line an author would write, taken from what they already wrote."""
+    flat = " ".join(text.split()).lstrip("-*>#[ ").strip()
+    m = re.match(r"(.+?[.!?])(\s|$)", flat)
+    sentence = (m.group(1) if m else flat).rstrip(".")
+    if len(sentence) > limit:
+        sentence = sentence[:limit].rsplit(" ", 1)[0] + "…"
+    return sentence
+
+
+def _source_label(source):
+    """What to record as an entry's `source`.
+
+    A path only means something to a later reader if it is inside the repo; a
+    scratch file in a temp directory is gone by the time anyone reads the
+    entry, so it is recorded as what it is instead of as a dead path.
+    """
+    if source in (None, "-"):
+        return "captured passage"
+    try:
+        return str(pathlib.Path(source).resolve().relative_to(ROOT))
+    except ValueError:
+        return "captured passage"
+
+
+def read_passage(source=None, text=None):
+    """The claim to capture: from --text, from a file, or from stdin via `-`."""
+    if text is not None:
+        passage = text
+    elif source in (None, "-"):
+        passage = sys.stdin.read()
+    else:
+        path = pathlib.Path(source)
+        try:
+            passage = path.read_text(encoding="utf-8")
+        except OSError as e:
+            print(f"error: could not read {source}: {e}", file=sys.stderr)
+            sys.exit(2)
+    passage = passage.strip()
+    if not passage:
+        print("error: nothing to capture — the passage is empty", file=sys.stderr)
+        sys.exit(1)
+    return passage
+
+
+def capture_report(passage, limit=5):
+    """What the store already holds that this claim reads like."""
+    return {"passage": passage, "neighbours": nearest_entries(passage, limit=limit)}
+
+
+def cmd_capture(args):
+    passage = read_passage(getattr(args, "source", None), getattr(args, "text", None))
+
+    if args.extend:
+        if args.type or args.name:
+            print("error: pass either --extend, or --type with --name — not both",
+                  file=sys.stderr)
+            sys.exit(1)
+        # No neighbour scan here: you have already decided where this goes.
+        entry_type, path, fm, body = _require(args.extend)
+        write_body(path, f"{body.rstrip()}\n\n{passage}")
+        _append_log(entry_type, path.stem, datetime.date.today().isoformat(),
+                    action="extended", detail="captured passage appended")
+        if args.json:
+            print(json.dumps({"extended": fm.get("name", path.stem),
+                              "path": str(path.relative_to(ROOT))}, indent=2))
+            return
+        print(f"extended {path.relative_to(ROOT)}")
+        print(f"the appended passage is not verification — re-read it: "
+              f"kb.py show {path.stem}")
+        return
+
+    report = capture_report(passage)
+    neighbours = report["neighbours"]
+    top = neighbours[0] if neighbours else None
+
+    if args.json:
+        # A check-only view: writing an entry has output (a path, a link, a
+        # next step) that belongs on stdout as prose, not wrapped in JSON.
+        print(json.dumps(report, indent=2))
+        return
+
+    if not neighbours:
+        print("no existing entry reads like this — the store is empty or the "
+              "passage shares no terms with it")
+    else:
+        print("nearest entries — read before you write:")
+        for n in neighbours:
+            mark = "  <- decisive" if n["decisive"] else ""
+            ratio = f" ({n['ratio']}x runner-up)" if n["ratio"] else ""
+            print(f"  {n['score']:6.1f}  {n['name']}{ratio}{mark}")
+        if top and top["decisive"]:
+            print(f"\nthis claim points decisively at {top['name']}. Measured on "
+                  f"this store: when it fires, it is either the entry the claim "
+                  f"restates or one the author linked to — never noise.")
+            print(f"  extend it instead:  kb.py capture --extend {top['name']} <source>")
+            print(f"  read it first:      kb.py show {top['name']}")
+
+    if args.check:
+        return
+    if not args.type or not args.name:
+        print("\nerror: --type and --name are required to write "
+              "(or use --check to stop here)", file=sys.stderr)
+        sys.exit(1)
+
+    # Only the top neighbour is prefilled as a link: measured against the 132
+    # hand-set links in this store, the top-ranked neighbour of an entry's body
+    # is a link its author drew 70% of the time, precision that falls to 51% by
+    # rank 3. The rest are printed above for the author to add, because a wrong
+    # edge is not free — `candidates`, `consolidate` and the graph all read it.
+    links = [top["name"]] if top else []
+    dest = _scaffold_or_exit(
+        entry_type=args.type, name=args.name, due=args.due,
+        description=args.description or _first_sentence(passage),
+        body=passage, links=links,
+        source=_source_label(args.source),
+    )
+    print(f"\ncreated {dest.relative_to(ROOT)} (confidence: unverified)")
+    if links:
+        print(f"linked to {links[0]}")
+    print("next: read it back, set confidence honestly, add the links above "
+          "that belong, then kb.py lint")
 
 
 def _append_log(entry_type, slug, today, action="created", detail=""):
@@ -2622,6 +2841,28 @@ def main():
     p_new.add_argument("--type", required=True, choices=TYPES)
     p_new.add_argument("--due", help="ISO date; required for --type prospective")
     p_new.set_defaults(func=cmd_new)
+
+    p_capture = sub.add_parser(
+        "capture",
+        help="check a claim you have written against the store, then file it")
+    p_capture.add_argument("source", nargs="?",
+                           help="file holding the claim, or - for stdin (default)")
+    p_capture.add_argument("--text", help="the claim itself, instead of a file")
+    p_capture.add_argument("--type", choices=TYPES,
+                           help="memory type; required unless --check or --extend")
+    p_capture.add_argument("--name", help="slug for the new entry; "
+                                          "required unless --check or --extend")
+    p_capture.add_argument("--description",
+                           help="one-line summary (default: the passage's first sentence)")
+    p_capture.add_argument("--due", help="ISO date; required for --type prospective")
+    p_capture.add_argument("--extend", metavar="NAME",
+                           help="append the passage to this existing entry "
+                                "instead of writing a near-twin")
+    p_capture.add_argument("--check", action="store_true",
+                           help="only report the nearest entries; write nothing")
+    p_capture.add_argument("--json", action="store_true",
+                           help="machine-readable view of the check")
+    p_capture.set_defaults(func=cmd_capture)
 
     p_lint = sub.add_parser("lint", help="schema, duplicate-slug, dangling-link, and staleness checks")
     p_lint.add_argument("--strict", action="store_true",

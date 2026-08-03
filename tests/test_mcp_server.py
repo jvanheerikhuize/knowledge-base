@@ -185,7 +185,7 @@ class TestToolListing(McpTestCase):
             set(tools),
             {"context", "search", "get", "triage", "due", "status", "dupes",
              "duplicate_candidates", "consolidate", "history", "judge",
-             "propose_update"},
+             "propose_update", "capture"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -768,6 +768,80 @@ class TestResources(McpTestCase):
         self.handshake()
         templates = self.result_of(self.send("resources/templates/list"))["resourceTemplates"]
         self.assertEqual(templates[0]["uriTemplate"], "kb://entry/{name}")
+
+
+class TestCaptureOverMcp(McpTestCase):
+    PROSE = ("A boat sails against the wind by tacking across it, because the "
+             "sail works as a wing generating lift sideways rather than simply "
+             "catching the air and being pushed along by it.")
+
+    def test_passage_alone_reports_neighbours_and_writes_nothing(self):
+        self.handshake()
+        result = self.result_of(self.call("capture", {"passage": self.PROSE}))
+        self.assertFalse(result["isError"])
+        self.assertFalse(result["structuredContent"]["written"])
+        self.assertIn("Nothing written", result["content"][0]["text"])
+        self.assertFalse((self.root / "memory" / "semantic" / "sailing.md").exists())
+
+    def test_type_and_name_stage_an_unverified_entry(self):
+        self.handshake()
+        result = self.result_of(self.call("capture", {
+            "passage": self.PROSE, "type": "semantic", "name": "sailing"}))
+        self.assertFalse(result["isError"])
+        text = self.entry_text("sailing")
+        self.assertIn("confidence: unverified", text)
+        self.assertIn("tacking across it", text)
+        self.assertFalse(result["structuredContent"]["committed"])
+        self.assertIn("git diff", result["content"][0]["text"])
+
+    def test_extend_appends_to_an_entry_instead_of_writing_a_twin(self):
+        self.handshake()
+        before = sorted(p.name for p in (self.root / "memory" / "semantic").iterdir())
+        result = self.result_of(self.call("capture", {
+            "passage": "Restated once more.", "extend": "first-fact"}))
+        self.assertFalse(result["isError"])
+        self.assertIn("Restated once more.", self.entry_text("first-fact"))
+        self.assertEqual(
+            before, sorted(p.name for p in (self.root / "memory" / "semantic").iterdir()))
+
+    def test_extend_and_a_new_name_together_are_refused(self):
+        self.handshake()
+        result = self.result_of(self.call("capture", {
+            "passage": self.PROSE, "extend": "first-fact",
+            "type": "semantic", "name": "sailing"}))
+        self.assertTrue(result["isError"])
+        self.assertFalse((self.root / "memory" / "semantic" / "sailing.md").exists())
+
+    def test_an_empty_passage_is_a_tool_error(self):
+        self.handshake()
+        self.assertTrue(self.result_of(self.call("capture", {"passage": "  "}))["isError"])
+
+    def test_a_colliding_slug_is_a_tool_error_not_a_dead_server(self):
+        self.handshake()
+        result = self.result_of(self.call("capture", {
+            "passage": self.PROSE, "type": "semantic", "name": "first-fact"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("already exists", result["content"][0]["text"])
+        # the server must still answer afterwards — scaffold_entry used to exit
+        self.assertFalse(self.result_of(self.call("search", {"query": "fact"}))["isError"])
+
+    def test_a_prospective_capture_without_a_due_date_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("capture", {
+            "passage": self.PROSE, "type": "prospective", "name": "check-sails"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("due", result["content"][0]["text"])
+
+
+class TestCaptureIsAWriteTool(McpTestCase):
+    read_only = True
+
+    def test_it_is_gone_in_read_only_mode(self):
+        self.handshake()
+        names = {t["name"] for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertNotIn("capture", names)
+        response = self.call("capture", {"passage": "anything"})
+        self.assertEqual(response["error"]["code"], -32602)
 
 
 if __name__ == "__main__":

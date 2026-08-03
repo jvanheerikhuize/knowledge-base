@@ -133,12 +133,32 @@
     },
     {
       "a": "distill-session-into-memory",
+      "b": "kb-capture-is-a-check-not-an-extractor",
+      "verdict": "overlap",
+      "judged": "2026-08-03",
+      "a_digest": "ea4a540d05bb",
+      "b_digest": "d2a780baea0f",
+      "note": "the procedure now runs the tool this entry justifies; procedure says how, entry says why there is no distill",
+      "agreement": "agree"
+    },
+    {
+      "a": "distill-session-into-memory",
       "b": "kb-entry-status-model",
       "verdict": "distinct",
       "judged": "2026-07-31",
       "a_digest": "3b50a84dca1d",
       "b_digest": "c5709f5ca1d4",
       "note": "distill says how to choose a confidence value; the status model says what follows from one",
+      "agreement": "agree"
+    },
+    {
+      "a": "distill-session-into-memory",
+      "b": "kb-forgetting-model",
+      "verdict": "distinct",
+      "judged": "2026-08-03",
+      "a_digest": "ea4a540d05bb",
+      "b_digest": "1a1d76b3f41d",
+      "note": "",
       "agreement": "agree"
     },
     {
@@ -163,10 +183,20 @@
     },
     {
       "a": "distill-session-into-memory",
+      "b": "kb-roadmap",
+      "verdict": "distinct",
+      "judged": "2026-08-03",
+      "a_digest": "ea4a540d05bb",
+      "b_digest": "34a03dbcca83",
+      "note": "",
+      "agreement": "agree"
+    },
+    {
+      "a": "distill-session-into-memory",
       "b": "memory-overview-site",
       "verdict": "distinct",
-      "judged": "2026-07-31",
-      "a_digest": "3b50a84dca1d",
+      "judged": "2026-08-03",
+      "a_digest": "ea4a540d05bb",
       "b_digest": "58b226771525",
       "note": "publishing the store vs the pass that adds to it",
       "agreement": "agree"
@@ -175,10 +205,10 @@
       "a": "distill-session-into-memory",
       "b": "persist-insight-to-knowledge-base",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "3b50a84dca1d",
+      "judged": "2026-08-03",
+      "a_digest": "ea4a540d05bb",
       "b_digest": "1bddaf75731b",
-      "note": "was the closest pair in the store; consolidated 2026-07-31 \u2014 persist now defers its procedure steps here instead of restating them",
+      "note": "re-judged after the procedure was rewritten around capture; persist-insight still restates its later steps",
       "agreement": "agree"
     },
     {
@@ -409,6 +439,46 @@
       "a_digest": "93c2654408d2",
       "b_digest": "7886fb25075b",
       "note": "the same stale .claude/CLAUDE.md is the source of both problems",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-capture-is-a-check-not-an-extractor",
+      "b": "kb-consolidation-is-owed-work",
+      "verdict": "overlap",
+      "judged": "2026-08-03",
+      "a_digest": "d2a780baea0f",
+      "b_digest": "d8d25189dc67",
+      "note": "capture reuses the restatement scorer consolidate shipped; consolidate cleans restatement after the fact, capture refuses it at the door",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-capture-is-a-check-not-an-extractor",
+      "b": "kb-corrections-happen-in-place",
+      "verdict": "overlap",
+      "judged": "2026-08-03",
+      "a_digest": "d2a780baea0f",
+      "b_digest": "37b14d39ec72",
+      "note": "both are Phase-N negative results where measuring the store killed the proposed mechanism; different mechanisms, same method",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-capture-is-a-check-not-an-extractor",
+      "b": "kb-golden-set-lives-in-the-wording",
+      "verdict": "distinct",
+      "judged": "2026-08-03",
+      "a_digest": "d2a780baea0f",
+      "b_digest": "c714d54cf52a",
+      "note": "shared vocabulary of measurement and coverage; one scores retrieval, the other says a claim is not extractable",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-capture-is-a-check-not-an-extractor",
+      "b": "kb-instruction-content-lint",
+      "verdict": "distinct",
+      "judged": "2026-08-03",
+      "a_digest": "d2a780baea0f",
+      "b_digest": "5a26c6c6d719",
+      "note": "both measure before shipping a lint-adjacent check, but one is about injection content and one about where a claim comes from",
       "agreement": "agree"
     },
     {

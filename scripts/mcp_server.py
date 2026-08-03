@@ -14,10 +14,10 @@ never prints. That is also why the tools call kb.py's *library* functions
 (`rank`, `context_pack`, `triage_report`) rather than its `cmd_*` handlers,
 which print and sometimes call sys.exit.
 
-Writes are proposals. `propose_update` edits the working tree and stops there —
-it never commits — so git stays the review gate and the durable write path,
-exactly as `serve.py` settled it for the browser. Run with `--read-only` to
-drop the tool entirely.
+Writes are proposals. `propose_update` and `capture` edit the working tree and
+stop there — they never commit — so git stays the review gate and the durable
+write path, exactly as `serve.py` settled it for the browser. Run with
+`--read-only` to drop them entirely.
 
 No third-party dependencies — stdlib only, same as the rest of the KB tooling.
 """
@@ -53,8 +53,10 @@ INSTRUCTIONS = (
     "Use `search` when you want ranked hits without the packaging, `get` to read one "
     "entry in full, and `triage`/`status` to see what needs attention.\n\n"
     "Every entry carries a confidence level and a `last_verified` date; trust them "
-    "rather than assuming an entry is current. Writes via `propose_update` are staged "
-    "in the working tree for human review and are never committed."
+    "rather than assuming an entry is current. Writes via `propose_update` and "
+    "`capture` are staged in the working tree for human review and are never "
+    "committed. `capture` is how a new claim gets in: write the claim yourself, "
+    "and it tells you which entry already holds it before anything is filed."
 )
 
 RESOURCE_PREFIX = "kb://entry/"
@@ -525,6 +527,77 @@ def tool_propose_update(args):
                   "committed": False, "review": f"git diff -- {rel}"}
 
 
+def tool_capture(args):
+    """Check a claim against the store, then file it — staged, never committed.
+
+    Same three modes as `kb.py capture`: report the nearest entries and stop
+    (the default), append the passage to an entry you decide it belongs in, or
+    write it as a new `unverified` entry with the top neighbour prefilled as
+    its one link.
+    """
+    passage = str(args.get("passage") or "").strip()
+    if not passage:
+        raise ToolError("passage is required — capture files a claim you have written")
+
+    neighbours = kb.nearest_entries(passage)
+    lines = [f"  {n['score']:6.1f}  {n['name']}"
+             + (f"  <- {n['ratio']}x the runner-up" if n["decisive"] else "")
+             for n in neighbours]
+    nearest = ("Nearest entries:\n" + "\n".join(lines)) if lines else \
+        "Nothing in the store reads like this passage."
+
+    extend = str(args.get("extend") or "").strip()
+    name = str(args.get("name") or "").strip()
+    entry_type = str(args.get("type") or "").strip()
+
+    if extend and (name or entry_type):
+        raise ToolError("pass either extend, or type+name — not both")
+
+    if extend:
+        target_type, path, fm, body = _require_entry(extend)
+        kb.write_body(path, f"{body.rstrip()}\n\n{passage}")
+        kb._append_log(target_type, path.stem, date.today().isoformat(),
+                       "extended", "captured passage appended")
+        rel = str(path.relative_to(kb.ROOT))
+        log(f"appended a captured passage to {rel}")
+        return (
+            f"Appended the passage to {rel}.\n\n"
+            "Staged in the working tree, NOT committed. Appending is not "
+            f"verification — re-read the entry, then review with\n    git diff -- {rel}"
+        ), {"extended": _entry_name(path, fm), "path": rel, "committed": False}
+
+    if not (name and entry_type):
+        return (
+            f"{nearest}\n\n"
+            "Nothing written. Read the top entry before you file this: if the "
+            "passage restates it, call capture again with `extend` set to that "
+            "entry; if it is genuinely new, call capture again with `type` and "
+            "`name`."
+        ), {"neighbours": neighbours, "written": False}
+
+    top = neighbours[0]["name"] if neighbours else None
+    try:
+        dest = kb.scaffold_entry(
+            entry_type, name, due=args.get("due"),
+            description=str(args.get("description") or "").strip()
+            or kb._first_sentence(passage),
+            body=passage, links=[top] if top else [],
+            source=str(args.get("source") or "").strip() or "captured passage",
+        )
+    except kb.EntryError as e:
+        raise ToolError(str(e)) from None
+    rel = str(dest.relative_to(kb.ROOT))
+    log(f"staged new entry {rel}")
+    return (
+        f"{nearest}\n\nWrote {rel} with confidence `unverified`"
+        + (f", linked to {top}" if top else "")
+        + ".\n\nStaged in the working tree and NOT committed. Read it back, set "
+        "confidence honestly, add whichever of the entries above belong in "
+        f"`links`, then review with\n    git diff -- {rel}"
+    ), {"name": dest.stem, "path": rel, "links": [top] if top else [],
+        "neighbours": neighbours, "committed": False}
+
+
 READ_TOOLS = [
     {
         "name": "context",
@@ -824,6 +897,45 @@ WRITE_TOOLS = [
             "required": ["name"],
         },
         "handler": tool_propose_update,
+    },
+    {
+        "name": "capture",
+        "title": "File a claim you have written (staged, not committed)",
+        "description": (
+            "Put a claim you have already written into the store, with the "
+            "check this store asks an author to do by hand run first: which "
+            "existing entries does this passage read like? Call it with only "
+            "`passage` to see that answer and write nothing. Then call it "
+            "again — with `extend` if the passage restates an entry the store "
+            "already holds (better a fuller entry than a near-twin), or with "
+            "`type` and `name` to file it as a new `unverified` entry. This "
+            "does NOT extract facts from a transcript for you: the claim has "
+            "to be one you can state, because the deciding is the work."
+        ),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False,
+                        "idempotentHint": False, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "passage": {"type": "string",
+                            "description": "the claim, in your words"},
+                "type": {"type": "string", "enum": list(kb.TYPES),
+                         "description": "memory type; with `name`, files a new entry"},
+                "name": {"type": "string", "description": "slug for the new entry"},
+                "description": {"type": "string",
+                                "description": "one-line summary; defaults to the "
+                                               "passage's first sentence"},
+                "due": {"type": "string",
+                        "description": "ISO date; required for type `prospective`"},
+                "source": {"type": "string",
+                           "description": "where the claim came from"},
+                "extend": {"type": "string",
+                           "description": "append the passage to this existing entry "
+                                          "instead of writing a new one"},
+            },
+            "required": ["passage"],
+        },
+        "handler": tool_capture,
     },
 ]
 
