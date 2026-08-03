@@ -335,6 +335,83 @@ class TriageAndEditingTests(unittest.TestCase):
         self.assertIsInstance(data["triage"], list)
 
 
+class RgbaTests(unittest.TestCase):
+    def test_hex_is_split_into_channels_with_alpha(self):
+        self.assertEqual(build_site._rgba("#ff0000", 0.5), "rgba(255,0,0,0.50)")
+
+    def test_alpha_is_formatted_to_two_places(self):
+        self.assertEqual(build_site._rgba("#000000", 1), "rgba(0,0,0,1.00)")
+
+
+class TimelinePageTests(unittest.TestCase):
+    """`build_timeline` — ROADMAP Phase 8: growth by month, a type × status
+    heat map, and every created/verified event, newest first."""
+
+    def entries(self):
+        return [
+            {"name": "old-fact", "type": "semantic", "created": "2026-01-05",
+             "last_verified": "2026-01-05", "status": "current"},
+            {"name": "new-fact", "type": "semantic", "created": "2026-07-20",
+             "last_verified": "2026-08-01", "status": "ageing"},
+            {"name": "a-log", "type": "episodic", "created": "2026-07-20",
+             "last_verified": "", "status": "stale"},
+        ]
+
+    def test_empty_store_falls_back_to_placeholders(self):
+        out = build_site.build_timeline([])
+        self.assertIn('<p class="empty">No dated entries yet.</p>', out)
+        self.assertIn('<p class="empty">Nothing to plot yet.</p>', out)
+
+    def test_bars_group_by_creation_month(self):
+        out = build_site.build_timeline(self.entries())
+        self.assertIn("2026-01", out)
+        self.assertIn("2026-07", out)
+        # two entries created in 2026-07, one in 2026-01
+        self.assertIn('<span class="bar-count">2</span>', out)
+        self.assertIn('<span class="bar-count">1</span>', out)
+
+    def test_heatmap_cell_carries_type_and_status(self):
+        out = build_site.build_timeline(self.entries())
+        self.assertIn('title="1 semantic × current"', out)
+        self.assertIn('title="1 semantic × ageing"', out)
+        self.assertIn('title="1 episodic × stale"', out)
+
+    def test_events_include_both_created_and_verified_and_link_to_the_entry(self):
+        out = build_site.build_timeline(self.entries())
+        self.assertIn('href="entry/old-fact.html"', out)
+        self.assertIn("created", out)
+        self.assertIn("verified", out)
+        # created == last_verified must not double up as two identical events
+        self.assertEqual(out.count(">old-fact<"), 1)
+
+    def test_events_are_sorted_newest_first(self):
+        out = build_site.build_timeline(self.entries())
+        self.assertLess(out.index("2026-08-01"), out.index("2026-01-05"))
+
+    def test_page_is_built_and_linked_from_the_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "site"
+            build_site.build(out)
+            self.assertTrue((out / "timeline.html").exists())
+            self.assertIn('href="timeline.html"', (out / "index.html").read_text())
+
+
+class SavedSearchTests(unittest.TestCase):
+    """Saved searches as shareable URLs (ROADMAP Phase 8): the index page's
+    client script must read `?q=`/`?type=` on load and keep the URL in sync,
+    since the actual filtering only runs in a browser."""
+
+    def test_index_reads_and_writes_query_params(self):
+        index = build_site.build_index([])
+        self.assertIn("URLSearchParams(location.search)", index)
+        self.assertIn("history.replaceState", index)
+
+    def test_copy_link_button_is_present(self):
+        index = build_site.build_index([])
+        self.assertIn('id="copy-link"', index)
+        self.assertIn("navigator.clipboard.writeText(location.href)", index)
+
+
 class RepoSlugTests(unittest.TestCase):
     def test_explicit_slug_wins_and_is_normalized(self):
         self.assertEqual(build_site.repo_slug("owner/name/"), "owner/name")

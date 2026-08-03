@@ -86,3 +86,7 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-02 — linked `semantic/asdlc-governed-change-rules.md` — -> kb-instruction-content-lint
 - 2026-08-02 — linked `prospective/kb-roadmap.md` — -> kb-instruction-content-lint
 - 2026-08-03 — created `semantic/kb-capture-is-a-check-not-an-extractor.md`
+- 2026-08-03 — created `semantic/kb-timeline-and-heatmap-are-frontmatter-only.md`
+- 2026-08-03 — linked `semantic/kb-corrections-happen-in-place.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
+- 2026-08-03 — linked `semantic/memory-overview-site.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
+- 2026-08-03 — linked `semantic/kb-instruction-content-lint.md` — -> kb-timeline-and-heatmap-are-frontmatter-only

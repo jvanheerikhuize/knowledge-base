@@ -280,15 +280,17 @@ already configured this way; inside a session just do the work you were given.
   a flow with no observed instance; the ROADMAP records the condition that
   revives it. 27 new tests (428 total). Write-up:
   `kb-capture-is-a-check-not-an-extractor`.
-- [ ] **ROADMAP Phase 8 — site and graph.** *(execution tier — three
-  well-defined views over data that already exists.)* Timeline over
-  `created`/`last_verified`, a staleness/confidence heat map so decay is
-  visible at a glance, and saved searches as shareable URLs. `kb.py stats`
-  already computes most of the underlying numbers and `data.json` already
-  ships them, so this is presentation work, not new measurement. One caveat
-  worth checking first: the Pages workflow checks out at depth 1, which is why
-  `history` is not on the site — a timeline built from frontmatter dates is
-  fine, one built from git is not.
+- [x] **ROADMAP Phase 8 — site and graph.** (2026-08-03) All three shipped,
+  execution as scoped, no surprise. `timeline.html`: growth-by-month bars, a
+  type × status heat map (alpha-blended background so counts stay legible at
+  high decay, not CSS `opacity`, which would fade the text too), and every
+  created/re-verified event newest first — all from frontmatter dates, since
+  the Pages checkout is depth-1 and a git-derived view would render every
+  entry as never having changed (the same reason `kb.py history` stayed off
+  the site). Saved searches: the index's search box and type chips sync to
+  `?q=`/`?type=` via `URLSearchParams`/`history.replaceState`, plus a
+  copy-link button. 10 new tests (438 total). Write-up:
+  `kb-timeline-and-heatmap-are-frontmatter-only`.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

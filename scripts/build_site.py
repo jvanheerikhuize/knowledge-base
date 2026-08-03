@@ -11,6 +11,7 @@ The client-side search reads it, and it is the intended hook for making the
 overview interactive later without changing the builder.
 """
 import argparse
+import collections
 import html
 import json
 import os
@@ -402,6 +403,17 @@ font-size:.85rem}
 .reason{border:1px solid var(--line);border-radius:999px;padding:.1rem .55rem;font-size:.75rem;
 color:var(--muted)}
 .sev-0 .reason,.sev-1 .reason{border-color:#ef6c00;color:#ef6c00}
+.bars{margin:0 0 2rem}
+.bar-row{display:flex;align-items:center;gap:.6rem;margin:.2rem 0;font-size:.85rem}
+.bar-label{width:4.5rem;flex:none;color:var(--muted)}
+.bar{display:block;height:.9rem;background:var(--accent);border-radius:.2rem;min-width:2px}
+.bar-count{width:2rem;flex:none;text-align:right;color:var(--muted)}
+table.heatmap{border-collapse:collapse;margin-bottom:1rem}
+table.heatmap th,table.heatmap td.heat{border:1px solid var(--line);padding:.4rem .7rem;
+text-align:center;font-size:.85rem}
+table.heatmap th{font-weight:500}
+table.heatmap td.heat{color:#fff;font-weight:600}
+table.heatmap td.heat.empty{color:var(--muted);font-weight:400}
 """
 
 
@@ -525,6 +537,16 @@ Structured data: <a href="{up}data.json">data.json</a>.</footer>
 </body>
 </html>
 """
+
+
+def _rgba(hex_color: str, alpha: float) -> str:
+    """Fade a `#rrggbb` colour without fading the text drawn over it —
+    element `opacity` would dim both; an alpha channel on the background
+    dims only the fill, so heat-map counts stay legible at any intensity.
+    """
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha:.2f})"
 
 
 def tag(t: str) -> str:
@@ -654,12 +676,15 @@ def build_index(entries, triage=(), statuses=(), slug=None, stats=None) -> str:
 <p><a href="status.html">Status board</a> · <a href="graph.html">Memory graph</a>
  · <a href="types.html">Memory types</a>
  · <a href="triage.html">Triage ({triage_count})</a> · <a href="changes.html">Changes</a>
+ · <a href="timeline.html">Timeline</a>
  · <a href="data.json">Raw data</a></p>
 <div class="controls">
 <input id="q" type="search" placeholder="Search names, descriptions, and bodies…"
  autocomplete="off">
 <button class="chip" data-filter="" aria-pressed="true">all</button>
 {chips}
+<button class="btn" id="copy-link" type="button"
+ title="Copy a link that reopens this exact search">Copy link</button>
 </div>
 <div id="results">
 {"".join(card(e) for e in entries) or '<p class="empty">No entries yet.</p>'}
@@ -669,7 +694,17 @@ def build_index(entries, triage=(), statuses=(), slug=None, stats=None) -> str:
 const cards=[...document.querySelectorAll('.card')];
 const chips=[...document.querySelectorAll('.chip')];
 const q=document.getElementById('q');
-let type='';
+const params=new URLSearchParams(location.search);
+let type=params.get('type')||'';
+q.value=params.get('q')||'';
+for(const c of chips) c.setAttribute('aria-pressed',String(c.dataset.filter===type));
+function syncUrl(){{
+  const p=new URLSearchParams();
+  if(q.value.trim()) p.set('q',q.value.trim());
+  if(type) p.set('type',type);
+  const qs=p.toString();
+  history.replaceState(null,'',qs?`?${{qs}}`:location.pathname);
+}}
 function apply(){{
   const needle=q.value.trim().toLowerCase();
   let shown=0;
@@ -678,6 +713,7 @@ function apply(){{
     c.hidden=!ok; if(ok) shown++;
   }}
   document.getElementById('none').hidden=shown>0;
+  syncUrl();
 }}
 q.addEventListener('input',apply);
 for(const c of chips) c.addEventListener('click',()=>{{
@@ -685,6 +721,13 @@ for(const c of chips) c.addEventListener('click',()=>{{
   for(const o of chips) o.setAttribute('aria-pressed',String(o===c));
   apply();
 }});
+document.getElementById('copy-link').addEventListener('click',async()=>{{
+  const btn=document.getElementById('copy-link');
+  try {{ await navigator.clipboard.writeText(location.href); btn.textContent='Copied'; }}
+  catch(e) {{ btn.textContent='Copy failed'; }}
+  setTimeout(()=>{{ btn.textContent='Copy link'; }},1500);
+}});
+apply();
 </script>
 """
     return page("Agent memory", body)
@@ -837,6 +880,94 @@ def build_changes(records, entries) -> str:
     return page("Changes", body)
 
 
+def build_timeline(entries) -> str:
+    """ROADMAP Phase 8: growth over time plus decay at a glance.
+
+    Both views read only frontmatter dates already in `entries` — the Pages
+    checkout is depth-1 (see [[kb-corrections-happen-in-place]]), so anything
+    built from git history would be silently wrong on the published site.
+    """
+    months = collections.Counter()
+    for e in entries:
+        if e["created"]:
+            months[str(e["created"])[:7]] += 1
+    ordered_months = sorted(months)
+    max_month = max(months.values(), default=0)
+    bars = "".join(
+        f'<div class="bar-row"><span class="bar-label">{html.escape(m)}</span>'
+        f'<span class="bar" style="width:{(months[m] / max_month * 100):.0f}%"></span>'
+        f'<span class="bar-count">{months[m]}</span></div>'
+        for m in ordered_months
+    ) or '<p class="empty">No dated entries yet.</p>'
+
+    types_in_use = [t for t in TYPES if any(e["type"] == t for e in entries)]
+    statuses_in_use = [s for s in STATUS_ORDER if any(e.get("status") == s for e in entries)]
+    counts = collections.Counter((e["type"], e.get("status", "current")) for e in entries)
+    max_count = max(counts.values(), default=0)
+
+    def cell(t, s):
+        n = counts.get((t, s), 0)
+        if not n:
+            return '<td class="heat empty">·</td>'
+        alpha = 0.35 + 0.65 * (n / max_count) if max_count else 0.35
+        bg = _rgba(STATUS_COLORS.get(s, "#555"), alpha)
+        return (
+            f'<td class="heat" style="background:{bg}" '
+            f'title="{n} {html.escape(t)} × {html.escape(s)}">{n}</td>'
+        )
+
+    heatmap = (
+        "<table class=\"heatmap\"><thead><tr><th></th>"
+        + "".join(f"<th>{status_tag(s)}</th>" for s in statuses_in_use)
+        + "</tr></thead><tbody>"
+        + "".join(
+            f"<tr><th>{tag(t)}</th>" + "".join(cell(t, s) for s in statuses_in_use) + "</tr>"
+            for t in types_in_use
+        )
+        + "</tbody></table>"
+        if types_in_use and statuses_in_use
+        else '<p class="empty">Nothing to plot yet.</p>'
+    )
+
+    events = []
+    for e in entries:
+        if e["created"]:
+            events.append((e["created"], "created", e))
+        if e["last_verified"] and e["last_verified"] != e["created"]:
+            events.append((e["last_verified"], "verified", e))
+    events.sort(key=lambda ev: ev[0], reverse=True)
+    rows = "".join(
+        "<tr>"
+        f'<td class="date">{html.escape(d)}</td>'
+        f"<td>{kind}</td>"
+        f"<td>{tag(e['type'])}</td>"
+        f'<td><a href="entry/{e["name"]}.html">{html.escape(e["name"])}</a></td>'
+        "</tr>"
+        for d, kind, e in events
+    )
+
+    body = (
+        '<nav class="crumbs"><a href="index.html">← all memory</a></nav>'
+        '<header class="top"><h1>Timeline</h1>'
+        "<p>Growth by creation month, decay by type and status, and every "
+        "creation or re-verification event, newest first.</p></header>"
+        "<h2>Entries created, by month</h2>"
+        f'<div class="bars">{bars}</div>'
+        "<h2>Type × status</h2>"
+        "<p>How many entries of each type sit in each status — where decay "
+        "concentrates, at a glance. Run <code>python3 scripts/kb.py status</code> "
+        "for the same board as a list.</p>"
+        f'<div class="tablewrap">{heatmap}</div>'
+        "<h2>Events</h2>"
+        + (
+            f'<table class="log">{rows}</table>'
+            if rows
+            else '<p class="empty">No dated entries yet.</p>'
+        )
+    )
+    return page("Timeline", body)
+
+
 def build_entry(e, entries, slug=None) -> str:
     known = {o["name"] for o in entries}
     rows = [("type", tag(e["type"])), ("confidence", html.escape(e["confidence"]))]
@@ -921,6 +1052,7 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     (out_dir / "changes.html").write_text(
         build_changes(parse_log(), entries), encoding="utf-8"
     )
+    (out_dir / "timeline.html").write_text(build_timeline(entries), encoding="utf-8")
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
 
     payload = [{k: v for k, v in e.items() if k != "hay"} for e in entries]
