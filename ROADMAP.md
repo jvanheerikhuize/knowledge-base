@@ -400,6 +400,14 @@ YAML itself — nothing in this environment can run a scheduled GitHub Action,
 so `gh issue create/edit/close` are trusted at the shell-script level, not
 integration-tested. Worth re-checking after its first real fire.
 
+**Re-checked 2026-08-04, after three real fires.** The cron ran on
+2026-08-02, 08-03, and 08-04 (all `success`); issue #36 was created on the
+first run and correctly rewritten, not duplicated, on the next two, tracking
+`holiday-autonomy-mandate`'s countdown from "in 3d" to "in 1d". The
+create/update half is now `verified` on [[kb-prospective-memory-that-fires]].
+The close branch still has not fired — the queue has not emptied yet — so it
+stays the one open condition in the reopen table below.
+
 ## Phase 6 — Ingestion without ceremony · `done` (2026-08-03)
 
 **Gap, as originally written.** `memory/working/distill.template.md` is filled
@@ -745,7 +753,7 @@ before its condition holds.
 | Reopens | When | Recorded in |
 |---|---|---|
 | MCP `2026-07-28` | the reference SDKs and at least one client ship it | Phase 2, "Open" |
-| The `kb-due.yml` workflow's untested half | after its first real fire — nothing here can run a scheduled Action | Phase 5 |
+| The `kb-due.yml` close branch | after the queue empties in production — create/update confirmed across three real fires, 2026-08-02 to 08-04; close has not fired yet | Phase 5 |
 | `kb.py import` | a scaffolded copy exists **and** has diverged, giving a real slug collision to write against | Phase 6 |
 | BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |

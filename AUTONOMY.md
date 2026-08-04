@@ -316,6 +316,18 @@ already configured this way; inside a session just do the work you were given.
   CI here cannot see, so the deliverable is a falsifiable name-stability
   promise in the README instead. 6 new tests (444 total). Write-up:
   `kb-the-bundle-was-already-shipped`. **The ROADMAP now has no open phase.**
+- [x] **Verify the `kb-due.yml` workflow's first real fire.** (2026-08-04)
+  ROADMAP's own "no phase is open" table named this as the one condition that
+  could actually be checked from inside a routine (the other four need a
+  client, a sibling repo, or a bigger store). The daily cron has now run three
+  times (2026-08-02, 08-03, 08-04, all green); tracking issue #36 was created
+  on the first run and correctly rewritten — not duplicated — on the next two,
+  tracking `holiday-autonomy-mandate`'s countdown from "in 3d" to "in 1d".
+  Bumped `kb-prospective-memory-that-fires` from `confidence: high` to
+  `verified` for the create/update path. The close branch (fires when the
+  queue empties) still hasn't run in production — `holiday-autonomy-mandate`
+  clears tomorrow, 2026-08-05 — so that stays the one open row in ROADMAP's
+  reopen table rather than a second re-verify task.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`
