@@ -25,11 +25,14 @@ from datetime import date
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from kb import (  # noqa: E402
+    CONFIDENCE_LEVELS,
     ROOT,
+    STALE_DAYS,
     STATUS_BY_KEY,
     STATUS_MODEL,
     STATUS_ORDER,
     TYPES,
+    effective_confidence,
     iter_entries,
     parse_frontmatter,
     parse_log,
@@ -37,6 +40,12 @@ from kb import (  # noqa: E402
     status_report,
     triage_report,
 )
+
+# Bump when the shape of data.json changes: a key added, removed, renamed, or
+# given a different meaning. `tests/test_build_site.py` pins the exact key set
+# so a change here cannot go out silently — data.json is published to Pages and
+# is the only way to read this store without importing the tooling.
+BUNDLE_SCHEMA_VERSION = 1
 
 DEFAULT_OUT = ROOT / "site"
 
@@ -284,12 +293,20 @@ def collect():
         links = fm.get("links") or []
         if not isinstance(links, list):
             links = []
+        # `confidence` is what the author wrote when they checked the claim;
+        # `effective_confidence` is what the store actually reads it as today,
+        # after staleness decay. Both ship, because a consumer reading the
+        # bundle instead of importing the tooling would otherwise get the one
+        # number the decay model exists to correct.
+        effective, decayed_by = effective_confidence(fm)
         entries.append(
             {
                 "name": fm.get("name", path.stem),
                 "type": t,
                 "description": fm.get("description", ""),
                 "confidence": fm.get("confidence", "unverified"),
+                "effective_confidence": effective,
+                "decayed_by": decayed_by,
                 "authority": fm.get("authority", ""),
                 "created": fm.get("created", ""),
                 "last_verified": fm.get("last_verified", ""),
@@ -1059,9 +1076,15 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     (out_dir / "data.json").write_text(
         json.dumps(
             {
+                "schema_version": BUNDLE_SCHEMA_VERSION,
                 "generated": date.today().isoformat(),
                 "count": len(payload),
                 "repo": slug,
+                # The rules behind the derived fields, so a consumer can
+                # recompute them at read time instead of trusting values that
+                # were correct on `generated` and have aged since.
+                "confidence_levels": CONFIDENCE_LEVELS,
+                "stale_days": STALE_DAYS,
                 "triage": triage,
                 "stats": stats,
                 "status_model": STATUS_MODEL,

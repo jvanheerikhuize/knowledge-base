@@ -90,3 +90,6 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-03 — linked `semantic/kb-corrections-happen-in-place.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
 - 2026-08-03 — linked `semantic/memory-overview-site.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
 - 2026-08-03 — linked `semantic/kb-instruction-content-lint.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
+- 2026-08-04 — created `semantic/kb-the-bundle-was-already-shipped.md`
+- 2026-08-04 — linked `semantic/memory-overview-site.md` — -> kb-the-bundle-was-already-shipped
+- 2026-08-04 — verified `semantic/memory-overview-site.md` — confidence=verified

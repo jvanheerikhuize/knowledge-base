@@ -649,18 +649,110 @@ itself the finding.
 `tests/test_retrieval_golden.py`, 8 for `kb.py eval`, 6 for `kb.py stats`,
 3 for the site's stats block.
 
-## Phase 9 — Cross-repo integration · `someday`
+## Phase 9 — Cross-repo integration · `done` (2026-08-04)
 
 Named as this repo's role in the workspace: keep wikilinks consistent across
 `knowledge-base`, the workspace wiki, and `digital-twin`. (The workspace
 CLAUDE.md still calls that wiki `knowledge`; no such directory exists — the
 live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
 
-- Export a portable bundle (`data.json` plus `memory/`) that another repo can
-  read without importing this tooling.
-- Cross-repo dangling-link check in CI.
-- Must hold [[twin-sovereignty-constraint]]: no API key, no vendor LLM, no
-  agent required in the loop for any of it to work.
+- ✅ **Export a portable bundle** — already existed, and was wrong in the one
+  place that matters.
+- ❌ **Cross-repo dangling-link check in CI** — not built. Empty domain,
+  measured; the risk runs the other way and this repo cannot see it.
+- ✅ Holds [[twin-sovereignty-constraint]]: one static JSON file over HTTPS,
+  or a stdlib stdio server on the same disk. No API key, no vendor LLM, no
+  agent in the loop.
+
+**The bundle was already shipped and nobody had noticed.** The phase proposed
+exporting "`data.json` plus `memory/`". `data.json` has carried every entry in
+full — frontmatter, body, resolved `links`, computed `backlinks`, `status`,
+`review_by`, plus `triage`, `stats` and `status_model` — since the site first
+shipped (#16, bodies added in #18), is published to Pages on every
+memory-touching push, and is 145 KB for 32 entries.
+Shipping a second export command would have been the [Phase 6
+mistake](#phase-6--ingestion-without-ceremony--done-2026-08-03) again: building
+against a flow with no observed instance, when the flow already had a working
+implementation under a different name.
+
+**What the bundle got wrong.** It exported `confidence` — the level the author
+wrote when they last checked the claim — as the obvious per-entry field, and
+the decayed, as-read level only in a *parallel* `status[]` array, keyed by name
+and undocumented. So a consumer doing exactly what the phase describes, reading
+the bundle without importing the tooling, reads the one number the decay model
+exists to correct ([[kb-forgetting-model]]).
+
+Today that is invisible: 0 of 32 entries diverge, and none will before
+2026-11-02. On 2026-11-02, **32 of 32** diverge at once — this store was
+written in a single nine-day sprint, so `STALE_DAYS` elapses for the whole
+corpus in the same week rather than entry by entry. A defect with a zero-sized
+blast radius today and a total one on a date you can name is not a latent risk,
+it is a scheduled one.
+
+Shipped, all in the builder:
+
+- `entries[]` gains `effective_confidence` and `decayed_by`, from the same
+  `kb.effective_confidence` the CLI and MCP paths use. The recorded claim is
+  untouched — decay stays a read-time view.
+- The bundle gains `stale_days` and `confidence_levels`: **the rule, not just
+  its result.** A bundle is read long after `generated`, so a derived field
+  has itself aged by the time anyone looks at it. A consumer that has the rule
+  can recompute from `last_verified` and never be wrong; one that only has the
+  answer is wrong by however long the file has been sitting there.
+- `schema_version`, and a contract test pinning the *exact* key set of the
+  bundle and of every entry. The existing tests asserted key **presence**
+  (`assertIn`), which never fails when a field is dropped or renamed — and the
+  field set had already changed in 5 of the 9 commits that ever touched the
+  builder: the one that created it, then `body` (#18), `status_model` (#20),
+  `stats` (#34), and `authority` (#37), silently every time. Verified the new
+  test fails on an added key before keeping it.
+- README documents the contract, including which of the two confidence fields
+  to trust and why.
+
+**Why no dangling-link checker.** Measured before building, and the domain is
+empty. Across the whole store: 66 `[[wikilink]]` occurrences, 27 distinct
+targets, **0** pointing outside it. The single unresolved target is the literal
+word `wikilinks` used as prose in [[memory-overview-site]], not a link. Nor
+could it be otherwise — a link is a bare entry name with no namespace, so a
+cross-repo link is not currently expressible. A CI check here would fire zero
+times, forever. (Dangling links *within* the store are already a `kb.py lint`
+error, confirmed against a planted case, so the builder's silent drop of
+unresolvable names is guarded upstream.)
+
+The real exposure runs the other way: another repo citing an entry **here**, by
+name or by URL, and this repo renaming or deleting it. That is inbound, and CI
+in this repo cannot see it — nor can a routine session, which is scoped to one
+repo ([[sibling-repo-access-denied-in-routines]]). What makes an inbound
+citation safe is name stability, so the honest deliverable is the promise, not
+a checker: entry names are the join key, and the git replay says none has ever
+been renamed and no entry has ever been deleted (the only deletions under
+`memory/` were generated files and templates in `9dcde20`, matching Phase 4's
+replay). That promise is now written down in the README where a consumer will
+look, and it is falsifiable — the day an entry is renamed, it is broken.
+
+6 new tests (444 total). Write-up: [[kb-the-bundle-was-already-shipped]].
+
+---
+
+## No phase is open — what would reopen one
+
+Every phase above is `done`. That is not the same as finished, and the honest
+next list is not a set of new ideas: it is the set of **conditions already
+recorded inside the closed phases**, each of which was deliberately left
+unbuilt because the evidence for it did not exist yet. None should be picked up
+before its condition holds.
+
+| Reopens | When | Recorded in |
+|---|---|---|
+| MCP `2026-07-28` | the reference SDKs and at least one client ship it | Phase 2, "Open" |
+| The `kb-due.yml` workflow's untested half | after its first real fire — nothing here can run a scheduled Action | Phase 5 |
+| `kb.py import` | a scaffolded copy exists **and** has diverged, giving a real slug collision to write against | Phase 6 |
+| BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
+| A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
+
+Two of the five need something outside this repo (a client, a sibling
+checkout), one needs a scheduled Action to fire, and two need the store to grow.
+Nothing on the list is blocked on effort, which is why none of it is scheduled.
 
 ---
 
@@ -722,6 +814,22 @@ live repo is `llm-wiki`, per [[workspace-repo-inventory-drift]].)
   instead of leaving it an append-only file nobody reads bottom-to-top; the
   file itself, and git under it, stay the only record. 21 new tests (401
   total). Write-up: [[kb-instruction-content-lint]].
+- Phase 9 — cross-repo integration. (2026-08-04) The portable bundle the
+  phase asked for had been published for weeks under a different name:
+  `site/data.json` already carries every entry in full. It exported the
+  *as-written* confidence as the obvious per-entry field and the decayed,
+  as-read level only in a parallel `status[]` array — 0 of 32 entries diverge
+  today, 32 of 32 on 2026-11-02, because a store written in one sprint ages
+  all at once. Fixed by putting `effective_confidence`/`decayed_by` on each
+  entry and shipping `stale_days`/`confidence_levels` so a reader can
+  recompute the decay itself, plus `schema_version` and an exact-key-set
+  contract test (the old tests asserted presence only, and the shape had
+  already changed silently in 5 of 9 builder commits). The dangling-link
+  checker was **not** built: 66 wikilink occurrences, 27 targets, 0 pointing
+  outside the store, and no syntax that could express one. The real exposure
+  is inbound citations, which CI here cannot see, so the deliverable is a
+  falsifiable name-stability promise in the README instead of a checker
+  ([[kb-the-bundle-was-already-shipped]]).
 - Phase 8 — site and graph. (2026-08-03) Execution, not research: all three
   bullets read data `kb.py stats`/`status_report()` already compute. Shipped
   `timeline.html` — growth by creation month as bars, a type × status heat

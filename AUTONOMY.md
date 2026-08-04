@@ -291,6 +291,31 @@ already configured this way; inside a session just do the work you were given.
   `?q=`/`?type=` via `URLSearchParams`/`history.replaceState`, plus a
   copy-link button. 10 new tests (438 total). Write-up:
   `kb-timeline-and-heatmap-are-frontmatter-only`.
+- [x] **ROADMAP Phase 9 — cross-repo integration.** (2026-08-04) Closed, and
+  the export it asked for had been published for weeks under another name.
+  `site/data.json` already carries every entry in full and goes to Pages on
+  every memory-touching push, so an `export` command would have been the Phase
+  6 mistake again. The live defect was *which number it published*: each entry
+  exported `confidence` (as written when the author last checked) as the
+  obvious field, and the decayed as-read level only in a parallel `status[]`
+  array, undocumented — so a consumer reading the bundle "without importing
+  this tooling", which is the phase's own wording, reads the one number the
+  decay model exists to correct. **0 of 32** entries diverge today; **32 of 32**
+  on **2026-11-02**, because a store written in one nine-day sprint crosses
+  `STALE_DAYS` all at once. Shipped `effective_confidence`/`decayed_by` per
+  entry, plus `stale_days`/`confidence_levels` so a reader can recompute the
+  decay itself (a bundle is read long after `generated`; export the rule, not
+  just the result), plus `schema_version` and a contract test pinning the exact
+  key set — the old tests asserted key *presence*, which cannot fail on a
+  dropped or renamed field, and the shape had already changed silently in 5 of
+  the 9 commits that ever touched the builder. **The dangling-link checker was
+  not built:** 66 wikilink occurrences, 27 targets, **0** pointing outside the
+  store, and a link is a bare name with no namespace so a cross-repo link is
+  not expressible — a CI check here fires zero times forever. The real exposure
+  is inbound (another repo citing an entry here, this repo renaming it), which
+  CI here cannot see, so the deliverable is a falsifiable name-stability
+  promise in the README instead. 6 new tests (444 total). Write-up:
+  `kb-the-bundle-was-already-shipped`. **The ROADMAP now has no open phase.**
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

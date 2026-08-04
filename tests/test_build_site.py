@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
 
 import build_site  # noqa: E402
+import kb  # noqa: E402
 
 
 class MarkdownTests(unittest.TestCase):
@@ -410,6 +411,77 @@ class SavedSearchTests(unittest.TestCase):
         index = build_site.build_index([])
         self.assertIn('id="copy-link"', index)
         self.assertIn("navigator.clipboard.writeText(location.href)", index)
+
+
+class BundleContractTests(unittest.TestCase):
+    """`site/data.json` is the published bundle — the only way to read this
+    store without importing the tooling. Its shape is therefore a contract,
+    not an implementation detail: these tests pin the exact key sets so a
+    field cannot be added, dropped, or renamed without someone deciding to
+    bump `BUNDLE_SCHEMA_VERSION` in the same commit."""
+
+    BUNDLE_KEYS = {
+        "schema_version", "generated", "count", "repo", "confidence_levels",
+        "stale_days", "triage", "stats", "status_model", "status", "entries",
+    }
+    ENTRY_KEYS = {
+        "name", "type", "description", "confidence", "effective_confidence",
+        "decayed_by", "authority", "created", "last_verified", "source", "due",
+        "links", "body", "path", "backlinks", "status", "action", "review_by",
+    }
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = pathlib.Path(self.tmp.name) / "site"
+        build_site.build(self.out)
+        self.data = json.loads((self.out / "data.json").read_text())
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_bundle_keys_are_exactly_the_published_set(self):
+        self.assertEqual(set(self.data), self.BUNDLE_KEYS)
+
+    def test_entry_keys_are_exactly_the_published_set(self):
+        for entry in self.data["entries"]:
+            self.assertEqual(set(entry), self.ENTRY_KEYS, entry["name"])
+
+    def test_schema_version_is_declared(self):
+        self.assertIsInstance(self.data["schema_version"], int)
+        self.assertEqual(self.data["schema_version"], build_site.BUNDLE_SCHEMA_VERSION)
+
+    def test_decay_rules_ship_so_a_consumer_can_recompute_them(self):
+        # A bundle is read long after it is built, so the derived values in it
+        # age. Exporting the rules as well as the results is what makes the
+        # staleness recomputable by a reader that has no access to kb.py.
+        self.assertEqual(self.data["stale_days"], kb.STALE_DAYS)
+        self.assertEqual(self.data["confidence_levels"], kb.CONFIDENCE_LEVELS)
+
+    def test_entries_carry_the_as_read_confidence_not_only_the_as_written_one(self):
+        by_name = {s["name"]: s for s in self.data["status"]}
+        for entry in self.data["entries"]:
+            status = by_name[entry["name"]]
+            self.assertEqual(entry["effective_confidence"],
+                             status["effective_confidence"], entry["name"])
+            self.assertEqual(entry["decayed_by"], status["decayed_by"], entry["name"])
+
+    def test_effective_confidence_is_derived_not_copied_from_frontmatter(self):
+        # Today every entry is fresh, so as-written and as-read agree and this
+        # field could be a copy of `confidence` without any test noticing.
+        # Substituting the decay function proves collect() actually calls it.
+        real = build_site.collect()
+        original = build_site.effective_confidence
+        build_site.effective_confidence = lambda fm, today=None: ("sentinel", 3)
+        try:
+            entries = build_site.collect()
+        finally:
+            build_site.effective_confidence = original
+        self.assertTrue(entries)
+        for entry, before in zip(entries, real):
+            self.assertEqual(entry["effective_confidence"], "sentinel")
+            self.assertEqual(entry["decayed_by"], 3)
+            # the recorded claim is untouched — decay is a read-time view
+            self.assertEqual(entry["confidence"], before["confidence"])
 
 
 class RepoSlugTests(unittest.TestCase):

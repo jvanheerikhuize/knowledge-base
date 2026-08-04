@@ -5,8 +5,8 @@ description: this KB publishes itself as a static site to GitHub Pages, rebuilt 
 confidence: verified
 source: built 2026-07-27 in this repo — scripts/build_site.py and .github/workflows/pages.yml
 created: 2026-07-27
-last_verified: 2026-07-27
-links: [kb-is-file-based, persist-insight-to-knowledge-base, editing-the-kb-without-a-cms, kb-entry-status-model, kb-timeline-and-heatmap-are-frontmatter-only]
+last_verified: 2026-08-04
+links: [kb-is-file-based, persist-insight-to-knowledge-base, editing-the-kb-without-a-cms, kb-entry-status-model, kb-timeline-and-heatmap-are-frontmatter-only, kb-the-bundle-was-already-shipped]
 ---
 
 The knowledge base has a browsable web overview, generated from `memory/`
@@ -23,10 +23,14 @@ graph page, a type reference page, a triage queue, and `site/data.json`.
 locally by `scripts/serve.py` — one set of files either way. See
 [[editing-the-kb-without-a-cms]] for why it works that way.
 
-**`data.json` is the extension point.** It carries every entry in full —
-frontmatter, body, resolved links, computed backlinks. Later interactivity
-(timelines, graph exploration, editing) should be built against it rather than
-by changing the builder.
+**`data.json` is the extension point, and now also a contract.** It carries
+every entry in full — frontmatter, body, resolved links, computed backlinks.
+Later interactivity (timelines, graph exploration, editing) should be built
+against it rather than by changing the builder. Since 2026-08-04 it is
+additionally the supported way to read this store from outside the repo, so it
+carries a `schema_version` and a pinned key set, and each entry ships both the
+as-written and the as-read confidence — see
+[[kb-the-bundle-was-already-shipped]] for what that fixed.
 
 **Publishing.** `.github/workflows/pages.yml` deploys to GitHub Pages on pushes
 to `main` touching `memory/**`, `.kb/**`, `scripts/kb.py`, or the builder. Other
