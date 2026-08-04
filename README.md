@@ -550,7 +550,8 @@ project-scoped MCP config picks it up with no setup. Registering it by hand:
   be silently wrong
 - a Mermaid graph page and a memory-type reference page
 - `site/data.json` — every entry as structured data, including bodies,
-  links, and backlinks
+  links, backlinks, and both the as-written and as-read confidence; also the
+  portable bundle another repo reads (contract below)
 
 `data.json` is the interactivity hook: anything richer than filter-and-search
 (timelines, graph exploration, an edit surface) can be built against it without
@@ -565,6 +566,48 @@ unrelated tooling do not trigger a rebuild, so a deploy always means the memory
 itself moved. The workflow lints before it builds: a schema-invalid KB fails
 rather than publishing. Pages must be enabled once for the repository with
 **Settings → Pages → Source: GitHub Actions**.
+
+### Reading this store from somewhere else: the `data.json` contract
+
+`data.json` is also the portable bundle — the supported way for another repo,
+a CI job, or a browser to read this store **without importing the tooling**.
+It is one published file, ~145 KB for 32 entries, no API key and no service
+behind it. Two ways in, and which one you get depends on where you are:
+
+- **Same disk** (a sibling checkout, a local agent): mount the MCP server by
+  absolute path — `python3 /abs/path/to/scripts/mcp_server.py --read-only`.
+  Every script resolves the store from its own location, not the working
+  directory, so this works from any cwd and you get ranked retrieval, not
+  just the raw entries.
+- **Anywhere else**: fetch `data.json` from the published site.
+
+What the bundle promises:
+
+- `schema_version` — an integer, bumped whenever a key is added, dropped,
+  renamed, or given a different meaning. A contract test in
+  `tests/test_build_site.py` pins the exact key set of the bundle and of each
+  entry, so the shape cannot change without someone deciding to bump it.
+- `entries[]` — every entry in full: frontmatter, `body`, resolved `links`,
+  computed `backlinks`, `status`, and its `path` in this repo.
+- **Two confidence fields, and the difference matters.** `confidence` is what
+  the author wrote when they last checked the claim; `effective_confidence`
+  (with `decayed_by`) is what the store *reads* it as today, after staleness
+  decay. Trust the second one. A consumer that reads `confidence` because it
+  is the obvious field gets exactly the number the decay model exists to
+  correct — and this store was written in a single sprint, so it does not
+  drift entry by entry: nothing diverges before 2026-11-02 and everything
+  diverges on it.
+- `stale_days` and `confidence_levels` — the decay rule itself, not just its
+  result. A bundle is read long after `generated`, so recompute from
+  `last_verified` rather than trusting a derived field that has since aged.
+- `status_model`, `status[]`, `triage`, `stats` — the same reports `kb.py
+  status`, `kb.py triage`, and `kb.py stats` print.
+
+Entry `name`s are the join key and are treated as stable: no entry has ever
+been renamed or deleted in this store's history. Nothing else is promised —
+in particular, an entry's `body` is markdown that may change wording at any
+time, and `[[wikilinks]]` inside it resolve only against names in the same
+bundle.
 
 ## Tests
 
