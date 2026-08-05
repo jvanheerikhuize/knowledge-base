@@ -742,6 +742,117 @@ look, and it is falsifiable — the day an entry is renamed, it is broken.
 
 ---
 
+## Phase 11 — The store is one cohort · `done` (2026-08-05)
+
+Not in the original phase list. It was picked up because Phase 9 had left a
+loose thread — "0 of 32 entries diverge today, **32 of 32** on 2026-11-02,
+because this store was written in a single nine-day sprint" — recorded as a
+consequence of one defect when it is really a property of the whole store, and
+nothing had gone looking for the rest of what follows from it.
+
+- ✅ **Measure the age structure and replay it forward.** Dated arithmetic, not
+  a worry.
+- ✅ **Measure what decay is actually worth here.** Nothing, at every offset
+  out to two years.
+- ❌ **Stagger the review dates** — rejected, `last_verified` is a record.
+- ❌ **Prioritise the flat queue** — rejected, two positives in the store's
+  entire history cannot support a ranking signal.
+- ✅ **Ship the forecast**, in `status`, `stats`, `data.json` and on the
+  status board.
+
+**The measurement.** All 32 live entries carry a `last_verified` inside an
+**8-day window** — 8.9% of the 90-day `STALE_DAYS` cycle. Twelve of them share
+a single date. Replaying the store's own dates forward with nothing else
+changing:
+
+| date | what happens |
+|---|---|
+| 2026-10-04 | `current` empties — all 32 entries `ageing` at once |
+| 2026-10-26 | the first entry goes stale; queue 0 → 11 in a day |
+| 2026-11-03 | every live entry stale; triage queue 32 items |
+
+The queue holds at most **two distinct severities**, so it sorts by type and
+name — 32 rows that all look equally urgent, which reads the same as none of
+them being urgent. And the natural repair is the trap: re-verifying the store
+in one sweep sets every date to the same day, taking the window from 8 days to
+**zero** and scheduling the identical pile-up exactly one cycle later, forever.
+
+**Confidence decay does nothing here, measured rather than argued.**
+`effective_confidence` demotes one level per elapsed cycle and `rank()`
+multiplies by the decayed level's weight — a design that needs *differential*
+age to express anything. With one cohort there is none, so the multiplier is a
+near-global constant. The golden set was scored against the real store at +0,
++45, +90, +135, +180, +270, +360, +450, +540 and +720 days, with decay on and
+with `effective_confidence` stubbed out entirely:
+
+```
+as-of      succ@1    MRR     r@3     r@5     decay disabled
++0          0.517   0.631   0.724   0.793    0.517 0.631 0.724 0.793
++45..+720   0.517   0.634   0.759   0.793    0.517 0.634 0.759 0.793
+```
+
+Identical at every offset, and the top-10 order for a confidence-laden query
+never changes. The small move between +0 and +45 is episodic recency — a
+different signal, and it shows in the decay-off column too. 30 of 32 entries
+share one stored level, so decay can only ever reorder the other 2 — and from
+**2027-07-30** not even those, because five levels clamp at `unverified` and
+the whole store sits there permanently. A store nobody re-verifies ends with
+the decay signal switched off, which is the opposite of its purpose. (This
+sharpens rather than contradicts Phase 7, which ablated the confidence
+multiplier and found it inside the noise band: Phase 7 measured that it does
+not help *today*; this measures why it cannot, and until when.)
+
+The claim is narrow on purpose. Decay's **ranking** term is inert here. Its
+**display** — `[verified -> high, aged]` in search and context packs — is not,
+and is unaffected by the cohort.
+
+**Why the dates were not staggered.** `last_verified` records when somebody
+looked. Jittering it would be a lie in the one field the whole freshness model
+trusts. The alternative, a per-entry review interval in frontmatter, is the
+[Phase 4](#phase-4--temporal-validity--done) mistake exactly: a field whose
+domain has to be established before it is added, and nothing here establishes
+one. The honest version of staggering needs no field at all — re-verify in
+batches on different days, and the dates spread because the checks really did
+happen then.
+
+**Why the queue was not prioritised.** To order 32 equally-stale entries you
+need a signal for "worth re-checking", and this store cannot supply one. Its
+entire history contains **2 entries of 33** whose one-line claim was ever
+rewritten — `kb-entry-status-model` and `kb-duplicate-detection-limits`, both
+by `kb.py history`'s own reckoning — and both were corrected within days by a
+later session's *measurement*, not by the passage of time. Two positives cannot
+fit a ranker, and the store is far too young for the staleness clock to have
+caught anything yet; the clock's hit rate is not low here, it is unobserved.
+Recorded so a future session with a longer history knows what to re-ask.
+
+**What shipped.** `review_forecast()` — every live entry's review date is just
+`last_verified + STALE_DAYS`, so the shape of the coming work was always fully
+determined and no command reported it. It returns the window, the busiest day,
+the count already past review, the count with no usable date, and whether the
+shape is a cohort (`span ≤ cycle/3`, with a five-entry floor so a new store's
+unavoidable narrowness is not reported as a finding). `kb.py status` ends with
+it — a snapshot needs the one line that is about a different day — `kb.py
+stats` gains a REVIEW LOAD section, and it goes into `site/data.json` and onto
+the status board.
+
+**One defect found on the way out.** Archiving the expired
+`holiday-autonomy-mandate` exposed that `kb.py eval` checked whether an
+expected entry still *exists*, not whether it is still *retrievable*. Archiving
+takes an entry out of the retrieval set and leaves the file, so an archived
+expectation passed the check and scored a guaranteed miss on every run
+thereafter — the silent fixture rot the check exists to prevent, by the
+commoner route. Fixed, and the one golden query that asked about the mandate
+retired with it (28 queries, success@1 0.536 / MRR 0.653; floors unchanged, per
+Phase 7's standing instruction not to move them).
+
+`data.json` is `schema_version: 2` — `stats` gained a key, and the contract
+test now pins the `stats` and `review_forecast` key sets too, closing the same
+gap Phase 9 closed one level up.
+
+16 new tests (460 total). Write-up: [[kb-review-load-is-one-cohort]].
+
+---
+
 ## No phase is open — what would reopen one
 
 Every phase above is `done`. That is not the same as finished, and the honest
@@ -757,10 +868,18 @@ before its condition holds.
 | `kb.py import` | a scaffolded copy exists **and** has diverged, giving a real slug collision to write against | Phase 6 |
 | BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
+| A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
 
-Two of the five need something outside this repo (a client, a sibling
-checkout), one needs a scheduled Action to fire, and two need the store to grow.
-Nothing on the list is blocked on effort, which is why none of it is scheduled.
+Three of the six need something outside this repo (a client, a sibling
+checkout) or a scheduled Action to fire, and three need the store to grow or to
+age. Nothing on the list is blocked on effort, which is why none of it is
+scheduled.
+
+The nearest thing to a standing action is not on that table, because it is not
+engineering: **the whole store's review window is 2026-10-26 → 2026-11-03, and
+it is one cohort** (Phase 11). Re-verifying in batches on different days before
+then spreads it permanently; one sweep re-creates it. `kb.py status` now says
+so on every run.
 
 ---
 
@@ -849,6 +968,23 @@ Nothing on the list is blocked on effort, which is why none of it is scheduled.
   git-derived view would render every entry as never having changed, the same
   constraint that already kept `kb.py history` off the site. 10 new tests
   (438 total). Write-up: [[kb-timeline-and-heatmap-are-frontmatter-only]].
+- Phase 11 — the store is one cohort. (2026-08-05) Not in the original list;
+  picked up from a loose thread Phase 9 left. All 32 live entries were
+  verified inside an 8-day window of the 90-day cycle, so the whole review
+  load lands together: `current` empties 2026-10-04, the triage queue goes
+  0 → 32 between 2026-10-26 and 2026-11-03 with only two distinct severities
+  in it, and re-verifying in one sweep narrows the window to zero and repeats
+  the pile-up every cycle. Confidence decay needs differential age and there
+  is none — the golden set scores **identically** with decay on and with it
+  removed, at every offset out to +720 days, and from 2027-07-30 the five
+  levels clamp so it can never reorder anything again. Staggering the dates
+  was rejected (`last_verified` is a record, not a knob) and so was
+  prioritising the flat queue (2 claim rewrites in 33 entries is not enough
+  to fit a ranker). Shipped `review_forecast()` instead — window, busiest
+  day, cohort shape — in `kb.py status`, `kb.py stats`, `data.json`
+  (`schema_version: 2`) and the status board, plus a fix for `kb.py eval`
+  treating an *archived* expectation as resolvable. 16 new tests (460 total).
+  Write-up: [[kb-review-load-is-one-cohort]].
 
 ---
 

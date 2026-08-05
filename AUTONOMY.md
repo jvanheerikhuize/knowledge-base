@@ -328,6 +328,30 @@ already configured this way; inside a session just do the work you were given.
   queue empties) still hasn't run in production — `holiday-autonomy-mandate`
   clears tomorrow, 2026-08-05 — so that stays the one open row in ROADMAP's
   reopen table rather than a second re-verify task.
+- [x] **ROADMAP Phase 11 — the store is one cohort.** (2026-08-05) Not on this
+  list; picked up as the research-tier item because the backlog was otherwise
+  empty and Phase 9 had left a loose thread — it recorded "32 of 32 entries
+  diverge on 2026-11-02, because this store was written in one nine-day sprint"
+  as a consequence of an export defect, when it is a property of the whole
+  store. All 32 live entries were verified inside an **8-day window** of the
+  90-day cycle. Replayed forward: `current` empties **2026-10-04**, the triage
+  queue goes 0 → 32 between **2026-10-26** and **2026-11-03**, and it holds
+  only **two distinct severities**, so 32 rows sort alphabetically and none of
+  them reads as urgent. Confidence decay needs differential age and there is
+  none: the golden set scores **identically** with decay on and with the decay
+  function removed, at every offset from +0 to +720 days, and from 2027-07-30
+  the five levels clamp so it can never reorder anything again. **Both
+  proposed repairs were rejected on evidence** — staggering the dates
+  (`last_verified` is a record of when somebody looked, and a per-entry
+  interval field is the Phase 4 empty-domain mistake) and prioritising the flat
+  queue (2 claim rewrites in 33 entries cannot fit a ranker; recorded in the
+  reopen table for a store with more history). Shipped a **forecast** instead:
+  `review_forecast()` in `kb.py status`, `kb.py stats`, `data.json`
+  (`schema_version: 2`) and the status board. Also fixed `kb.py eval` treating
+  an *archived* expectation as resolvable — it scored a guaranteed miss forever
+  — and archived the spent `holiday-autonomy-mandate` per the entry's own
+  closing instruction. 16 new tests (460 total). Write-up:
+  `kb-review-load-is-one-cohort`.
 - [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
   routine.** Needs sibling-repo access, which routine sessions do not have
   (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`

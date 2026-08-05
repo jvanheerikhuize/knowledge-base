@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/kb.py STATUS_MODEL and status_report(); implemented and tested 2026-07-27, extended 2026-07-28 (archived) and 2026-07-30 (contradicted)
 created: 2026-07-27
 last_verified: 2026-07-30
-links: [kb-is-file-based, memory-overview-site, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-contradiction-is-a-second-axis, kb-prospective-memory-that-fires]
+links: [kb-is-file-based, memory-overview-site, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-contradiction-is-a-second-axis, kb-prospective-memory-that-fires, kb-review-load-is-one-cohort]
 ---
 
 `kb.py triage` reports only what is already wrong, so a store where nothing

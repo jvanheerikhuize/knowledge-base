@@ -88,10 +88,6 @@
       "expect": "kb-agent-entrypoint-is-agent-md"
     },
     {
-      "query": "am I allowed to merge my own pull request while he is away",
-      "expect": "holiday-autonomy-mandate"
-    },
-    {
       "query": "what is planned next for this thing",
       "expect": "kb-roadmap"
     },

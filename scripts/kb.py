@@ -66,6 +66,13 @@ TRIAGE_SEVERITY = {
 }
 # How close to STALE_DAYS an entry gets before it is called out as ageing.
 AGEING_RATIO = 2 / 3
+# A store written in one burst comes due in one burst. When every live entry's
+# review date falls inside this fraction of the review cycle, the store is one
+# cohort rather than a spread, and `triage` reads clean right up to the day all
+# of it goes stale together. Below the entry floor the narrowness is arithmetic
+# rather than a finding — three entries cannot help but be concentrated.
+COHORT_RATIO = 1 / 3
+COHORT_MIN_ENTRIES = 5
 
 # Every entry sits in exactly one of these states. Ordered worst first: an
 # entry that qualifies for several takes the earliest one, so the status
@@ -1123,7 +1130,13 @@ def eval_report(golden=None, docs=None, rank_fn=None):
     golden = load_golden() if golden is None else golden
     docs = entry_documents() if docs is None else docs
     rank_fn = (lambda q: rank(q, docs=docs)) if rank_fn is None else rank_fn
-    known = {fm.get("name", path.stem) for _, path, fm, _, _ in docs}
+    # An expectation is only answerable if its entry is in the retrieval set.
+    # Archiving takes an entry out of that set without deleting the file, so
+    # testing existence alone lets an archived expectation score as a miss on
+    # every run forever — the same silent fixture rot a deleted entry causes,
+    # by the commoner route.
+    known = {fm.get("name", path.stem) for _, path, fm, _, _ in docs
+             if not is_archived(fm)}
 
     rows = []
     for g in golden:
@@ -1698,7 +1711,102 @@ def stats_report():
         },
         "body_words": {"median": median(words), "total": sum(words)},
         "created_by_month": [[m, by_month[m]] for m in sorted(by_month)],
+        "review_forecast": review_forecast(today),
     }
+
+
+def review_forecast(today=None):
+    """When the store's re-verification work lands, if nothing else changes.
+
+    Every live entry's review date is `last_verified + STALE_DAYS`, so the
+    shape of the coming workload is fixed the moment the entry is written.
+    Nothing else reports it: `triage` and `status` both describe today, and a
+    store whose entries were all written in the same week therefore reads
+    perfectly clean right up to the day the whole of it goes stale at once.
+
+    The window matters more than the dates. A store spread evenly across the
+    cycle retires a slice of itself each week; a store concentrated into a few
+    days has no slice small enough to do, so the queue arrives whole and the
+    natural repair — re-verify everything in one sweep — sets the spread to
+    zero and schedules the same pile-up exactly one cycle later.
+    """
+    today = today or datetime.date.today()
+    by_date = collections.Counter()
+    undated = 0
+    for t, path in iter_entries():
+        try:
+            fm, _ = parse_frontmatter(path)
+        except OSError:
+            continue
+        if is_archived(fm):
+            continue
+        try:
+            due = (datetime.date.fromisoformat(str(fm.get("last_verified")))
+                   + datetime.timedelta(days=STALE_DAYS))
+        except (TypeError, ValueError):
+            # No date, or one `triage` already reports as broken. Either way
+            # this entry has no review date to forecast; it is counted so the
+            # forecast cannot silently describe a subset of the store.
+            undated += 1
+            continue
+        by_date[due.isoformat()] += 1
+
+    dated = sum(by_date.values())
+    forecast = {
+        "today": today.isoformat(),
+        "cycle_days": STALE_DAYS,
+        "dated": dated,
+        "undated": undated,
+        "first": None,
+        "last": None,
+        "span_days": None,
+        "busiest": None,
+        "already_due": 0,
+        "is_cohort": False,
+        "by_date": [],
+    }
+    if not dated:
+        return forecast
+
+    dates = sorted(by_date)
+    span = (datetime.date.fromisoformat(dates[-1])
+            - datetime.date.fromisoformat(dates[0])).days
+    forecast.update({
+        "first": dates[0],
+        "last": dates[-1],
+        "span_days": span,
+        # Ties go to the earliest date: the first day the load appears is the
+        # one worth naming, not the last day it is still that size.
+        "busiest": min(dates, key=lambda d: (-by_date[d], d)),
+        "already_due": sum(n for d, n in by_date.items()
+                           if datetime.date.fromisoformat(d) <= today),
+        "is_cohort": dated >= COHORT_MIN_ENTRIES and span <= STALE_DAYS * COHORT_RATIO,
+        "by_date": [[d, by_date[d]] for d in dates],
+    })
+    return forecast
+
+
+def format_review_forecast(f):
+    """The forecast as the one or two lines a board can end with."""
+    if not f["dated"]:
+        return []
+    span, cycle = f["span_days"], f["cycle_days"]
+    peak = dict(f["by_date"])[f["busiest"]]
+    lines = [
+        f"Review load: {f['dated']} entr{'y' if f['dated'] == 1 else 'ies'} "
+        f"come due {f['first']} → {f['last']} — {span}d wide inside a "
+        f"{cycle}d review cycle, busiest {f['busiest']} ({peak})."
+    ]
+    if f["already_due"]:
+        lines.append(f"  {f['already_due']} of them already past review.")
+    if f["undated"]:
+        lines.append(f"  {f['undated']} entr{'y' if f['undated'] == 1 else 'ies'} "
+                     "have no usable last_verified and are not in this forecast.")
+    if f["is_cohort"]:
+        lines.append("  That is one cohort, not a spread: re-verifying them "
+                     "together re-dates them together, so the same pile-up "
+                     f"returns {cycle}d later. Spread the sweep to spread it.")
+    return lines
 
 
 def cmd_status(args):
@@ -1739,6 +1847,11 @@ def cmd_status(args):
     summary = "  ".join(f"{STATUS_BY_KEY[k]['label'].lower()}: {counts[k]}"
                         for k in STATUS_ORDER if counts[k])
     print(f"\n{len(report)} entries — {summary}")
+    # The board above is a snapshot; a clean one says nothing about whether
+    # the store is about to need all of its attention on the same day.
+    if not (args.type or args.status):
+        for line in format_review_forecast(review_forecast()):
+            print(line)
     print("Run 'kb.py status --legend' for what each status means.")
 
 
@@ -1784,6 +1897,19 @@ def cmd_stats(args):
         row("never verified", age["never_verified"])
     row("median body words", s["body_words"]["median"])
     row("total body words", s["body_words"]["total"])
+
+    f = s["review_forecast"]
+    if f["dated"]:
+        print("\nREVIEW LOAD")
+        row("comes due", f"{f['first']} → {f['last']}")
+        row("window", f"{f['span_days']}d of a {f['cycle_days']}d cycle")
+        row("busiest day", f"{f['busiest']} ({dict(f['by_date'])[f['busiest']]})")
+        if f["already_due"]:
+            row("already past review", f["already_due"])
+        if f["undated"]:
+            row("no review date", f["undated"])
+        if f["is_cohort"]:
+            row("shape", "one cohort — the whole store comes due together")
 
     if s["created_by_month"]:
         print("\nCREATED")
@@ -2225,7 +2351,8 @@ def cmd_eval(args):
     if not args.all:
         print("Only queries whose top hit is wrong are listed; --all shows every query.")
     if s["unresolved"]:
-        print(f"\nerror: {len(s['unresolved'])} expected entr(ies) no longer exist: "
+        print(f"\nerror: {len(s['unresolved'])} expected entr(ies) are gone from "
+              f"the retrieval set (deleted, renamed or archived): "
               f"{', '.join(s['unresolved'])}", file=sys.stderr)
         print(f"Fix {GOLDEN_FILE.name} — an expectation that cannot resolve "
               "scores as a miss forever.", file=sys.stderr)
