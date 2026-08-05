@@ -67,6 +67,32 @@ already configured this way; inside a session just do the work you were given.
 - Scope may be increased when needed (Jerry: "increase your scope if you need
   to"), but record any scope expansion in `DEBRIEF.md`.
 
+## After the mandate period ends (2026-08-05)
+
+This charter's period is **2026-07-28 through 2026-08-05**, and the mandate
+that authorized it (`holiday-autonomy-mandate`) is archived as of today — its
+`due` date passed and the daily `kb-due` reminder closed the tracking issue
+against it (issue #36, run confirmed 2026-08-05). Jerry is back.
+
+If a routine still fires this charter after today (because it was never
+disabled — routine sessions cannot disable their own trigger; that is a UI
+action only Jerry can take), do not read "make your own decisions, do not
+stop" as still applying at holiday scope. Concretely:
+
+- The backlog below is exhausted: every item is checked except one explicitly
+  blocked on access. Do not invent new large-scope work to fill the gap —
+  that is scope creep past what was mandated, not autonomy.
+- Routine, low-risk maintenance is still fine without asking: `kb.py lint`,
+  `kb.py triage`, keeping tests green, fixing a concretely broken thing you
+  find. That standing permission does not expire.
+- Before starting anything **new and non-trivial** (a fresh ROADMAP phase, a
+  structural change, another repo), check for a message from Jerry in this
+  session or a new instruction in this file first — the holiday blanket
+  pre-authorization for "large chunks" and "automerge" was scoped to the
+  mandate period, not indefinitely renewed by its own absence of an end date.
+- If nothing is open and nothing new has been asked for: say so in
+  `DEBRIEF.md`, do not force a checkbox, and end the session.
+
 ## Backlog (top item first — keep this list current)
 
 - [x] **Probe sibling-repo access.** (2026-07-28) **No.** Routine sessions are
