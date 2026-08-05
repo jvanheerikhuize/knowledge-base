@@ -760,8 +760,11 @@ nothing had gone looking for the rest of what follows from it.
 - ✅ **Ship the forecast**, in `status`, `stats`, `data.json` and on the
   status board.
 
-**The measurement.** All 32 live entries carry a `last_verified` inside an
-**8-day window** — 8.9% of the 90-day `STALE_DAYS` cycle. Twelve of them share
+**The measurement**, taken across the 32 live entries in the store at the time.
+Filing this phase's own write-up makes it 33 across a 9-day window ending
+2026-11-03 — the shape is unchanged, and `kb.py status` always reports the live
+figure rather than this frozen one. All 32 carry a `last_verified` inside an
+**8-day window** — 8.9% of the 90-day `STALE_DAYS` cycle. Eleven of them share
 a single date. Replaying the store's own dates forward with nothing else
 changing:
 

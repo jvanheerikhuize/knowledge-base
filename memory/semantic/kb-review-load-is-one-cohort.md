@@ -15,6 +15,11 @@ This store was written in nine days. Every one of its 32 live entries carries a
 ages; it is **one cohort**, and almost everything that follows from age is
 distorted by that.
 
+(Every count here is as measured on 2026-08-05, before this entry was filed;
+adding it makes the store 33 entries across a 9-day window ending 2026-11-03.
+`kb.py status` reports the live numbers — these are frozen so the reasoning
+below can be checked against what it was actually run on.)
+
 **The consequence is dated arithmetic, not a worry.** Replaying the store's own
 dates forward with nothing else changing: `current` empties on **2026-10-04**
 (all 32 entries ageing at once), the first entry goes stale on **2026-10-26**,

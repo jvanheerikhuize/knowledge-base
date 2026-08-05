@@ -333,7 +333,8 @@ already configured this way; inside a session just do the work you were given.
   empty and Phase 9 had left a loose thread — it recorded "32 of 32 entries
   diverge on 2026-11-02, because this store was written in one nine-day sprint"
   as a consequence of an export defect, when it is a property of the whole
-  store. All 32 live entries were verified inside an **8-day window** of the
+  store. All 32 live entries (as measured, before this item's own write-up
+  entry was filed) were verified inside an **8-day window** of the
   90-day cycle. Replayed forward: `current` empties **2026-10-04**, the triage
   queue goes 0 → 32 between **2026-10-26** and **2026-11-03**, and it holds
   only **two distinct severities**, so 32 rows sort alphabetically and none of
