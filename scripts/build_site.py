@@ -45,7 +45,7 @@ from kb import (  # noqa: E402
 # given a different meaning. `tests/test_build_site.py` pins the exact key set
 # so a change here cannot go out silently — data.json is published to Pages and
 # is the only way to read this store without importing the tooling.
-BUNDLE_SCHEMA_VERSION = 1
+BUNDLE_SCHEMA_VERSION = 2
 
 DEFAULT_OUT = ROOT / "site"
 
@@ -403,6 +403,8 @@ table.log .detail{color:var(--muted);margin-left:.4rem}
 footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);
 color:var(--muted);font-size:.85rem}
 .empty{color:var(--muted);font-style:italic}
+.forecast{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+border-radius:.5rem;padding:.75rem 1rem;margin:-.5rem 0 1.5rem;font-size:.9rem}
 .actions{display:flex;flex-wrap:wrap;gap:.5rem;margin:-.5rem 0 1.5rem}
 .btn{display:inline-block;border:1px solid var(--line);background:var(--card);color:var(--fg);
 border-radius:.5rem;padding:.35rem .8rem;font-size:.85rem;cursor:pointer;text-decoration:none}
@@ -593,12 +595,16 @@ def card(e, depth=0) -> str:
     )
 
 
-def build_status(entries, statuses, slug=None) -> str:
+def build_status(entries, statuses, slug=None, forecast=None) -> str:
     """The status board: where every entry stands and what moves it.
 
     Triage lists only what is wrong. This lists everything, grouped by the
     one status that applies, with the exact command that changes it — the
     same model `kb.py status` prints.
+
+    The board is a snapshot, and a clean snapshot is exactly what a store
+    about to go stale all at once looks like, so it also carries the review
+    forecast — the one thing here that is about a date other than today.
     """
     by_name = {e["name"]: e for e in entries}
     counts = {k: sum(1 for r in statuses if r["status"] == k) for k in STATUS_ORDER}
@@ -642,12 +648,28 @@ def build_status(entries, statuses, slug=None) -> str:
             + "".join(items)
         )
 
+    ahead = ""
+    if forecast and forecast.get("dated"):
+        peak = dict(forecast["by_date"])[forecast["busiest"]]
+        ahead = (
+            f"<p class=\"forecast\"><b>Coming due:</b> {forecast['dated']} "
+            f"entries fall due for review between {html.escape(forecast['first'])} "
+            f"and {html.escape(forecast['last'])} — {forecast['span_days']}d wide "
+            f"inside a {forecast['cycle_days']}d cycle, busiest "
+            f"{html.escape(forecast['busiest'])} ({peak}).")
+        if forecast.get("is_cohort"):
+            ahead += (" That is one cohort rather than a spread: re-verifying "
+                      "them in a single sweep re-dates them together and brings "
+                      "the same pile-up back one cycle later.")
+        ahead += "</p>"
+
     body = (
         '<nav class="crumbs"><a href="index.html">← all memory</a></nav>'
         '<header class="top"><h1>Status</h1>'
         f"<p>Every entry sits in exactly one status. "
         f"{counts['current']} of {len(statuses)} are current.</p></header>"
-        "<p>An entry that qualifies for several statuses shows the most urgent one, "
+        + ahead
+        + "<p>An entry that qualifies for several statuses shows the most urgent one, "
         "so the action below is always the single next thing to do about it. "
         "Run <code>python3 scripts/kb.py status</code> for the same board in the "
         "terminal, or <code>python3 scripts/serve.py</code> to act on it in place.</p>"
@@ -1064,7 +1086,8 @@ def build(out_dir: pathlib.Path, slug=None) -> int:
     (out_dir / "graph.html").write_text(build_graph(entries), encoding="utf-8")
     (out_dir / "triage.html").write_text(build_triage(entries, triage, slug), encoding="utf-8")
     (out_dir / "status.html").write_text(
-        build_status(entries, statuses, slug), encoding="utf-8"
+        build_status(entries, statuses, slug, stats["review_forecast"]),
+        encoding="utf-8",
     )
     (out_dir / "changes.html").write_text(
         build_changes(parse_log(), entries), encoding="utf-8"

@@ -93,3 +93,6 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-04 — created `semantic/kb-the-bundle-was-already-shipped.md`
 - 2026-08-04 — linked `semantic/memory-overview-site.md` — -> kb-the-bundle-was-already-shipped
 - 2026-08-04 — verified `semantic/memory-overview-site.md` — confidence=verified
+- 2026-08-05 — archived `prospective/holiday-autonomy-mandate.md`
+- 2026-08-05 — linked `semantic/kb-forgetting-model.md` — -> kb-review-load-is-one-cohort
+- 2026-08-05 — linked `semantic/kb-entry-status-model.md` — -> kb-review-load-is-one-cohort

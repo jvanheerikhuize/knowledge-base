@@ -8,6 +8,7 @@ created: 2026-07-27
 last_verified: 2026-07-27
 links: [kb-agent-entrypoint-is-agent-md, routines-ui-not-api-for-prompts, sibling-repo-access-denied-in-routines, persist-insight-to-knowledge-base, workspace-improvement-phases, kb-test-audit-2026-07-29]
 due: 2026-08-05
+archived: 2026-08-05
 ---
 
 Jerry left on holiday 2026-07-28 and returns **Wednesday 2026-08-05**. He

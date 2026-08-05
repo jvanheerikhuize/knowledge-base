@@ -413,6 +413,37 @@ class SavedSearchTests(unittest.TestCase):
         self.assertIn("navigator.clipboard.writeText(location.href)", index)
 
 
+class StatusForecastTests(unittest.TestCase):
+    """The status board is a snapshot, and a store that is about to go stale
+    all at once has a perfectly clean snapshot. The forecast is the only thing
+    on the page about a date other than today, so it has to survive there."""
+
+    FORECAST = {
+        "today": "2026-08-05", "cycle_days": 90, "dated": 6, "undated": 0,
+        "first": "2026-10-25", "last": "2026-10-27", "span_days": 2,
+        "busiest": "2026-10-25", "already_due": 0, "is_cohort": True,
+        "by_date": [["2026-10-25", 4], ["2026-10-26", 1], ["2026-10-27", 1]],
+    }
+
+    def test_the_window_and_the_busiest_day_are_rendered(self):
+        page = build_site.build_status([], [], None, self.FORECAST)
+        self.assertIn("2026-10-25", page)
+        self.assertIn("2026-10-27", page)
+        self.assertIn("2d wide", page)
+        self.assertIn("busiest 2026-10-25 (4)", page)
+
+    def test_a_cohort_is_named_as_one(self):
+        page = build_site.build_status([], [], None, self.FORECAST)
+        self.assertIn("one cohort", page)
+        spread = dict(self.FORECAST, is_cohort=False, span_days=70)
+        self.assertNotIn("one cohort",
+                         build_site.build_status([], [], None, spread))
+
+    def test_the_page_builds_without_a_forecast(self):
+        page = build_site.build_status([], [])
+        self.assertNotIn("Coming due", page)
+
+
 class BundleContractTests(unittest.TestCase):
     """`site/data.json` is the published bundle — the only way to read this
     store without importing the tooling. Its shape is therefore a contract,
@@ -428,6 +459,18 @@ class BundleContractTests(unittest.TestCase):
         "name", "type", "description", "confidence", "effective_confidence",
         "decayed_by", "authority", "created", "last_verified", "source", "due",
         "links", "body", "path", "backlinks", "status", "action", "review_by",
+    }
+    # `stats` is published inside the bundle, so its shape is part of the
+    # contract too. Pinning only the top-level keys let the whole aggregate
+    # block change silently, which is the gap this class exists to close.
+    STATS_KEYS = {
+        "entries", "archived", "by_type", "by_confidence",
+        "by_effective_confidence", "decayed", "links", "age_days",
+        "body_words", "created_by_month", "review_forecast",
+    }
+    FORECAST_KEYS = {
+        "today", "cycle_days", "dated", "undated", "first", "last",
+        "span_days", "busiest", "already_due", "is_cohort", "by_date",
     }
 
     def setUp(self):
@@ -445,6 +488,17 @@ class BundleContractTests(unittest.TestCase):
     def test_entry_keys_are_exactly_the_published_set(self):
         for entry in self.data["entries"]:
             self.assertEqual(set(entry), self.ENTRY_KEYS, entry["name"])
+
+    def test_stats_keys_are_exactly_the_published_set(self):
+        self.assertEqual(set(self.data["stats"]), self.STATS_KEYS)
+
+    def test_review_forecast_ships_so_a_consumer_can_see_the_coming_load(self):
+        # The bundle already carried every *current* status. What it could not
+        # express is that a store written in one burst comes due in one burst,
+        # which is a property of the dates in aggregate, not of any entry.
+        forecast = self.data["stats"]["review_forecast"]
+        self.assertEqual(set(forecast), self.FORECAST_KEYS)
+        self.assertEqual(forecast["cycle_days"], kb.STALE_DAYS)
 
     def test_schema_version_is_declared(self):
         self.assertIsInstance(self.data["schema_version"], int)

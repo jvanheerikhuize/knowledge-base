@@ -1823,8 +1823,22 @@ class TestEval(KbTestCase):
         self.write_golden([{"query": "ocean swell", "expect": "no-such-entry"}])
         result = self.run_kb("eval")
         self.assertEqual(result.returncode, 1)
-        self.assertIn("no longer exist", result.stderr)
+        self.assertIn("gone from the retrieval set", result.stderr)
         self.assertIn("no-such-entry", result.stderr)
+
+    def test_an_expectation_naming_an_archived_entry_fails_the_command_too(self):
+        # Archiving is the commoner way for an entry to leave the retrieval
+        # set, and the file survives it — so an existence check passes while
+        # the query scores a miss on every run from then on. Same rot, quieter
+        # route, so it has to fail the same way.
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        self.assertEqual(self.run_kb("eval").returncode, 0)
+        self.run_kb("archive", "tides-of-mars")
+        result = self.run_kb("eval")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("gone from the retrieval set", result.stderr)
+        self.assertIn("tides-of-mars", result.stderr)
 
     def test_malformed_query_rows_are_skipped_not_fatal(self):
         self.write_golden([
@@ -1897,6 +1911,105 @@ class TestStats(KbTestCase):
         stats = json.loads(self.run_kb("stats", "--json").stdout)
         self.assertEqual(stats["created_by_month"], [[month, 1]])
         self.assertIn(month, self.run_kb("stats").stdout)
+
+
+class TestReviewForecast(KbTestCase):
+    """`triage` and `status` describe today. The forecast describes the day the
+    store's own dates say the work arrives — which for a store written in one
+    burst is a single day, invisible to every other command until it lands."""
+
+    def forecast(self):
+        return json.loads(self.run_kb("stats", "--json").stdout)["review_forecast"]
+
+    def dated(self, slug, days_ago):
+        when = (datetime.date.today() - datetime.timedelta(days=days_ago)).isoformat()
+        self.edit_frontmatter("semantic", slug, last_verified=when)
+
+    def burst(self, n, spread=1):
+        """`n` entries verified across `spread` consecutive days."""
+        for i in range(n):
+            self.run_kb("new", f"entry-{i}", "--type", "semantic")
+            self.dated(f"entry-{i}", i % spread)
+
+    def test_a_review_date_is_last_verified_plus_the_cycle(self):
+        self.run_kb("new", "one-fact", "--type", "semantic")
+        self.dated("one-fact", 0)
+        due = (datetime.date.today() + datetime.timedelta(days=90)).isoformat()
+        f = self.forecast()
+        self.assertEqual(f["cycle_days"], 90)
+        self.assertEqual([f["first"], f["last"], f["busiest"]], [due, due, due])
+        self.assertEqual(f["span_days"], 0)
+        self.assertEqual(f["by_date"], [[due, 1]])
+
+    def test_a_store_written_in_one_burst_is_reported_as_one_cohort(self):
+        self.burst(6, spread=3)
+        f = self.forecast()
+        self.assertEqual(f["dated"], 6)
+        self.assertEqual(f["span_days"], 2)
+        self.assertTrue(f["is_cohort"])
+
+    def test_a_store_spread_across_the_cycle_is_not_one(self):
+        for i in range(6):
+            self.run_kb("new", f"entry-{i}", "--type", "semantic")
+            self.dated(f"entry-{i}", i * 15)
+        f = self.forecast()
+        self.assertEqual(f["span_days"], 75)
+        self.assertFalse(f["is_cohort"])
+
+    def test_a_handful_of_entries_is_not_called_a_cohort(self):
+        # Below the floor, a narrow window is arithmetic rather than a finding:
+        # three entries written the same day cannot help but come due together,
+        # and calling that a cohort would make the signal fire on every new
+        # store forever.
+        self.burst(3)
+        f = self.forecast()
+        self.assertEqual(f["span_days"], 0)
+        self.assertFalse(f["is_cohort"])
+
+    def test_archived_entries_are_out_of_the_forecast(self):
+        self.burst(6)
+        self.run_kb("archive", "entry-0")
+        f = self.forecast()
+        self.assertEqual(f["dated"], 5)
+        self.assertEqual(sum(n for _, n in f["by_date"]), 5)
+
+    def test_an_entry_with_no_usable_date_is_counted_not_dropped(self):
+        self.burst(6)
+        self.edit_frontmatter("semantic", "entry-0", last_verified="not-a-date")
+        f = self.forecast()
+        self.assertEqual([f["dated"], f["undated"]], [5, 1])
+        self.assertIn("no review date", self.run_kb("stats").stdout)
+
+    def test_entries_already_past_review_are_counted_as_such(self):
+        self.burst(6)
+        self.dated("entry-0", 400)
+        f = self.forecast()
+        self.assertEqual(f["already_due"], 1)
+        self.assertIn("already past review", self.run_kb("stats").stdout)
+
+    def test_a_store_with_no_dated_entries_forecasts_nothing(self):
+        self.run_kb("new", "retired", "--type", "semantic")
+        self.run_kb("archive", "retired")
+        f = self.forecast()
+        self.assertEqual(f["dated"], 0)
+        self.assertIsNone(f["first"])
+        self.assertIsNone(f["span_days"])
+        self.assertFalse(f["is_cohort"])
+        self.assertNotIn("REVIEW LOAD", self.run_kb("stats").stdout)
+
+    def test_the_board_ends_with_the_forecast(self):
+        self.burst(6, spread=3)
+        out = self.run_kb("status").stdout
+        self.assertIn("Review load:", out)
+        self.assertIn("one cohort", out)
+
+    def test_a_filtered_board_does_not_forecast(self):
+        # The forecast is a property of the whole store; printing it under a
+        # filtered listing would attach a whole-store number to a subset.
+        self.burst(6, spread=3)
+        self.run_kb("new", "a-run", "--type", "episodic")
+        self.assertNotIn("Review load:",
+                         self.run_kb("status", "--type", "episodic").stdout)
 
 
 class TestCapture(KbTestCase):

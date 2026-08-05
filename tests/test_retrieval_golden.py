@@ -22,7 +22,9 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import kb  # noqa: E402
 
-# Today: success@1 0.517, MRR 0.649, recall@3 0.759, recall@5 0.828.
+# Today: success@1 0.536, MRR 0.653, recall@3 0.750, recall@5 0.821 over 28
+# queries — one query was retired on 2026-08-05 along with the entry it asked
+# about (`holiday-autonomy-mandate`, archived once the mandate expired).
 # The floors sit ~4 queries below that, which is the drift a growing store can
 # produce without anything being wrong, and still far above a broken ranker
 # (name-only scored 0.214 / 0.263 in the Phase 7 ablation).
