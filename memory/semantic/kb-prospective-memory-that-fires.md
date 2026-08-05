@@ -3,9 +3,9 @@ name: kb-prospective-memory-that-fires
 type: semantic
 description: kb.py due (CLI + MCP) plus a daily kb-due.yml workflow surface a prospective entry's due date before it lapses, not just after
 confidence: verified
-source: ROADMAP.md Phase 5, shipped 2026-08-01; workflow behavior confirmed against three real fires, 2026-08-02 through 2026-08-04
+source: ROADMAP.md Phase 5, shipped 2026-08-01; all branches confirmed in production — create/update across three scheduled fires 2026-08-02..08-04, close on 2026-08-05
 created: 2026-08-01
-last_verified: 2026-08-04
+last_verified: 2026-08-05
 links: [kb-roadmap, kb-entry-status-model, kb-over-mcp]
 ---
 
@@ -43,14 +43,13 @@ duplicate issue or going stale. `gh issue list --search` correctly found the
 existing open issue by title on every run, so the create-vs-edit branch
 picked the right side each time.
 
-**Still unconfirmed: the close path.** `holiday-autonomy-mandate` is due
-2026-08-05 and hasn't cleared yet, so the "close issue when nothing is due"
-branch (`kb-due.yml` lines 51–56) has not fired in production — only its
-render-side unit test has exercised an empty queue. Confidence is `verified`
-for the create/update behavior, which is the entry's core claim ("surface a
-due date before it lapses"); the close branch is simple enough (one `gh issue
-close` guarded by `count == 0`) that a future session should just watch for it
-rather than re-open this entry to chase it.
+**The close path fired on 2026-08-05.** `holiday-autonomy-mandate` cleared
+that day and was archived, which emptied the queue; the run saw `count=0` and
+closed issue #36 with the workflow's own "Nothing due anymore — closing."
+comment. Every branch of this workflow has now run in production. One honest
+limit on that: it was a `workflow_dispatch`, so what is confirmed is the
+branch, not the cron reaching it — the cron is separately confirmed by the
+three scheduled runs above, and both triggers enter the same job.
 
 See [[kb-roadmap]] for where this sits among the ten phases, and
 [[kb-entry-status-model]]/[[kb-over-mcp]] for the `triage`/`status`/MCP

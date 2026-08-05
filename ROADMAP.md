@@ -405,8 +405,15 @@ integration-tested. Worth re-checking after its first real fire.
 first run and correctly rewritten, not duplicated, on the next two, tracking
 `holiday-autonomy-mandate`'s countdown from "in 3d" to "in 1d". The
 create/update half is now `verified` on [[kb-prospective-memory-that-fires]].
-The close branch still has not fired — the queue has not emptied yet — so it
-stays the one open condition in the reopen table below.
+
+**Close branch confirmed 2026-08-05.** Archiving the expired
+`holiday-autonomy-mandate` emptied the due queue, run #4 saw `count=0`, and
+issue #36 was closed with the workflow's own "Nothing due anymore — closing."
+comment. That was a `workflow_dispatch`, not a scheduled fire — the trigger
+differs, the job does not, so what is verified is the branch and not the cron
+that reaches it (the cron itself is separately confirmed by runs 1–3). Nothing
+in this workflow is untested any more, and the reopen table below loses its
+only row that a routine session could close.
 
 ## Phase 6 — Ingestion without ceremony · `done` (2026-08-03)
 
@@ -867,16 +874,16 @@ before its condition holds.
 | Reopens | When | Recorded in |
 |---|---|---|
 | MCP `2026-07-28` | the reference SDKs and at least one client ship it | Phase 2, "Open" |
-| The `kb-due.yml` close branch | after the queue empties in production — create/update confirmed across three real fires, 2026-08-02 to 08-04; close has not fired yet | Phase 5 |
 | `kb.py import` | a scaffolded copy exists **and** has diverged, giving a real slug collision to write against | Phase 6 |
 | BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
 | A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
 
-Three of the six need something outside this repo (a client, a sibling
-checkout) or a scheduled Action to fire, and three need the store to grow or to
-age. Nothing on the list is blocked on effort, which is why none of it is
-scheduled.
+Two of the five need something outside this repo (a client, a sibling
+checkout) and three need the store to grow or to age. Nothing on the list is
+blocked on effort, which is why none of it is scheduled — and nothing left on
+it can be closed from inside a routine session, which is what the `kb-due`
+close branch was until 2026-08-05.
 
 The nearest thing to a standing action is not on that table, because it is not
 engineering: **the whole store's review window is 2026-10-26 → 2026-11-03, and
