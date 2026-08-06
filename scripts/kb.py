@@ -2826,12 +2826,25 @@ def cmd_lint(args):
         if entry_type and entry_type != t:
             problems.append(f"{rel}: type '{entry_type}' does not match its folder '{t}/'")
 
+        archived = fm.get("archived")
+        if archived:
+            archived_names.add(name)
+            try:
+                datetime.date.fromisoformat(str(archived))
+            except ValueError:
+                problems.append(f"{rel}: archived is not a valid date: {archived!r}")
+
         if entry_type == "prospective":
             due = fm.get("due")
             if due:
                 try:
                     due_date = datetime.date.fromisoformat(due)
-                    if due_date < today:
+                    # Archiving a spent reminder is how a prospective entry is
+                    # meant to end, and its due date stays in the past forever
+                    # after — so warning about it is a warning nothing can
+                    # clear. Same reasoning as the freshness guards below;
+                    # `triage` and `due` already skip archived entries.
+                    if due_date < today and not archived:
                         warnings.append(f"{rel}: overdue, due {due} has passed")
                 except ValueError:
                     problems.append(f"{rel}: due is not a valid date: {due!r}")
@@ -2842,14 +2855,6 @@ def cmd_lint(args):
                 datetime.date.fromisoformat(created)
             except ValueError:
                 problems.append(f"{rel}: created is not a valid date: {created!r}")
-
-        archived = fm.get("archived")
-        if archived:
-            archived_names.add(name)
-            try:
-                datetime.date.fromisoformat(str(archived))
-            except ValueError:
-                problems.append(f"{rel}: archived is not a valid date: {archived!r}")
 
         lv = fm.get("last_verified")
         if lv:
