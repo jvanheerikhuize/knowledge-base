@@ -2,6 +2,8 @@
 
 **Mandate holder:** Jerry (jvanheerikhuize), given in chat on 2026-07-27.
 **Period:** 2026-07-28 through 2026-08-05 (Jerry returns Wednesday 2026-08-05).
+**Superseded in part:** the standing mandate of 2026-08-06 (see "Standing
+mandate — all repos" below) now governs repo scope for routine runs.
 **Executor:** scheduled Claude Code cloud sessions (claude.ai Routines) plus any
 local sessions Jerry starts. If you are reading this inside a routine run, this
 file is your contract — follow it without asking for input.
@@ -90,8 +92,55 @@ stop" as still applying at holiday scope. Concretely:
   session or a new instruction in this file first — the holiday blanket
   pre-authorization for "large chunks" and "automerge" was scoped to the
   mandate period, not indefinitely renewed by its own absence of an end date.
+  **Update 2026-08-06:** the "another repo" clause is now answered — the
+  standing mandate below authorizes cross-repo work; follow it.
 - If nothing is open and nothing new has been asked for: say so in
   `DEBRIEF.md`, do not force a checkbox, and end the session.
+
+## Standing mandate — all repos (Jerry, 2026-08-06)
+
+Jerry instructed (in chat, 2026-08-06): expand the scope of both routines so
+they work on **all of his repos**, not just this one. This section is the
+standing contract for that; it supersedes the single-repo scoping above and
+the "another repo" caution in the post-mandate section.
+
+**Scope:** every repository under `github.com/jvanheerikhuize`. The workspace
+map (what each repo is for, how they feed each other) lives in the workspace
+`CLAUDE.md`, `PURPOSE.md`, `ROADMAP.md`, and `INTEGRATION.md` at the root of
+`~/Repos` locally and in whichever repo mirrors them; from a routine sandbox,
+enumerate live repos with `gh repo list jvanheerikhuize --limit 50` (or the
+GitHub MCP equivalent).
+
+**Session protocol addition (routine runs):**
+
+1. **Re-probe sibling access first, every session, until one succeeds.** The
+   2026-07-28 probe failed (`sibling-repo-access-denied-in-routines`), most
+   likely because the GitHub connector was only granted this repo — that is a
+   connector setting, so a later grant by Jerry changes the answer without any
+   change here. Probe cheaply: `gh repo list jvanheerikhuize` and one
+   `gh repo clone jvanheerikhuize/<repo>` (or plain `git clone`) into a
+   sibling directory. Two failures → record the still-denied result in
+   `DEBRIEF.md` and fall back to in-repo work as before.
+2. **If access works:** update `sibling-repo-access-denied-in-routines` (it is
+   now wrong), then pick **one repo, one focused item** per session. Read that
+   repo's own README/ROADMAP/CLAUDE.md before touching it. Rotate — do not
+   spend every session here just because this repo is the one you wake up in.
+3. **Git strategy in other repos:** feature branch, conventional commits,
+   push, **open a PR — do not merge it.** The automerge pre-authorization
+   above was scoped to this repo during the holiday mandate and does not
+   extend across the workspace. A PR opened and listed in `DEBRIEF.md` is a
+   completed item under this mandate (unlike the holiday rule, where only
+   `main` counted).
+4. **Debrief stays here.** `DEBRIEF.md` in this repo remains the single triage
+   document: one line per shipped change, whatever repo it landed in, with
+   the PR link.
+5. Guardrails, model tiering, and test discipline above apply unchanged in
+   every repo: that repo's own test suite green before pushing.
+
+**What only Jerry can do** (recorded so sessions stop rediscovering it):
+grant the GitHub connector/app access to the other repos, and change each
+routine's pinned repo or instructions in the claude.ai Routines UI. Until the
+grant happens, step 1 keeps failing and this mandate is latent, not broken.
 
 ## Backlog (top item first — keep this list current)
 
@@ -379,10 +428,10 @@ stop" as still applying at holiday scope. Concretely:
   — and archived the spent `holiday-autonomy-mandate` per the entry's own
   closing instruction. 16 new tests (460 total). Write-up:
   `kb-review-load-is-one-cohort`.
-- [ ] ~~**Workspace docs drift**~~ — **blocked, do not re-attempt from a
-  routine.** Needs sibling-repo access, which routine sessions do not have
-  (see `sibling-repo-access-denied-in-routines`). Reconciling `~/Repos/CLAUDE.md`
-  needs either a local session or a routine configured against that repo.
+- [ ] **Workspace docs drift** — blocked on sibling-repo access
+  (`sibling-repo-access-denied-in-routines`), **but re-attempt is now allowed**:
+  the standing mandate above says to re-probe access every session. The day the
+  probe succeeds, this is the natural first cross-repo item.
 
 ## Debrief contract
 
