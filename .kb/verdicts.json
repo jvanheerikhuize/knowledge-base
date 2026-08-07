@@ -53,6 +53,16 @@
     },
     {
       "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-archived-is-a-filter-commands-forget",
+      "verdict": "overlap",
+      "judged": "2026-08-06",
+      "a_digest": "97945a761f80",
+      "b_digest": "19deb225467d",
+      "note": "the archived-filter bug class is that procedure's rule 2 with archived as the uniform axis; third instance it would have predicted",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
       "b": "kb-consolidation-is-owed-work",
       "verdict": "distinct",
       "judged": "2026-08-01",
@@ -439,6 +449,56 @@
       "a_digest": "93c2654408d2",
       "b_digest": "7886fb25075b",
       "note": "the same stale .claude/CLAUDE.md is the source of both problems",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-archived-is-a-filter-commands-forget",
+      "b": "kb-entry-status-model",
+      "verdict": "distinct",
+      "judged": "2026-08-06",
+      "a_digest": "19deb225467d",
+      "b_digest": "c5709f5ca1d4",
+      "note": "status-model defines the archived status; this entry is about lint, which does not use the status model at all",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-archived-is-a-filter-commands-forget",
+      "b": "kb-forgetting-model",
+      "verdict": "overlap",
+      "judged": "2026-08-06",
+      "a_digest": "19deb225467d",
+      "b_digest": "1a1d76b3f41d",
+      "note": "forgetting-model defines what archiving means; this entry is about commands failing to honour it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-archived-is-a-filter-commands-forget",
+      "b": "kb-prospective-memory-that-fires",
+      "verdict": "overlap",
+      "judged": "2026-08-06",
+      "a_digest": "19deb225467d",
+      "b_digest": "daf178895d46",
+      "note": "the archived entry that triggered the bug is a spent prospective entry; that entry owns the due-date lifecycle, this one the lint's handling of its end",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-archived-is-a-filter-commands-forget",
+      "b": "kb-review-load-is-one-cohort",
+      "verdict": "overlap",
+      "judged": "2026-08-06",
+      "a_digest": "19deb225467d",
+      "b_digest": "77cfaa07df7a",
+      "note": "shares the eval archived-filter instance, recorded there as a side finding and here as one of three in a class",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-archived-is-a-filter-commands-forget",
+      "b": "kb-test-audit-2026-07-29",
+      "verdict": "overlap",
+      "judged": "2026-08-06",
+      "a_digest": "19deb225467d",
+      "b_digest": "08489a6daa37",
+      "note": "that audit recorded the dupes instance; this entry generalises it into a class with two more",
       "agreement": "agree"
     },
     {

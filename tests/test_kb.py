@@ -500,6 +500,32 @@ class TestLint(KbTestCase):
         result = self.run_kb("lint")
         self.assertNotIn("overdue", result.stdout)
 
+    def test_lint_does_not_warn_on_overdue_archived_prospective(self):
+        # Archiving a spent reminder is how a prospective entry is supposed to
+        # end. Its due date is in the past forever after, so an overdue warning
+        # here is one no action can ever clear -- and under --strict it fails
+        # CI every week. `triage` and `due` already skip archived entries.
+        self.run_kb("new", "spent-task", "--type", "prospective", "--due", "2020-01-01")
+        self.run_kb("archive", "spent-task")
+        result = self.run_kb("lint")
+        self.assertNotIn("overdue", result.stdout)
+
+    def test_lint_strict_passes_on_overdue_archived_prospective(self):
+        self.run_kb("new", "spent-task", "--type", "prospective", "--due", "2020-01-01")
+        self.run_kb("archive", "spent-task")
+        result = self.run_kb("lint", "--strict")
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_lint_still_reports_malformed_due_on_archived_entry(self):
+        # Only the attention-management warning is suppressed; a malformed date
+        # is a data-integrity problem whether or not the entry is retired.
+        self.run_kb("new", "spent-task", "--type", "prospective", "--due", "2020-01-01")
+        self.run_kb("archive", "spent-task")
+        self.edit_frontmatter("prospective", "spent-task", due="not-a-date")
+        result = self.run_kb("lint")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("due is not a valid date", result.stdout)
+
     def test_lint_warns_on_orphan_entry(self):
         self.run_kb("new", "lonely-entry", "--type", "semantic")
         result = self.run_kb("lint")

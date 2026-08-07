@@ -6,7 +6,7 @@ confidence: verified
 source: direct code reading of scripts/kb.py plus a subagent-driven read of all four test files (test_kb.py, test_mcp_server.py, test_build_site.py, test_serve.py) against their source files, 2026-07-29
 created: 2026-07-29
 last_verified: 2026-07-29
-links: [holiday-autonomy-mandate]
+links: [holiday-autonomy-mandate, kb-archived-is-a-filter-commands-forget]
 ---
 
 Ran the "Test consolidation & audit" item from `AUTONOMY.md`'s backlog: read

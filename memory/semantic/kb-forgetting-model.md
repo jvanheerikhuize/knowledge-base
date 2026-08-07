@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/kb.py (effective_confidence, is_archived, cmd_archive), tests/test_kb.py, ROADMAP Phase 3
 created: 2026-07-28
 last_verified: 2026-07-28
-links: [kb-ranked-retrieval, kb-entry-status-model, kb-is-file-based, kb-over-mcp, kb-duplicate-detection-limits, memory-overview-site, kb-corrections-happen-in-place, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort]
+links: [kb-ranked-retrieval, kb-entry-status-model, kb-is-file-based, kb-over-mcp, kb-duplicate-detection-limits, memory-overview-site, kb-corrections-happen-in-place, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort, kb-archived-is-a-filter-commands-forget]
 ---
 
 A memory store does not fail by losing facts. It fails by keeping all of them,
