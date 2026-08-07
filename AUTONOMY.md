@@ -469,10 +469,29 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   surface on that server filters them out. 22 new tests (485 total).
   Write-up: `kb-tests-cannot-cover-an-absent-guard`;
   `kb-archived-is-a-filter-commands-forget` corrected in place.
-- [ ] **Workspace docs drift** — blocked on sibling-repo access
-  (`sibling-repo-access-denied-in-routines`), **but re-attempt is now allowed**:
-  the standing mandate above says to re-probe access every session. The day the
-  probe succeeds, this is the natural first cross-repo item.
+- [x] **Workspace docs drift.** (2026-08-07) The re-probe the standing mandate
+  asked for **succeeded** — `list_repos` returned all 36 `jvanheerikhuize/*`
+  repos, `add_repo` attached `jvanheerikhuize/repos` with push, clone/push/PR
+  all worked. `sibling-repo-access-denied-in-routines` corrected in place: the
+  block was real 2026-07-28 through 2026-08-06 and is gone as of Jerry's
+  2026-08-06 grant, not a standing property of routines. The workspace itself
+  had also changed shape since the original 2026-07-27 finding — rebuilt as
+  `jvanheerikhuize/repos`, a git-submodule meta-repo, 24 submodules — so the
+  actual drift found wasn't the old "20 vs 22 repos" count (24 matches
+  `.gitmodules` exactly) but two submodules pointing at **pre-rename** URLs
+  that GitHub's redirect had silently kept working: `eidolon`→`undervault`
+  (a real repo rename, confirmed via matching HEAD/branch refs, plus the
+  renamed repo's own README saying so) and `llm-wiki`'s URL still saying
+  `asdlc-knowledge.git`. Both fixed, PR opened (not merged, per the standing
+  mandate's cross-repo rule): [jvanheerikhuize/repos#2](https://github.com/jvanheerikhuize/repos/pull/2).
+  Write-up: `workspace-repo-inventory-drift` (rewritten, prior text kept as
+  "original finding, for the record" rather than deleted).
+
+  **The backlog is now fully closed** — this was the one item marked blocked.
+  Per the post-mandate section above, no new large-scope item is invented to
+  fill the gap; the next session should check for new instructions from Jerry
+  or new drift (`kb.py triage`, a fresh `.gitmodules` audit) before starting
+  anything non-trivial.
 
 ## Debrief contract
 
