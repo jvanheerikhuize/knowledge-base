@@ -878,6 +878,7 @@ before its condition holds.
 | BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
 | A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
+| A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 
 Two of the five need something outside this repo (a client, a sibling
 checkout) and three need the store to grow or to age. Nothing on the list is

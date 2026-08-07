@@ -428,6 +428,32 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   — and archived the spent `holiday-autonomy-mandate` per the entry's own
   closing instruction. 16 new tests (460 total). Write-up:
   `kb-review-load-is-one-cohort`.
+- [x] **The `archived` axis — why three commands forgot the same filter.**
+  (2026-08-07) Picked up as the research-tier item; not previously on this
+  list. Two things happened. First, **recovery**: `git ls-remote` turned up
+  `claude/wizardly-dijkstra-0sq8ef`, holding a real `lint` fix, 3 tests and a
+  write-up that two prior sessions had deliberately left unmerged on
+  post-mandate-scope grounds. `lint --strict` still exited 1 on `main` and
+  2026-08-10 is a Monday, so the weekly strict-lint cron was three days from
+  going red with the fix sitting on a branch nobody had merged. Recovered into
+  `main` under the charter's standing "fix a concretely broken thing" permission.
+  Second, **the research**: that branch's write-up blamed an archived-blind test
+  corpus, and the diagnosis is wrong. Mutation testing the axis — delete each of
+  the 13 places `kb.py` consults `archived`, run the whole suite against each —
+  kills **12 of 13** before any new test, so the corpus defends nearly every
+  archived guard that exists. Both facts hold because **you cannot mutate a line
+  that is not there**: all three bugs were *absent* guards, and fixture
+  diversity finds wrong code, never missing code. So the repair is not coverage
+  but an enumeration that fails on absence — `tests/test_archived_axis.py`
+  discovers every store-scanning function by AST and fails when one declares no
+  archived policy (`EXCLUDES` / `CLASSIFIES` / `INCLUDES`, reason required). It
+  found **11 scanners** a careful hand-audit had just missed, reproduced the bug
+  it hunts (its first closure was scoped to `kb.py`, so `mcp_server.
+  list_resources` was invisible to it), and turned up **one live defect**: MCP
+  `resources/list` advertised archived entries unlabelled while every other
+  surface on that server filters them out. 22 new tests (485 total).
+  Write-up: `kb-tests-cannot-cover-an-absent-guard`;
+  `kb-archived-is-a-filter-commands-forget` corrected in place.
 - [ ] **Workspace docs drift** — blocked on sibling-repo access
   (`sibling-repo-access-denied-in-routines`), **but re-attempt is now allowed**:
   the standing mandate above says to re-probe access every session. The day the

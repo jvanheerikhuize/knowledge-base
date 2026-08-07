@@ -5,8 +5,8 @@ description: when auditing a test suite for coverage gaps, check whether every t
 confidence: verified
 source: knowledge-base test-consolidation audit, session 2026-07-30
 created: 2026-07-30
-last_verified: 2026-07-30
-links: [kb-duplicate-detection-limits, persist-insight-to-knowledge-base, kb-test-audit-2026-07-29]
+last_verified: 2026-08-07
+links: [kb-duplicate-detection-limits, persist-insight-to-knowledge-base, kb-test-audit-2026-07-29, kb-tests-cannot-cover-an-absent-guard]
 ---
 
 Found while doing the AUTONOMY.md "test consolidation & audit" backlog item:
@@ -42,3 +42,17 @@ This complements [[kb-duplicate-detection-limits]]'s lesson (a metric can
 pass its own test and still answer the wrong question) from the coverage
 side: a test can pass and still never have exercised the path it claims to
 guard, if the fixture that feeds it never varied.
+
+5. **Before reaching for this procedure, check whether the path you are
+   worried about exists at all.** Steps 1–4 diagnose a branch that is
+   *written* and never *reached*. They are structurally incapable of finding
+   a branch that was never written — there is nothing for a fixture, however
+   diverse, to make fail. That distinction was measured on 2026-08-07
+   ([[kb-tests-cannot-cover-an-absent-guard]]): three commands missing the
+   same `archived` filter looked like a textbook rule-2 case, but mutation
+   testing killed **12 of 13** archived guards, so the corpus had never been
+   uniform in the way the diagnosis assumed. All three were absent guards.
+   The tell is the shape of the defect: *wrong* behaviour under some input
+   is a uniformity problem and this procedure applies; *no* behaviour,
+   because the decision was never made anywhere, needs an enumeration of the
+   call sites that must make it, which is a different tool.

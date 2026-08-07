@@ -98,3 +98,12 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-05 — linked `semantic/kb-entry-status-model.md` — -> kb-review-load-is-one-cohort
 - 2026-08-05 — verified `semantic/kb-prospective-memory-that-fires.md` — confidence=verified
 - 2026-08-05 — updated `semantic/kb-prospective-memory-that-fires.md` — source=ROADMAP.md Phase 5, shipped 2026-08-01; all branches confirmed in production — create/update across three scheduled fires 2026-08-02..08-04, close on 2026-08-05
+- 2026-08-06 — created `semantic/kb-archived-is-a-filter-commands-forget.md`
+- 2026-08-06 — linked `semantic/kb-forgetting-model.md` — -> kb-archived-is-a-filter-commands-forget
+- 2026-08-06 — linked `episodic/kb-test-audit-2026-07-29.md` — -> kb-archived-is-a-filter-commands-forget
+- 2026-08-06 — linked `semantic/kb-archived-is-a-filter-commands-forget.md` — -> audit-test-corpora-for-artificial-uniformity
+- 2026-08-07 — created `semantic/kb-tests-cannot-cover-an-absent-guard.md`
+- 2026-08-07 — linked `semantic/kb-archived-is-a-filter-commands-forget.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-07 — verified `semantic/kb-archived-is-a-filter-commands-forget.md` — confidence=verified
+- 2026-08-07 — linked `procedural/audit-test-corpora-for-artificial-uniformity.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-07 — verified `procedural/audit-test-corpora-for-artificial-uniformity.md` — confidence=verified
