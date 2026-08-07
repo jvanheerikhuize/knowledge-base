@@ -240,3 +240,54 @@ Set up 2026-07-27 before you left.
   now marked blocked in `AUTONOMY.md` rather than left to be re-attempted every
   session. **If you want autonomous work happening in other repos, configure
   one routine per repo** the same way this one was set up.
+
+- [ ] 2026-08-07 **Cross-repo access works now — re-probed per the standing
+  mandate, and it succeeded.** `list_repos` returned all 36 `jvanheerikhuize/*`
+  repos (not just `knowledge-base`); `add_repo(jvanheerikhuize, repos,
+  access: push)` attached with write credentials; clone, push, and PR creation
+  all worked. `sibling-repo-access-denied-in-routines` corrected in place
+  rather than left standing — the block was real from 2026-07-28 through
+  (at least) 2026-08-06 and lifted by Jerry's 2026-08-06 grant, not a
+  permanent property of routine sessions as the entry originally implied.
+- [ ] 2026-08-07 **Workspace docs drift, picked up as the freed-up backlog
+  item — and the workspace it describes had already changed shape.** The
+  2026-07-27 finding was `~/Repos/CLAUDE.md` (20 documented vs. 22 on disk).
+  That structure is gone: the workspace is now `jvanheerikhuize/repos`
+  (redirects from lowercase `repos`), a git repo holding the other 24 repos
+  as **git submodules** plus `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`PURPOSE.md`/
+  `ROADMAP.md`/`INTEGRATION.md`. Its own claimed count (24) matches
+  `.gitmodules` exactly — no count drift this time.
+- [ ] 2026-08-07 **What was actually wrong: two submodules pointed at
+  pre-rename URLs, silently kept alive by GitHub's redirect.** Checked all 24
+  `.gitmodules` entries with `git ls-remote` against the account's current
+  repo names. `eidolon` → **`undervault`**: the repo was renamed (confirmed —
+  identical HEAD/branch refs at both URLs, and the renamed repo's own README
+  opens "*(formerly `eidolon`...)*"); the submodule's path, section name, and
+  URL all still said `eidolon`, and `AGENTS.md`'s description ("Autonomous
+  agent runtime & entity management framework") was the old repo's pitch, not
+  the current one (a browser-based cinematic platformer). `llm-wiki`'s URL
+  still said `asdlc-knowledge.git` (pre-rename name, same repo, confirmed the
+  same way) — path and section name were already right. Both fixed:
+  `.gitmodules`, `AGENTS.md`'s repo table, `ROADMAP.md`'s P3 mention, plus an
+  audit note in `ROADMAP.md` recording what was checked and what wasn't
+  touched. Opened as a PR, **not merged** — the standing mandate's cross-repo
+  rule is PR-only outside `knowledge-base`:
+  [jvanheerikhuize/repos#2](https://github.com/jvanheerikhuize/repos/pull/2).
+  No CI configured on that repo (`get_status` returned zero checks), so
+  nothing to babysit there beyond the review itself. Write-up:
+  `workspace-repo-inventory-drift` (rewritten; the 2026-07-27 finding is kept
+  below a "Superseded structure" heading rather than deleted, since it's still
+  the accurate history of what the workspace looked like then).
+- [ ] 2026-08-07 **The `knowledge` question from 2026-07-27 gained evidence,
+  not an answer.** That entry guessed `llm-wiki` was the renamed `knowledge`
+  repo an old table cited, unconfirmed. This session's finding is adjacent,
+  not confirming: `llm-wiki` is a rename of a repo called `asdlc-knowledge` —
+  not `knowledge` — so it's still a guess, just a better-evidenced one.
+  Left as an open question, annotated in `jvanheerikhuize/repos/ROADMAP.md`'s
+  P2 item rather than resolved unilaterally.
+- [ ] 2026-08-07 **AUTONOMY.md's backlog is now fully checked off** — this was
+  the one remaining blocked item. Per the charter's post-mandate section, no
+  new large-scope item was invented to fill the gap; the next session should
+  re-probe for drift (`kb.py triage`, a fresh `.gitmodules` audit — the same
+  rename-redirect failure mode will recur) or check for new instructions
+  before starting anything non-trivial.
