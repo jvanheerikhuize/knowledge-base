@@ -960,11 +960,23 @@ def list_resources():
         })
     for t, path, fm, _ in _all_entries():
         name = _entry_name(path, fm)
+        # An archived entry stays listed — it is still readable, and dropping
+        # it would leave a client no way to find the entry it wants to
+        # un-archive. But a resource listing is a discovery surface an agent
+        # picks from, and every *other* surface on this server (`search`,
+        # `context`, `triage`) already keeps retired claims out of the choices.
+        # Listed and unlabelled is the one combination that misleads, so the
+        # label travels with it, in both fields a client is likely to show.
+        archived = kb.is_archived(fm)
+        title = f"{name} ({t}, archived)" if archived else f"{name} ({t})"
+        description = fm.get("description", "")
+        if archived:
+            description = f"[archived] {description}"
         resources.append({
             "uri": RESOURCE_PREFIX + name,
             "name": name,
-            "title": f"{name} ({t})",
-            "description": fm.get("description", ""),
+            "title": title,
+            "description": description,
             "mimeType": "text/markdown",
         })
     return resources

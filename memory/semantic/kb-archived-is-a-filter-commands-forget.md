@@ -5,8 +5,8 @@ description: every store-scanning command handles `archived` with one guard at t
 confidence: verified
 source: measured 2026-08-06 in this repo; third instance of a defect class first recorded 2026-07-29
 created: 2026-08-06
-last_verified: 2026-08-06
-links: [kb-forgetting-model, kb-entry-status-model, kb-prospective-memory-that-fires, kb-test-audit-2026-07-29, kb-review-load-is-one-cohort, audit-test-corpora-for-artificial-uniformity]
+last_verified: 2026-08-07
+links: [kb-forgetting-model, kb-entry-status-model, kb-prospective-memory-that-fires, kb-test-audit-2026-07-29, kb-review-load-is-one-cohort, audit-test-corpora-for-artificial-uniformity, kb-tests-cannot-cover-an-absent-guard]
 ---
 
 Archiving is how the store retires something on purpose
@@ -86,25 +86,40 @@ times in a path where archived entries were rare enough that nobody hit it:
 | 2026-08-05 | `kb.py eval` | an archived expectation was still "answerable", scoring a guaranteed miss forever ([[kb-review-load-is-one-cohort]]) |
 | 2026-08-06 | `kb.py lint` | overdue warning on an archived entry, un-clearable, fatal under `--strict` |
 
-The common cause is not carelessness. It is that **a store with almost no
-archived entries cannot exercise its own archived paths.** This store held one
-archived entry out of 34 on the day all three bugs existed; every test that
-covered these commands used a store with none. The filter is missed precisely
-where the fixture is silent, which is why each instance was found by reading
-rather than by a failing test.
+The common cause is not carelessness.
 
-That is [[audit-test-corpora-for-artificial-uniformity]]'s rule 2 —
-*"a corpus that is accidentally uniform silently disables any code path that
-only diverges under diversity"* — with `archived` as the uniform axis, and it is
-now the third bug that procedure would have predicted. Worth noting the axis is
-binary and skewed rather than categorical like the entry-type axis that
-procedure was written from: no fixture has to *vary* archived-ness to look
-reasonable, so the omission reads as normal test-writing every time.
+> **Corrected 2026-08-07 — the explanation below is wrong; see
+> [[kb-tests-cannot-cover-an-absent-guard]].** This entry originally blamed an
+> archived-blind test corpus: one archived entry in 34, fixtures that never
+> vary the axis, therefore a branch no test can reach. That was measured and
+> refuted. Deleting each of the 13 places `kb.py` consults `archived`, one at a
+> time, kills **12 of 13** mutants — the corpus defends nearly every archived
+> guard that exists. Both facts hold because they describe different code:
+> **you cannot mutate a line that is not there.** All three bugs below were
+> guards that were never *written*, and fixture diversity finds wrong code, not
+> missing code. The three symptoms, the dates, and the fix are unaffected; only
+> the cause and the corollary are restated here.
 
-The corollary for anyone adding a command that scans the store: put the
-`archived` decision in the loop header where the other seven have it. If the
-command genuinely cannot — because it is a bag of independent checks, like
-`lint` — then read `archived` *first*, before any check that might need it, so
+The cause is that nothing ever **asked** these three commands the question. A
+scanner that filters archived entries gets a test for it; a scanner whose author
+never considered `archived` has no branch for any test to fail against, and
+looks complete from every angle a reviewer or a fixture can see. That makes it a
+limit of [[audit-test-corpora-for-artificial-uniformity]] rather than an
+instance of it — diversifying the fixture cannot make `dupes` fail on a filter
+`dupes` does not contain.
+
+The corollary is therefore not advice about where to put the guard (all three
+authors were already following it where they wrote one). It is that the
+question must be asked mechanically: `tests/test_archived_axis.py` discovers
+every store-scanning function by AST and fails when one declares no archived
+policy. Adding a scanner now means answering the question in the registry. On
+the day it was written it found eleven scanners a careful hand-audit had
+missed, and one live defect.
+
+The narrower point about `lint` stands and is worth keeping: it is a dozen
+independent checks sharing a loop, so the archived clause has to be carried per
+check rather than set once in the loop header. If a scanner genuinely cannot
+decide once, read `archived` *first*, before any check that might need it, so
 the omission is at least expressible.
 
 ## The fix

@@ -102,3 +102,8 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-06 — linked `semantic/kb-forgetting-model.md` — -> kb-archived-is-a-filter-commands-forget
 - 2026-08-06 — linked `episodic/kb-test-audit-2026-07-29.md` — -> kb-archived-is-a-filter-commands-forget
 - 2026-08-06 — linked `semantic/kb-archived-is-a-filter-commands-forget.md` — -> audit-test-corpora-for-artificial-uniformity
+- 2026-08-07 — created `semantic/kb-tests-cannot-cover-an-absent-guard.md`
+- 2026-08-07 — linked `semantic/kb-archived-is-a-filter-commands-forget.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-07 — verified `semantic/kb-archived-is-a-filter-commands-forget.md` — confidence=verified
+- 2026-08-07 — linked `procedural/audit-test-corpora-for-artificial-uniformity.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-07 — verified `procedural/audit-test-corpora-for-artificial-uniformity.md` — confidence=verified

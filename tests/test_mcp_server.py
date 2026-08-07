@@ -737,6 +737,31 @@ class TestResources(McpTestCase):
         for r in resources:
             self.assertEqual(r["mimeType"], "text/markdown")
 
+    def test_an_archived_entry_is_listed_but_labelled(self):
+        # Every other retrieval surface on this server drops archived entries.
+        # A resource listing cannot: a client needs to find the entry it wants
+        # to un-archive. So it stays listed and carries the label instead --
+        # the same "appears, classified" policy `status` uses.
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        resources = self.result_of(self.send("resources/list"))["resources"]
+        by_uri = {r["uri"]: r for r in resources}
+        self.assertIn("kb://entry/second-fact", by_uri)
+        retired = by_uri["kb://entry/second-fact"]
+        self.assertIn("archived", retired["title"])
+        self.assertTrue(retired["description"].startswith("[archived] "))
+
+    def test_a_live_entry_carries_no_archived_label(self):
+        self.handshake()
+        resources = self.result_of(self.send("resources/list"))["resources"]
+        live = {r["uri"]: r for r in resources}["kb://entry/first-fact"]
+        self.assertNotIn("archived", live["title"])
+        self.assertNotIn("[archived]", live["description"])
+
+    def test_an_archived_entry_resource_still_reads_back_in_full(self):
+        self.call("propose_update", {"name": "second-fact", "archive": True})
+        result = self.result_of(self.send("resources/read", {"uri": "kb://entry/second-fact"}))
+        self.assertEqual(result["contents"][0]["text"], self.entry_text("second-fact"))
+
     def test_an_entry_resource_reads_back_the_file(self):
         self.handshake()
         result = self.result_of(self.send("resources/read", {"uri": "kb://entry/first-fact"}))
