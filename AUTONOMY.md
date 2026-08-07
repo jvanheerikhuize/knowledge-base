@@ -45,12 +45,27 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   never reached `main`. Pushing to a branch is a checkpoint, not an ending.
 - **Before picking a backlog item, check `git ls-remote --heads origin`.** An
   unmerged `claude/*` branch may already hold the work.
-  **Two exceptions, already dealt with:** `claude/cool-cerf-so8mrh` and
-  `claude/cool-cerf-sr8tim` were fully recovered into `main` on 2026-07-31
-  (PR #30) and hold nothing new. They still appear in `ls-remote` because a
-  routine session cannot delete a remote branch — the git relay rejects the
-  delete and the GitHub MCP tools have no delete-branch call — so Jerry has to
-  remove them. Ignore them; do not re-merge them.
+  **Four exceptions, all already dealt with — ignore them, do not re-merge:**
+
+  | branch | dealt with | mechanically 0 ahead of `main`? |
+  |---|---|---|
+  | `claude/cool-cerf-so8mrh` | recovered 2026-07-31 (PR #30) | no — re-applied, so its commits are not ancestors |
+  | `claude/cool-cerf-sr8tim` | recovered 2026-07-31 (PR #30) | no — same |
+  | `claude/wizardly-dijkstra-0sq8ef` | merged 2026-08-07 (PR #45) | **yes** |
+  | `claude/cool-cerf-4c7ia8` | merged 2026-08-07 (PR #45) | **yes** |
+
+  The first two still show commits in `git log origin/main..origin/<branch>`
+  because PR #30 recovered their *content* rather than merging their commits.
+  Spot-checked again 2026-08-07: `kb-test-audit-2026-07-29`,
+  `audit-test-corpora-for-artificial-uniformity` and the `cmd_rm` `_other_type`
+  fix are all present on `main`. Nothing is missing; the diff is an artefact of
+  how they were recovered.
+
+  All four still appear in `ls-remote` because **a routine session cannot delete
+  a remote branch** — re-confirmed 2026-08-07: `git push origin --delete` dies
+  with `send-pack: unexpected disconnect while reading sideband packet`, and the
+  GitHub MCP tools have no delete-branch call. Jerry has to remove them:
+  `git push origin --delete claude/cool-cerf-so8mrh claude/cool-cerf-sr8tim claude/wizardly-dijkstra-0sq8ef claude/cool-cerf-4c7ia8`
 
 ## Model tiering
 
