@@ -36,6 +36,7 @@ from kb import (  # noqa: E402
     _append_log,
     resolve,
     triage_report,
+    verify_detail,
     write_body,
     write_frontmatter,
 )
@@ -136,7 +137,12 @@ def api_verify(payload, name):
             raise ApiError(f"confidence must be one of {', '.join(CONFIDENCE_LEVELS)}")
         changes["confidence"] = conf
     write_frontmatter(path, changes)
-    _append_log(entry_type, path.stem, today, "verified", f"confidence={conf}" if conf else "")
+    # Same formatter as the CLI and the MCP server, so one review trail reads
+    # the same however the verification was made. `note` is optional here and
+    # the built page does not send one yet — a browser verify is a person at a
+    # keyboard, who can say what they checked in the field if the UI grows one.
+    _append_log(entry_type, path.stem, today, "verified",
+                verify_detail(conf or "?", payload.get("note")))
     return {"ok": True, "name": name, "last_verified": today}
 
 

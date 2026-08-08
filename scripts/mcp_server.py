@@ -487,6 +487,9 @@ def tool_propose_update(args):
                 raise ToolError(f"no entry named '{target}' — refusing to create a dangling link")
         changes["links"] = links
 
+    verify_note = args.get("verify_note")
+    if verify_note is not None and not args.get("verify"):
+        raise ToolError("verify_note only means something with verify: true")
     if args.get("verify"):
         changes["last_verified"] = date.today().isoformat()
 
@@ -515,6 +518,13 @@ def tool_propose_update(args):
     changed = sorted(set(changes) | ({"body"} if body is not None else set()))
     kb._append_log(entry_type, path.stem, date.today().isoformat(), "updated",
                    ", ".join(changed))
+    if args.get("verify"):
+        # Logged separately from the 'updated' record so `kb.py log --action
+        # verified` shows every re-verification, whichever surface made it —
+        # the CLI's and this one's trails are otherwise not comparable.
+        kb._append_log(entry_type, path.stem, date.today().isoformat(), "verified",
+                       kb.verify_detail(changes.get("confidence")
+                                        or fm.get("confidence", "?"), verify_note))
     rel = str(path.relative_to(kb.ROOT))
     log(f"staged {', '.join(changed)} on {rel}")
     text = (
@@ -890,6 +900,10 @@ WRITE_TOOLS = [
                 "body": {"type": "string", "description": "replacement body markdown"},
                 "verify": {"type": "boolean",
                            "description": "stamp last_verified as today"},
+                "verify_note": {"type": "string",
+                                "description": "with verify: what you actually checked, "
+                                               "and against what — the date records the "
+                                               "schedule, this records the evidence"},
                 "archive": {"type": "boolean",
                             "description": "true retires the entry from retrieval (it stays "
                                            "readable and linked); false puts it back"},

@@ -319,6 +319,31 @@ class TestProposeUpdate(McpTestCase):
         self.result_of(self.call("propose_update", {"name": "first-fact", "verify": True}))
         self.assertNotIn("last_verified: 2000-01-01", self.entry_text("first-fact"))
 
+    def test_a_verification_over_mcp_lands_in_the_same_review_trail(self):
+        # The CLI and this server are two write surfaces onto one store, so a
+        # review done here has to be as findable as one done there —
+        # otherwise `kb.py log --action verified` silently describes a subset.
+        self.handshake()
+        self.result_of(self.call("propose_update", {
+            "name": "first-fact", "verify": True,
+            "verify_note": "re-ran the build against the claim",
+        }))
+        log = (self.root / ".kb" / "log.md").read_text()
+        self.assertIn("verified `semantic/first-fact.md`", log)
+        self.assertIn("checked: re-ran the build against the claim", log)
+
+    def test_a_verify_note_without_a_verify_is_refused(self):
+        # Silently dropping it would let a caller believe the evidence was
+        # recorded when only the edit was.
+        self.handshake()
+        result = self.result_of(self.call("propose_update", {
+            "name": "first-fact", "description": "no verification here",
+            "verify_note": "evidence with nothing to attach to",
+        }))
+        self.assertTrue(result["isError"])
+        self.assertNotIn("evidence with nothing to attach to",
+                         (self.root / ".kb" / "log.md").read_text())
+
     def test_dangling_links_are_refused(self):
         self.handshake()
         result = self.result_of(self.call(

@@ -45,7 +45,8 @@ from kb import (  # noqa: E402
 # given a different meaning. `tests/test_build_site.py` pins the exact key set
 # so a change here cannot go out silently — data.json is published to Pages and
 # is the only way to read this store without importing the tooling.
-BUNDLE_SCHEMA_VERSION = 2
+# 3 (2026-08-08): stats.review_forecast gained `never_reverified`.
+BUNDLE_SCHEMA_VERSION = 3
 
 DEFAULT_OUT = ROOT / "site"
 

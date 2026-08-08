@@ -869,6 +869,52 @@ class TestVerify(KbTestCase):
         self.assertEqual(path.read_text().split("---\n", 2)[2], before)
 
 
+class TestVerifyNote(KbTestCase):
+    """A date cannot say whether anybody looked.
+
+    Measured over this store's whole history, 11 of 13 verification events
+    happened inside a commit that was editing the entry anyway — so the date
+    moved as a side effect of authoring, not because a claim was re-checked.
+    The note is the evidence, and it goes in `.kb/log.md` rather than in
+    frontmatter: the entry file records what its author claims, not what a
+    reviewer did to it."""
+
+    def log_text(self):
+        return (self.root / ".kb" / "log.md").read_text()
+
+    def test_a_note_records_what_was_checked(self):
+        self.run_kb("new", "checked-fact", "--type", "semantic")
+        self.run_kb("verify", "checked-fact", "--note", "re-ran the build; 0 broken links")
+        self.assertIn("checked: re-ran the build; 0 broken links", self.log_text())
+
+    def test_a_note_cannot_break_the_one_record_per_line_log(self):
+        self.run_kb("new", "checked-fact", "--type", "semantic")
+        before = len(self.log_text().splitlines())
+        self.run_kb("verify", "checked-fact", "--note", "line one\nline two\n\nline three")
+        after = self.log_text().splitlines()
+        self.assertEqual(len(after) - before, 1)
+        self.assertIn("checked: line one line two line three", after[-1])
+
+    def test_verifying_without_a_note_still_works_but_says_what_is_missing(self):
+        # Not an error: a bare `verify` is the existing behaviour and every
+        # older log record has no note. It is a warning because the resulting
+        # record is a schedule change that reads exactly like a review.
+        self.run_kb("new", "checked-fact", "--type", "semantic")
+        result = self.run_kb("verify", "checked-fact")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("nothing records what was checked", result.stderr)
+        self.assertNotIn("checked:", self.log_text())
+
+    def test_the_review_trail_is_what_log_filters_on(self):
+        self.run_kb("new", "checked-fact", "--type", "semantic")
+        self.run_kb("new", "other-fact", "--type", "semantic")
+        self.run_kb("verify", "checked-fact", "--note", "the evidence")
+        self.run_kb("set", "other-fact", "description", "unrelated churn")
+        rows = json.loads(self.run_kb("log", "--action", "verified", "--json").stdout)
+        self.assertEqual([r["name"] for r in rows], ["checked-fact"])
+        self.assertIn("the evidence", rows[0]["detail"])
+
+
 class TestSet(KbTestCase):
     def test_sets_an_arbitrary_field(self):
         self.run_kb("new", "some-fact", "--type", "semantic")
@@ -1999,6 +2045,7 @@ class TestReviewForecast(KbTestCase):
         self.assertEqual(f["dated"], 5)
         self.assertEqual(sum(n for _, n in f["by_date"]), 5)
 
+
     def test_an_entry_with_no_usable_date_is_counted_not_dropped(self):
         self.burst(6)
         self.edit_frontmatter("semantic", "entry-0", last_verified="not-a-date")
@@ -2036,6 +2083,60 @@ class TestReviewForecast(KbTestCase):
         self.run_kb("new", "a-run", "--type", "episodic")
         self.assertNotIn("Review load:",
                          self.run_kb("status", "--type", "episodic").stdout)
+
+
+class TestNeverRechecked(KbTestCase):
+    """How much of the coming load has never actually been reviewed.
+
+    The forecast says when the work lands. This says what fraction of it is
+    still sitting on the date it was written with — which is not a random
+    fraction: `last_verified` only moves when a session is already editing
+    that entry, so the entries it skips are exactly the ones nobody has looked
+    at. See kb-verification-rides-along-with-authoring."""
+
+    def forecast(self):
+        return json.loads(self.run_kb("stats", "--json").stdout)["review_forecast"]
+
+    def test_an_entry_on_its_birth_date_has_never_been_rechecked(self):
+        self.run_kb("new", "fresh-fact", "--type", "semantic")
+        f = self.forecast()
+        self.assertEqual(f["dated"], 1)
+        self.assertEqual(f["never_reverified"], 1)
+
+    def test_a_later_verify_moves_it_out_of_the_count(self):
+        self.run_kb("new", "old-fact", "--type", "semantic")
+        # Born a fortnight ago; today's verify is a genuine second look.
+        born = (datetime.date.today() - datetime.timedelta(days=14)).isoformat()
+        self.edit_frontmatter("semantic", "old-fact", created=born, last_verified=born)
+        self.assertEqual(self.forecast()["never_reverified"], 1)
+        self.run_kb("verify", "old-fact", "--note", "checked it")
+        self.assertEqual(self.forecast()["never_reverified"], 0)
+
+    def test_a_same_day_verify_is_not_counted_as_a_recheck(self):
+        # The proxy's one blind spot, asserted so it stays a known limit
+        # rather than a surprise: re-verifying on the day an entry was written
+        # is indistinguishable from never re-verifying it, and reading it as
+        # "not yet re-checked" is the honest call.
+        self.run_kb("new", "fresh-fact", "--type", "semantic")
+        self.run_kb("verify", "fresh-fact", "--note", "checked it the same day")
+        self.assertEqual(self.forecast()["never_reverified"], 1)
+
+    def test_archived_entries_are_not_in_the_count(self):
+        self.run_kb("new", "retired-fact", "--type", "semantic")
+        self.run_kb("new", "live-fact", "--type", "semantic")
+        self.run_kb("archive", "retired-fact")
+        f = self.forecast()
+        self.assertEqual([f["dated"], f["never_reverified"]], [1, 1])
+
+    def test_an_entry_with_no_usable_date_is_undated_not_unrechecked(self):
+        self.run_kb("new", "broken-fact", "--type", "semantic")
+        self.edit_frontmatter("semantic", "broken-fact", last_verified="not-a-date")
+        f = self.forecast()
+        self.assertEqual([f["dated"], f["undated"], f["never_reverified"]], [0, 1, 0])
+
+    def test_the_board_says_so_when_any_entry_has_never_been_rechecked(self):
+        self.run_kb("new", "fresh-fact", "--type", "semantic")
+        self.assertIn("never re-checked since", self.run_kb("status").stdout)
 
 
 class TestCapture(KbTestCase):

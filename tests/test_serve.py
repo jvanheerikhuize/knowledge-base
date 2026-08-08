@@ -191,6 +191,18 @@ class TestVerifyAndDelete(ServeTestCase):
         self.request(base + "api/verify/first-fact", {"confidence": "verified"})
         self.assertIn("confidence: verified", self.entry_text("first-fact"))
 
+    def test_a_browser_verify_lands_in_the_same_review_trail(self):
+        # Three write surfaces (CLI, MCP, this server) share one store, so a
+        # review done in the browser has to be as findable as one done at the
+        # command line — otherwise `kb.py log --action verified` describes a
+        # subset without saying so.
+        base = self.start()
+        self.request(base + "api/verify/first-fact",
+                     {"confidence": "verified", "note": "read it against the code"})
+        log = (self.root / ".kb" / "log.md").read_text()
+        self.assertIn("verified `semantic/first-fact.md`", log)
+        self.assertIn("confidence=verified; checked: read it against the code", log)
+
     def test_delete_removes_the_file(self):
         base = self.start()
         status, _ = self.request(base + "api/delete/second-fact", {})

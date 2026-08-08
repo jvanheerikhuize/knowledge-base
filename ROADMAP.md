@@ -863,6 +863,79 @@ gap Phase 9 closed one level up.
 
 ---
 
+## Phase 12 — what `last_verified` actually measures — **done** (2026-08-08)
+
+Not on the backlog; picked up as the research-tier item because Phase 11 had
+left a loose thread. Phase 11's conclusion was *spread the sweep*. Nobody had
+asked the prior question: when this store re-verifies something, what happens?
+
+**It has never happened on its own.** Replaying all 73 commits that have
+touched `memory/`, **13 have ever moved a `last_verified` date, and 11 of them
+were editing that same entry's body or description in the same commit.** The
+two exceptions are both `20a2c4e` on 2026-07-27 — the opening-day commit that
+stamped the founding set. In the twelve days since, no standalone
+re-verification has ever occurred. `last_verified` is therefore a record of
+**authoring activity**, not of review: it moves on entries a session already
+had a reason to open, which are the ones whose claims were just re-derived and
+are least likely to be wrong. **24 of 35 live entries still carried the date
+they were born with.**
+
+**Tested rather than argued** — the store's first standalone sweep, over the
+nine oldest of those entries. It came back in three parts:
+
+- **One correct-but-unread entry was actively costing something.**
+  [[kb-agent-entrypoint-is-agent-md]] had said since 2026-07-27 that
+  `.claude/CLAUDE.md` describes a layout that never shipped, and named all six
+  wrong paths right. All six were still wrong twelve days later — in a file
+  injected into every session in this repo as an override-everything
+  instruction. The entry carried its own remedy ("until that file is rewritten
+  or deleted") and [[workspace-improvement-phases]] carried it again as open
+  item P1.3. Being right changed nothing for twelve days because nothing
+  re-read it.
+- **One entry had silently gone incomplete.** A *third* entrypoint (`AGENTS.md`,
+  commit `8830ee8`, 2026-08-06) had appeared, describing four memory layers
+  rather than seven types and pointing at `/home/jerry/Repos/AGENTS.md` — an
+  absolute path on one machine, with an href resolving outside the repo, naming
+  a workspace shape already superseded by the `jvanheerikhuize/repos` submodule
+  meta-repo. No signal exists for "the world this entry describes gained a
+  file."
+- **Five of the nine cannot be re-verified from a routine at all.** They rest
+  on `~/.claude/settings.json`, the `asdlc` and `digital-twin` repos, the
+  claude.ai Routines UI, and a `~/Repos` filesystem in a shape that no longer
+  exists. They will arrive in the 2026-10-25 queue with no action a scheduled
+  session can take.
+
+That last part revises Phase 11. The coming queue is not one queue: about a
+third of it is grounded outside anything an autonomous session can reach, and
+spreading does not make those entries checkable. A sweep plan that does not
+separate them stalls on the first one it cannot confirm.
+
+**What shipped.** Both files were repaired — `.claude/CLAUDE.md` rewritten
+against the real layout, `AGENTS.md` corrected — and each now names
+`memory/AGENT.md` as the source it summarises. In `kb.py`:
+`review_forecast()` reports `never_reverified` (live entries where
+`last_verified == created`) in `status`, `stats` and `data.json`
+(`schema_version: 3`); it is computed from dates the store already had, so no
+new field. And `kb.py verify --note "<what you checked>"` records the evidence
+in `.kb/log.md`, with a stderr warning when it is omitted — the note is not
+frontmatter, because an entry records what its author claims, not what a
+reviewer did to it, and `kb.py log --action verified` was already the right
+home. MCP `propose_update` takes `verify_note` and writes the same record, so
+the two write surfaces stay comparable.
+
+**What deliberately did not ship: a "checkable from here" frontmatter flag**,
+though five of nine entries want one. It is the Phase 4 shape exactly — a
+hand-set field on a judgement that changes when the *session* changes rather
+than when the entry does. `sibling-repo-access-denied-in-routines` was true on
+2026-07-28 and false by 2026-08-06 while nothing about those entries moved.
+Checkability is a property of the reader's access, not of the claim, so it does
+not belong on the claim. Reopen condition in the table below.
+
+13 new tests (498 total). Write-up:
+[[kb-verification-rides-along-with-authoring]].
+
+---
+
 ## No phase is open — what would reopen one
 
 Every phase above is `done`. That is not the same as finished, and the honest
@@ -879,18 +952,28 @@ before its condition holds.
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
 | A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
+| A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 
-Two of the five need something outside this repo (a client, a sibling
-checkout) and three need the store to grow or to age. Nothing on the list is
-blocked on effort, which is why none of it is scheduled — and nothing left on
-it can be closed from inside a routine session, which is what the `kb-due`
-close branch was until 2026-08-05.
+Three of the seven wait on something outside this repo (a client, a sibling
+checkout, a second kind of session); the other four wait on the store growing
+or ageing. Nothing on the list is blocked on effort, which is why none of it is
+scheduled — and nothing left on it can be closed from inside a routine session,
+which is what the `kb-due` close branch was until 2026-08-05.
 
 The nearest thing to a standing action is not on that table, because it is not
-engineering: **the whole store's review window is 2026-10-26 → 2026-11-03, and
-it is one cohort** (Phase 11). Re-verifying in batches on different days before
-then spreads it permanently; one sweep re-creates it. `kb.py status` now says
-so on every run.
+engineering: **the store's review window is 2026-10-25 → 2026-11-06, and it is
+one cohort** (Phase 11). Re-verifying in batches on different days before then
+spreads it permanently; one sweep re-creates it. `kb.py status` now says so on
+every run, and since Phase 12 it also says how much of that load has never been
+re-checked at all (22 of 36 as of 2026-08-08). Two things a session picking up
+that standing action should know:
+
+- **A verify with no `--note` is not a review.** The date will move either way;
+  only the note distinguishes "somebody checked this" from "somebody was
+  editing this anyway". `kb.py log --action verified` is the trail.
+- **Roughly a third of the queue is not a routine's to clear** — those entries
+  rest on machines and repos a scheduled sandbox cannot see. Sort them out of
+  the batch first rather than discovering them one at a time.
 
 ---
 
@@ -996,6 +1079,26 @@ so on every run.
   (`schema_version: 2`) and the status board, plus a fix for `kb.py eval`
   treating an *archived* expectation as resolvable. 16 new tests (460 total).
   Write-up: [[kb-review-load-is-one-cohort]].
+- Phase 12 — what `last_verified` actually measures. (2026-08-08) Phase 11 said
+  *spread the sweep*; nobody had asked what a re-verification in this store
+  actually is. Replaying all 73 commits touching `memory/`: **13 have ever
+  moved a `last_verified` date and 11 were editing that entry anyway in the
+  same commit**, the other two being the opening-day batch stamp. No standalone
+  re-verification had ever happened, and **24 of 35 live entries still carried
+  their birth date** — so the field records authoring activity, and the entries
+  it skips are precisely the ones nobody has looked at. The first standalone
+  sweep (nine oldest entries) found one correct-but-unread entry that had been
+  naming a live defect for twelve days (`.claude/CLAUDE.md`, injected into
+  every session, all six of its paths still wrong), one entry gone incomplete
+  when a third entrypoint appeared (`AGENTS.md`, 2026-08-06), and **five of
+  nine that a routine cannot re-verify at all** — which revises Phase 11's
+  conclusion, since spreading a queue does not make a third of it checkable.
+  Shipped: both files repaired and pointed at `memory/AGENT.md`,
+  `never_reverified` in the forecast (`schema_version: 3`), and `kb.py verify
+  --note` / MCP `verify_note` recording the evidence in `.kb/log.md`. A
+  "checkable from here" frontmatter flag was rejected — checkability belongs to
+  the reader's access, not to the claim. 13 new tests (498 total). Write-up:
+  [[kb-verification-rides-along-with-authoring]].
 
 ---
 

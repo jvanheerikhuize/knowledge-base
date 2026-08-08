@@ -470,7 +470,8 @@ class BundleContractTests(unittest.TestCase):
     }
     FORECAST_KEYS = {
         "today", "cycle_days", "dated", "undated", "first", "last",
-        "span_days", "busiest", "already_due", "is_cohort", "by_date",
+        "span_days", "busiest", "already_due", "is_cohort", "never_reverified",
+        "by_date",
     }
 
     def setUp(self):

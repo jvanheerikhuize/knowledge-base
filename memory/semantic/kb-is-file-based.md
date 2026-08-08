@@ -5,7 +5,7 @@ description: the knowledge base requires no infrastructure — plain markdown fi
 confidence: verified
 source: README.md design rationale
 created: 2026-07-22
-last_verified: 2026-07-27
+last_verified: 2026-08-08
 links: [distill-session-into-memory, memory-overview-site, kb-roadmap, kb-over-mcp]
 ---
 

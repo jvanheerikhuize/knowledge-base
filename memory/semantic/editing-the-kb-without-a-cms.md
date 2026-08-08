@@ -5,7 +5,7 @@ description: browser Git CMSes all need an OAuth broker, so this KB edits throug
 confidence: verified
 source: research + implementation 2026-07-27 — scripts/serve.py, scripts/build_site.py
 created: 2026-07-27
-last_verified: 2026-07-27
+last_verified: 2026-08-08
 links: [memory-overview-site, kb-is-file-based]
 ---
 
