@@ -5,7 +5,7 @@ description: was true 2026-07-28 through 2026-08-06 — cloud routine sessions c
 confidence: verified
 source: reprobed in the 2026-08-07 routine session — add_repo attached jvanheerikhuize/repos with push access, clone/push/PR all succeeded
 created: 2026-07-28
-last_verified: 2026-08-07
+last_verified: 2026-08-08
 links: [holiday-autonomy-mandate, workspace-repo-inventory-drift, routines-ui-not-api-for-prompts]
 ---
 
@@ -48,3 +48,5 @@ property cuts both ways.
 - Per the standing mandate: PR the change, **do not merge it** — that
   authorization is scoped to `knowledge-base` during the (now-lapsed) holiday
   window, not renewed across the workspace.
+
+2026-08-08, same-day evidence that the cause is per-session tooling, not only Jerry's grant timing: an earlier routine firing today had no add_repo call and an unauthenticated git clone of a sibling failed, so it fell back to in-repo work (recorded in DEBRIEF.md). A later routine firing the same day had add_repo and register_repo_root, used them to attach jvanheerikhuize/repos and jvanheerikhuize/ubuntu-cast, cloned, pushed a branch, and opened jvanheerikhuize/repos#3. Two sessions, same day, same account, different tool availability — access is not a single on/off switch that flips only when Jerry changes a grant; which session container you land in also matters.
