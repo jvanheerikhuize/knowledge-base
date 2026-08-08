@@ -512,7 +512,7 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   in `review_forecast` (`schema_version: 3`), and `kb.py verify --note` / MCP
   `verify_note` writing the evidence to `.kb/log.md`. Four entries genuinely
   re-verified with notes, which dropped the busiest review day from 10 to 6.
-  12 new tests (497 total). Write-up:
+  13 new tests (498 total). Write-up:
   `kb-verification-rides-along-with-authoring`;
   `kb-agent-entrypoint-is-agent-md` corrected in place.
 

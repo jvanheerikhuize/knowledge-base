@@ -352,7 +352,7 @@ Set up 2026-07-27 before you left.
   noting explicitly that its Decap/Sveltia/Tina evaluation was *not* re-checked
   from here). That is also the standing action Phase 11 asked for, done rather
   than described: the busiest review day fell from 10 entries to 6. 12 new
-  tests (497 total, green); lint and triage clean. Write-up:
+  tests (498 total, green); lint and triage clean. Write-up:
   `kb-verification-rides-along-with-authoring`. ROADMAP Phase 12.
 - [ ] 2026-08-08 **Cross-repo rotation was not possible this session.** The
   standing mandate asks each run to take one focused item in a sibling repo.

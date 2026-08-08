@@ -931,7 +931,7 @@ than when the entry does. `sibling-repo-access-denied-in-routines` was true on
 Checkability is a property of the reader's access, not of the claim, so it does
 not belong on the claim. Reopen condition in the table below.
 
-12 new tests (497 total). Write-up:
+13 new tests (498 total). Write-up:
 [[kb-verification-rides-along-with-authoring]].
 
 ---
@@ -1097,7 +1097,7 @@ that standing action should know:
   `never_reverified` in the forecast (`schema_version: 3`), and `kb.py verify
   --note` / MCP `verify_note` recording the evidence in `.kb/log.md`. A
   "checkable from here" frontmatter flag was rejected — checkability belongs to
-  the reader's access, not to the claim. 12 new tests (497 total). Write-up:
+  the reader's access, not to the claim. 13 new tests (498 total). Write-up:
   [[kb-verification-rides-along-with-authoring]].
 
 ---
