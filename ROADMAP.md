@@ -954,11 +954,11 @@ before its condition holds.
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 
-Two of the six need something outside this repo (a client, a sibling
-checkout) and three need the store to grow or to age. Nothing on the list is
-blocked on effort, which is why none of it is scheduled — and nothing left on
-it can be closed from inside a routine session, which is what the `kb-due`
-close branch was until 2026-08-05.
+Three of the seven wait on something outside this repo (a client, a sibling
+checkout, a second kind of session); the other four wait on the store growing
+or ageing. Nothing on the list is blocked on effort, which is why none of it is
+scheduled — and nothing left on it can be closed from inside a routine session,
+which is what the `kb-due` close branch was until 2026-08-05.
 
 The nearest thing to a standing action is not on that table, because it is not
 engineering: **the store's review window is 2026-10-25 → 2026-11-06, and it is
