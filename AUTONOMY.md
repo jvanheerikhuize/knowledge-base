@@ -45,7 +45,7 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   never reached `main`. Pushing to a branch is a checkpoint, not an ending.
 - **Before picking a backlog item, check `git ls-remote --heads origin`.** An
   unmerged `claude/*` branch may already hold the work.
-  **Four exceptions, all already dealt with — ignore them, do not re-merge:**
+  **Five exceptions, all already dealt with — ignore them, do not re-merge:**
 
   | branch | dealt with | mechanically 0 ahead of `main`? |
   |---|---|---|
@@ -53,19 +53,23 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   | `claude/cool-cerf-sr8tim` | recovered 2026-07-31 (PR #30) | no — same |
   | `claude/wizardly-dijkstra-0sq8ef` | merged 2026-08-07 (PR #45) | **yes** |
   | `claude/cool-cerf-4c7ia8` | merged 2026-08-07 (PR #45) | **yes** |
+  | `claude/wizardly-dijkstra-dwhuk6` | merged 2026-08-08 (PR #49) | no — **squash** merge, so its three commits are not ancestors |
 
-  The first two still show commits in `git log origin/main..origin/<branch>`
-  because PR #30 recovered their *content* rather than merging their commits.
-  Spot-checked again 2026-08-07: `kb-test-audit-2026-07-29`,
+  Three of these still show commits in `git log origin/main..origin/<branch>`
+  for two different reasons, neither of which means work is missing. PR #30
+  recovered the first two branches' *content* rather than merging their commits;
+  spot-checked again 2026-08-07, `kb-test-audit-2026-07-29`,
   `audit-test-corpora-for-artificial-uniformity` and the `cmd_rm` `_other_type`
-  fix are all present on `main`. Nothing is missing; the diff is an artefact of
-  how they were recovered.
+  fix are all present on `main`. PR #49 was **squash-merged**, which by
+  construction leaves the branch's commits off `main` while putting every line
+  of them on it — `git diff origin/main origin/claude/wizardly-dijkstra-dwhuk6`
+  is empty, which is the check to run before believing any of these rows.
 
-  All four still appear in `ls-remote` because **a routine session cannot delete
+  All five still appear in `ls-remote` because **a routine session cannot delete
   a remote branch** — re-confirmed 2026-08-07: `git push origin --delete` dies
   with `send-pack: unexpected disconnect while reading sideband packet`, and the
   GitHub MCP tools have no delete-branch call. Jerry has to remove them:
-  `git push origin --delete claude/cool-cerf-so8mrh claude/cool-cerf-sr8tim claude/wizardly-dijkstra-0sq8ef claude/cool-cerf-4c7ia8`
+  `git push origin --delete claude/cool-cerf-so8mrh claude/cool-cerf-sr8tim claude/wizardly-dijkstra-0sq8ef claude/cool-cerf-4c7ia8 claude/wizardly-dijkstra-dwhuk6`
 
 ## Model tiering
 
