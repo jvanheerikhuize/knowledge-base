@@ -291,3 +291,72 @@ Set up 2026-07-27 before you left.
   re-probe for drift (`kb.py triage`, a fresh `.gitmodules` audit — the same
   rename-redirect failure mode will recur) or check for new instructions
   before starting anything non-trivial.
+- [ ] 2026-08-08 **`last_verified` has never once recorded an actual review.**
+  The store's whole staleness model — decay, triage, the review forecast —
+  rests on that one date, so this session asked what moves it. Replaying all
+  73 commits that have ever touched `memory/`: **13 have ever moved a
+  `last_verified` date, and 11 of them were editing that same entry's body or
+  description in the same commit.** The other two are both `20a2c4e` on
+  2026-07-27, the opening-day commit that stamped the founding set. So in
+  twelve days there has been **no standalone re-verification at all**, and
+  **24 of 35 live entries still carried the date they were written with**. The
+  filter points the wrong way: dates move on entries a session already had a
+  reason to open — whose claims were just re-derived — and never on the ones
+  nobody has touched, which is the population staleness exists to catch.
+- [ ] 2026-08-08 **The first standalone sweep found a live defect that had been
+  sitting in a correct entry for twelve days.** `kb-agent-entrypoint-is-agent-md`
+  has said since 2026-07-27 that `.claude/CLAUDE.md` describes a layout that
+  never shipped, and named all six wrong paths right. Every one was still wrong
+  — in a file injected into *every* session in this repo, prefixed "IMPORTANT:
+  these instructions OVERRIDE any default behavior and you MUST follow them
+  exactly as written." The entry carried its own remedy ("until that file is
+  rewritten or deleted") and `workspace-improvement-phases` carried it again as
+  open item P1.3. Being right changed nothing, because nothing re-read it.
+  **Rewritten** against the real layout, and it now names `memory/AGENT.md` as
+  the contract it summarises.
+- [ ] 2026-08-08 **`AGENTS.md` corrected too** — your file from 2026-08-06. It
+  described four memory layers rather than seven types, called the format
+  "Markdown + JSON" (entries are Markdown with YAML frontmatter; JSON is only
+  `.kb/` config and the generated bundle), never mentioned `memory/AGENT.md`,
+  and pointed at `/home/jerry/Repos/AGENTS.md` — an absolute path on one
+  machine, rendered with an `../AGENTS.md` href that resolves outside the
+  repository, naming a workspace shape already superseded by the
+  `jvanheerikhuize/repos` submodule meta-repo. Intent kept, facts fixed, and the
+  workspace pointer now goes to the meta-repo rather than to a local path.
+  Say the word if you'd rather have your original wording back.
+- [ ] 2026-08-08 **Five of the nine oldest entries cannot be re-verified from a
+  routine at all** — they rest on `~/.claude/settings.json`, the `asdlc` and
+  `digital-twin` repos, the claude.ai Routines UI, and a `~/Repos` filesystem in
+  a shape that no longer exists. They arrive in the 2026-10-25 review queue with
+  no action a scheduled session can take. This **revises ROADMAP Phase 11**,
+  whose conclusion was "spread the sweep": the queue is not one queue, and
+  spreading does not make a third of it checkable.
+- [ ] 2026-08-08 **Shipped: `kb.py verify --note "<what you checked>"`** —
+  recorded in `.kb/log.md`, with a stderr warning when omitted, because the date
+  alone cannot distinguish a review from a drive-by edit. `kb.py log --action
+  verified` is now the review trail. Not frontmatter: an entry file records what
+  its author claims, not what a reviewer did to it. MCP `propose_update` takes
+  `verify_note` and writes the same record, so the two write surfaces stay
+  comparable.
+- [ ] 2026-08-08 **Shipped: `never_reverified` in the review forecast** — live
+  entries where `last_verified == created` — surfaced in `kb.py status`,
+  `kb.py stats` and `site/data.json` (`schema_version: 3`, contract test
+  updated). Computed from dates the store already had; no new field. A
+  "checkable from here" frontmatter flag was **rejected**: checkability is a
+  property of the reader's access, not of the claim
+  (`sibling-repo-access-denied-in-routines` flipped on 2026-08-06 while nothing
+  about those entries moved). Reopen condition recorded in the ROADMAP.
+- [ ] 2026-08-08 **Four entries genuinely re-verified, each with its evidence**
+  (`kb-agent-entrypoint-is-agent-md`, `kb-is-file-based`,
+  `persist-insight-to-knowledge-base`, `editing-the-kb-without-a-cms` — the last
+  noting explicitly that its Decap/Sveltia/Tina evaluation was *not* re-checked
+  from here). That is also the standing action Phase 11 asked for, done rather
+  than described: the busiest review day fell from 10 entries to 6. 12 new
+  tests (497 total, green); lint and triage clean. Write-up:
+  `kb-verification-rides-along-with-authoring`. ROADMAP Phase 12.
+- [ ] 2026-08-08 **Cross-repo rotation was not possible this session.** The
+  standing mandate asks each run to take one focused item in a sibling repo.
+  This run's toolset had no `add_repo` call and an unauthenticated `git clone`
+  of `jvanheerikhuize/repos` fails, so work stayed here per the mandate's own
+  fallback. Your 2026-08-06 connector grant is not in question — this is a
+  per-session tooling gap, and `jvanheerikhuize/repos#2` is still open for you.

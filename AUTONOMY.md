@@ -487,11 +487,43 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   Write-up: `workspace-repo-inventory-drift` (rewritten, prior text kept as
   "original finding, for the record" rather than deleted).
 
-  **The backlog is now fully closed** — this was the one item marked blocked.
-  Per the post-mandate section above, no new large-scope item is invented to
-  fill the gap; the next session should check for new instructions from Jerry
-  or new drift (`kb.py triage`, a fresh `.gitmodules` audit) before starting
-  anything non-trivial.
+- [x] **What `last_verified` actually measures (ROADMAP Phase 12).**
+  (2026-08-08) Picked up as the research-tier item; not previously on this
+  list. Cross-repo work was unavailable this session — no `add_repo` MCP tool
+  in this run's toolset and an unauthenticated `git clone` of a sibling fails,
+  so the standing mandate's rotation could not be exercised (the 2026-08-06
+  grant itself is unchanged; this is a per-session tooling gap, not a
+  revocation). In-repo fallback per the mandate's step 1.
+  Phase 11 concluded *spread the sweep*; nobody had asked what a
+  re-verification in this store actually is. Replaying all 73 commits that
+  touch `memory/`: **13 have ever moved a `last_verified` date, 11 of them
+  inside a commit already editing that entry**, and the other two are the
+  opening-day batch stamp — so no standalone re-verification had ever happened,
+  and **24 of 35 live entries still carried their birth date**. The field
+  records authoring activity, and the entries it skips are exactly the ones
+  nobody has looked at. Ran the store's first standalone sweep over the nine
+  oldest: one correct-but-unread entry had been naming a **live defect for
+  twelve days** — `.claude/CLAUDE.md`, injected into every session in this repo
+  as an override-everything instruction, with all six of the paths it names
+  still absent — one entry had gone incomplete when a third entrypoint
+  (`AGENTS.md`, 2026-08-06) appeared, and **five of nine cannot be re-verified
+  from a routine at all**, which revises Phase 11: spreading a queue does not
+  make a third of it checkable. Shipped both file repairs, `never_reverified`
+  in `review_forecast` (`schema_version: 3`), and `kb.py verify --note` / MCP
+  `verify_note` writing the evidence to `.kb/log.md`. Four entries genuinely
+  re-verified with notes, which dropped the busiest review day from 10 to 6.
+  12 new tests (497 total). Write-up:
+  `kb-verification-rides-along-with-authoring`;
+  `kb-agent-entrypoint-is-agent-md` corrected in place.
+
+  **The backlog is closed again.** Per the post-mandate section above, no new
+  large-scope item is invented to fill the gap. The standing action a next
+  session can take without inventing anything is the batch re-verification
+  Phase 11 and 12 both point at — but read Phase 12's two caveats in
+  `ROADMAP.md` first: a verify without `--note` is not a review, and about a
+  third of the queue is not a routine's to clear. Otherwise check for new
+  instructions from Jerry or new drift (`kb.py triage`, a fresh `.gitmodules`
+  audit) before starting anything non-trivial.
 
 ## Debrief contract
 

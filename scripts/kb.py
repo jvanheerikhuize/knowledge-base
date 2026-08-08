@@ -1732,7 +1732,7 @@ def review_forecast(today=None):
     """
     today = today or datetime.date.today()
     by_date = collections.Counter()
-    undated = 0
+    undated = never_reverified = 0
     for t, path in iter_entries():
         try:
             fm, _ = parse_frontmatter(path)
@@ -1740,8 +1740,9 @@ def review_forecast(today=None):
             continue
         if is_archived(fm):
             continue
+        lv = str(fm.get("last_verified"))
         try:
-            due = (datetime.date.fromisoformat(str(fm.get("last_verified")))
+            due = (datetime.date.fromisoformat(lv)
                    + datetime.timedelta(days=STALE_DAYS))
         except (TypeError, ValueError):
             # No date, or one `triage` already reports as broken. Either way
@@ -1749,6 +1750,8 @@ def review_forecast(today=None):
             # forecast cannot silently describe a subset of the store.
             undated += 1
             continue
+        if lv == str(fm.get("created")):
+            never_reverified += 1
         by_date[due.isoformat()] += 1
 
     dated = sum(by_date.values())
@@ -1763,6 +1766,19 @@ def review_forecast(today=None):
         "busiest": None,
         "already_due": 0,
         "is_cohort": False,
+        # How much of the coming load has never actually been reviewed.
+        # `last_verified == created` means the date is the one the entry was
+        # born with: nobody has re-checked the claim since it was written.
+        # Measured on this store 2026-08-08, that was 24 of 35 live entries,
+        # and it is not a random 24 — `last_verified` only ever moves when a
+        # session is already editing that entry for some other reason, so the
+        # entries it skips are precisely the ones nobody has looked at. See
+        # [[kb-verification-rides-along-with-authoring]].
+        #
+        # The proxy's one blind spot: an entry re-verified on the same day it
+        # was created is indistinguishable from one never re-verified. That is
+        # the honest reading anyway — a same-day re-check is the write.
+        "never_reverified": 0,
         "by_date": [],
     }
     if not dated:
@@ -1781,6 +1797,7 @@ def review_forecast(today=None):
         "already_due": sum(n for d, n in by_date.items()
                            if datetime.date.fromisoformat(d) <= today),
         "is_cohort": dated >= COHORT_MIN_ENTRIES and span <= STALE_DAYS * COHORT_RATIO,
+        "never_reverified": never_reverified,
         "by_date": [[d, by_date[d]] for d in dates],
     })
     return forecast
@@ -1806,6 +1823,9 @@ def format_review_forecast(f):
         lines.append("  That is one cohort, not a spread: re-verifying them "
                      "together re-dates them together, so the same pile-up "
                      f"returns {cycle}d later. Spread the sweep to spread it.")
+    if f["never_reverified"]:
+        lines.append(f"  {f['never_reverified']} of them still carry the date "
+                     "they were written with — never re-checked since.")
     return lines
 
 
@@ -1908,6 +1928,8 @@ def cmd_stats(args):
             row("already past review", f["already_due"])
         if f["undated"]:
             row("no review date", f["undated"])
+        if f["never_reverified"]:
+            row("never re-checked", f"{f['never_reverified']} of {f['dated']}")
         if f["is_cohort"]:
             row("shape", "one cohort — the whole store comes due together")
 
@@ -1955,6 +1977,23 @@ def cmd_due(args):
     print(f"\n{len(rows)} entr(ies) due")
 
 
+def verify_detail(confidence, note=None):
+    """The log line a verification leaves behind.
+
+    `last_verified` is a date and nothing else, so the store cannot tell a
+    claim somebody re-checked from one whose date moved because a session
+    happened to be editing the entry anyway. The date is the schedule; the
+    note is the evidence, and it lives in `.kb/log.md` rather than in
+    frontmatter because the entry file records what the author claims, not
+    what a reviewer did to it. `kb.py log --action verified` is the trail.
+    """
+    detail = f"confidence={confidence}"
+    if note:
+        # One line, so a note cannot break the log's one-record-per-line shape.
+        detail += f"; checked: {' '.join(str(note).split())}"
+    return detail
+
+
 def cmd_verify(args):
     t, path, fm, _ = _require(args.name)
     today = datetime.date.today().isoformat()
@@ -1963,8 +2002,11 @@ def cmd_verify(args):
         changes["confidence"] = args.confidence
     write_frontmatter(path, changes)
     conf = args.confidence or fm.get("confidence", "?")
-    _append_log(t, path.stem, today, "verified", f"confidence={conf}")
+    _append_log(t, path.stem, today, "verified", verify_detail(conf, args.note))
     print(f"verified {path.relative_to(ROOT)} (last_verified={today}, confidence={conf})")
+    if not args.note:
+        print("  no --note: the date moved, but nothing records what was checked",
+              file=sys.stderr)
 
 
 def cmd_set(args):
@@ -3034,6 +3076,9 @@ def main():
     p_verify.add_argument("name")
     p_verify.add_argument("--confidence", choices=CONFIDENCE_LEVELS,
                           help="also set the confidence level")
+    p_verify.add_argument("--note", help="what you actually checked, and against "
+                                         "what — recorded in .kb/log.md, since the "
+                                         "date alone cannot say whether anyone looked")
     p_verify.set_defaults(func=cmd_verify)
 
     p_set = sub.add_parser("set", help="set a frontmatter field on an entry")
