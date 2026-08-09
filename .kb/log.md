@@ -119,3 +119,6 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-09 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> sibling-repo-access-denied-in-routines
 - 2026-08-09 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> kb-tests-cannot-cover-an-absent-guard
 - 2026-08-09 — linked `semantic/sibling-repo-access-denied-in-routines.md` — -> stranded-branches-track-the-charter-text
+- 2026-08-09 — extended `semantic/workspace-repo-inventory-drift.md` — captured passage appended
+- 2026-08-09 — verified `semantic/workspace-repo-inventory-drift.md` — confidence=verified; checked: Re-checked all three jvanheerikhuize/repos PRs (#1, #2, #3) via GitHub API on 2026-08-09: all still open/unmerged. Confirmed #1 and #2 make near-identical .gitmodules/AGENTS.md edits by diffing both against the shared base commit.
+- 2026-08-09 — updated `semantic/workspace-repo-inventory-drift.md` — description=workspace-repo rewrite (2026-08-06, jvanheerikhuize/repos) shipped its own submodule drift, fixed but still unmerged three-deep: #2 (this entry's eidolon/llm-wiki fix), #1 (an independent, overlapping fix of the same drift, opened first), #3 (ubunutu-cast typo) all open as of 2026-08-09

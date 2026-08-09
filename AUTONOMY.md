@@ -189,6 +189,15 @@ GitHub MCP equivalent).
    now wrong), then pick **one repo, one focused item** per session. Read that
    repo's own README/ROADMAP/CLAUDE.md before touching it. Rotate — do not
    spend every session here just because this repo is the one you wake up in.
+   **Before starting, list the target repo's open PRs** (`list_pull_requests
+   state=open` or `gh pr list`) — this repo's own git strategy already says to
+   check `git ls-remote` before picking a backlog item so two sessions don't
+   redo the same branch; a sibling repo has no branch check a session would
+   see, so an open PR is the only signal, and nothing asked for it before
+   2026-08-09. Two sessions found that out the hard way:
+   `jvanheerikhuize/repos#1` (2026-08-06) and `#2` (2026-08-07) independently
+   fixed the identical `.gitmodules`/`AGENTS.md` drift, unreconciled and both
+   still open three days later ([[workspace-repo-inventory-drift]]).
 3. **Git strategy in other repos:** feature branch, conventional commits,
    push, **open a PR — do not merge it.** The automerge pre-authorization
    above was scoped to this repo during the holiday mandate and does not
@@ -619,6 +628,17 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   `sibling-repo-access-denied-in-routines` extended with the same-day
   flip — evidence the cause includes per-session tooling availability, not
   only Jerry's grant timing.
+- [x] **Cross-repo rotation, taken up again as the freed-up backlog item.**
+  (2026-08-09) Re-probed sibling access per step 1 — worked (`list_repos`,
+  `add_repo`, push). Rotated into `jvanheerikhuize/repos` per step 2's "one
+  repo, one item," and the new PR check step 2 now asks for turned up exactly
+  the problem it exists to prevent: `#1` and `#2` are two open, unreconciled,
+  overlapping PRs fixing the identical drift, three days on. Flagged on `#2`
+  (comment, not a merge or a close — reconciling them is Jerry's call) and
+  recorded in `workspace-repo-inventory-drift`, re-verified with a note.
+  Added the missing check to this file's step 2 so a third session doesn't
+  redo the audit a fourth time. No code changed in `repos`; the fix is
+  process, and it landed as a doc change plus one comment.
 
 ## Debrief contract
 
