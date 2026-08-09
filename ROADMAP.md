@@ -953,6 +953,30 @@ before its condition holds.
 | A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
+| A stranded-branch detector (cron → tracking issue, the `kb-due.yml` shape) | the charter repair of 2026-08-09 fails to hold — i.e. a session strands work again after the post-mandate section stopped contradicting the git strategy. **Measured, not built** (below) | [[stranded-branches-track-the-charter-text]] |
+
+**The stranded-branch detector, measured and deliberately not built
+(2026-08-09).** The domain was real — 5 stranded branches in 12 days, one
+holding a `lint` fix three days from a red cron. Two candidate predicates were
+scored against all 23 sessions:
+
+| predicate | recall | fires today |
+|---|---|---|
+| open PR on a `claude/*` branch, older than 6h | 1 of 5 | 0 |
+| `claude/*` branch with commits not on `main`, tip older than 12h | 5 of 5 | 2 |
+
+The second is the better detector and its threshold is safe by a wide margin:
+every one of the 25 legitimately-merged PRs in this repo's history merged within
+**62 minutes** of opening (median 4.4), so 12h clears the observed maximum
+11-fold. It was not built for two reasons. First, **the diagnosis says the
+defect is in the charter's text, not in its observability** — the rate tracks
+what `AUTONOMY.md` authorized, 0 of 11 against 3 of 6, and a detector would
+report a contradiction it cannot resolve. Fix the contradiction first and
+measure whether anything is left to detect. Second, its two standing fires today
+are `so8mrh` and `sr8tim`, which only Jerry can clear; shipping a cron that
+opens an issue nobody in a routine can close is the `kb-due` close branch
+problem in reverse. Build it if the repair fails — the numbers above are the
+baseline to beat.
 
 Three of the seven wait on something outside this repo (a client, a sibling
 checkout, a second kind of session); the other four wait on the store growing

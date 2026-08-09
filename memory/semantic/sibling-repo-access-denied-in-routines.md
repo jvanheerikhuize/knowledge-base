@@ -6,7 +6,7 @@ confidence: verified
 source: reprobed in the 2026-08-07 routine session — add_repo attached jvanheerikhuize/repos with push access, clone/push/PR all succeeded
 created: 2026-07-28
 last_verified: 2026-08-08
-links: [holiday-autonomy-mandate, workspace-repo-inventory-drift, routines-ui-not-api-for-prompts]
+links: [holiday-autonomy-mandate, workspace-repo-inventory-drift, routines-ui-not-api-for-prompts, stranded-branches-track-the-charter-text]
 ---
 
 **This entry's original claim no longer holds — corrected in place rather
