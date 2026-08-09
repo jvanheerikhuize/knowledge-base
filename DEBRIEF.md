@@ -360,3 +360,58 @@ Set up 2026-07-27 before you left.
   of `jvanheerikhuize/repos` fails, so work stayed here per the mandate's own
   fallback. Your 2026-08-06 connector grant is not in question — this is a
   per-session tooling gap, and `jvanheerikhuize/repos#2` is still open for you.
+
+- [ ] 2026-08-08 **Second firing the same day — cross-repo tooling was
+  available this time, so rotation actually happened.** `add_repo` and
+  `register_repo_root` worked where the immediately prior session (line
+  above) had neither — same account, same day, different session container.
+  Attached `jvanheerikhuize/repos`, read its `ROADMAP.md`/`AGENTS.md`/
+  `INTEGRATION.md`/`.gitmodules` per the mandate's "read before touching"
+  step, and picked one focused item.
+- [ ] 2026-08-08 **`ubunutu-cast` → `ubuntu-cast`: a plain typo PR #2's audit
+  didn't catch.** PR #2 (2026-08-07) checked every `.gitmodules` URL against
+  rename-redirects and found two real renames. It didn't catch this one
+  because it isn't a rename: the submodule's path, section name, and every
+  prose mention (`ROADMAP.md`, `AGENTS.md`, `INTEGRATION.md` — 8 places) have
+  always read `ubunutu-cast`; only the gitlink *URL* was ever correct, which
+  is exactly why it stayed invisible — a submodule resolves by URL, not by
+  its path's spelling. Confirmed the real name via `list_repos` and a shallow
+  clone of `jvanheerikhuize/ubuntu-cast`'s own README/PURPOSE.md/ROADMAP.md.
+  Fixed the submodule path + section name (`git mv` plus a manual header
+  edit — `git mv` alone only updates the path, not the `[submodule "..."]`
+  name) and all 8 doc mentions.
+- [ ] 2026-08-08 **Second, larger finding from reading that repo's own docs:
+  `INTEGRATION.md` invented a purpose for `ubuntu-cast` that doesn't exist.**
+  It described a "podcast pipeline" — `captures/` (raw audio), `transcripts/`
+  (speech-to-text), `analysis/` (NLP + tagging), a `WAV/MP3` row in the
+  data-formats table, output "feeding into knowledge-base" — none of which
+  matches the real repo: a live screen+PipeWire-audio→Chromecast streamer
+  (Wayland portal capture, H.264+AAC over HTTP) with no recording,
+  transcription, or file output anywhere in its `src/` tree. `AGENTS.md`'s
+  one-line description was already accurate, so only `INTEGRATION.md` had
+  drifted — a fabrication surviving inside the same doc-generation pass that
+  produced the accurate line elsewhere. Corrected the three spots (diagram
+  block, data-formats row, "quick reference" question) to the tool's actual
+  purpose rather than deleting them outright, since the file's job is to say
+  what each repo *is* for.
+- [ ] 2026-08-08 **Opened as a PR, not merged, per the cross-repo rule**:
+  [jvanheerikhuize/repos#3](https://github.com/jvanheerikhuize/repos/pull/3).
+  No CI configured on that repo (`get_status` returned zero checks, same as
+  PR #2), so nothing to babysit there beyond the review itself — subscribed
+  to the PR's activity anyway per the standing GitHub-watching instructions.
+- [ ] 2026-08-08 **`sibling-repo-access-denied-in-routines` extended, not just
+  re-verified — today is itself the evidence for a nuance the entry didn't
+  have.** Two sessions, same account, same calendar day: the one immediately
+  before this had no `add_repo` call at all and fell back to in-repo work
+  (line above); this one had it and used it successfully. The entry's prior
+  wording attributed the 2026-07-28→08-06 block and its 08-07 lift entirely
+  to Jerry's connector grant, changing only when he changes it. That's still
+  true of the grant, but it isn't the whole story: which session container
+  you land in also determines whether the cross-repo tools are even present,
+  independent of the grant. Extended with today's specific evidence and
+  re-verified with a note.
+- [ ] 2026-08-08 In-repo: 498 tests still green (no new tests — no `kb.py`
+  code touched, only one entry body extended), `kb.py lint` and `kb.py
+  triage` clean. This entry and the two `AUTONOMY.md`/`DEBRIEF.md` edits are
+  the only `knowledge-base` changes this session; everything else landed in
+  `jvanheerikhuize/repos`.

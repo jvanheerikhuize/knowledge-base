@@ -528,6 +528,24 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   third of the queue is not a routine's to clear. Otherwise check for new
   instructions from Jerry or new drift (`kb.py triage`, a fresh `.gitmodules`
   audit) before starting anything non-trivial.
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item.**
+  (2026-08-08, second firing) `add_repo`/`register_repo_root` were available
+  this session — the immediately prior firing the same day had neither and
+  fell back to in-repo work, which is itself a finding (see below). Picked
+  one repo, one item, per the standing mandate's step 2: audited
+  `jvanheerikhuize/repos`'s `.gitmodules` and found the `ubuntu-cast`
+  submodule's path, section name, and every doc mention spelled
+  `ubunutu-cast` — a plain typo, not a rename-redirect, so PR #2's
+  URL-vs-current-name audit didn't catch it. While confirming the real name
+  against the repo's own README/PURPOSE.md, also found `INTEGRATION.md`
+  describing `ubuntu-cast` as a "podcast pipeline" (captures/transcripts/
+  analysis, WAV/MP3 output feeding knowledge-base) — none of that matches
+  the actual repo, a live screen+audio Chromecast streamer with no file
+  output. Fixed both. PR opened, not merged, per the cross-repo rule:
+  [jvanheerikhuize/repos#3](https://github.com/jvanheerikhuize/repos/pull/3).
+  `sibling-repo-access-denied-in-routines` extended with the same-day
+  flip — evidence the cause includes per-session tooling availability, not
+  only Jerry's grant timing.
 
 ## Debrief contract
 
