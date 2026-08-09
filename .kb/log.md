@@ -114,3 +114,8 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-08 — verified `semantic/editing-the-kb-without-a-cms.md` — confidence=verified; checked: implementation half re-checked: serve.py api_capabilities exists, build_site emits one artifact whose app.js probes api/capabilities, triage.html is built, Edit-on-GitHub and Raise-an-issue links present, and kb.py exposes triage/verify/set/link/edit/rm. The Decap/Sveltia/Tina OAuth evaluation is external and was NOT re-checked from this session.
 - 2026-08-08 — extended `semantic/sibling-repo-access-denied-in-routines.md` — captured passage appended
 - 2026-08-08 — verified `semantic/sibling-repo-access-denied-in-routines.md` — confidence=verified; checked: Re-read whole entry after extending with 2026-08-08 same-day evidence (add_repo present this session, absent in the session immediately before it); mechanism note already correct, extension adds the per-session-tooling nuance.
+- 2026-08-09 — created `semantic/stranded-branches-track-the-charter-text.md`
+- 2026-08-09 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> kb-archived-is-a-filter-commands-forget
+- 2026-08-09 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> sibling-repo-access-denied-in-routines
+- 2026-08-09 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-09 — linked `semantic/sibling-repo-access-denied-in-routines.md` — -> stranded-branches-track-the-charter-text
