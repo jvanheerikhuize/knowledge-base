@@ -477,3 +477,32 @@ Set up 2026-07-27 before you left.
   reopen row rather than a workflow. 1 new KB entry
   (`stranded-branches-track-the-charter-text`), no code touched, 498 tests
   green, lint and triage clean.
+
+- [ ] 2026-08-09 **Cross-repo rotation found the same stranding pattern one
+  level up — two open PRs in `jvanheerikhuize/repos` doing the identical
+  audit.** Backlog was closed again (previous entry), so per the standing
+  mandate's step 1 this session re-probed sibling access — worked
+  (`list_repos`, `add_repo`, push) — and rotated into `jvanheerikhuize/repos`
+  for one focused item. Before touching anything, checked its open PRs (a
+  step this file didn't ask for until today) and found `#1`
+  (`chore/rename-eidolon-to-undervault`, opened 2026-08-06T20:40Z, draft, by a
+  session this store has no other record of) sitting alongside `#2` (the
+  2026-08-07 workspace-docs-drift fix this repo already knew about) — both
+  fixing the identical `eidolon`→`undervault` / `llm-wiki` `.gitmodules` drift
+  independently, unreconciled three days on. `#3` (`ubunutu-cast` typo,
+  2026-08-08) is unrelated and doesn't overlap.
+- [ ] 2026-08-09 **Flagged, not resolved.** Merging `#1` and `#2` as-is
+  conflicts on `.gitmodules`/`AGENTS.md`; they diverge past the overlap (`#1`
+  ships a `/name-sync` drift-detection skill, `#2` documents the audit in
+  `ROADMAP.md`) in a way that makes picking a winner a judgement call, not a
+  mechanical merge. Left both open and posted one comment on `#2` laying out
+  the overlap and the divergence for you to resolve:
+  [jvanheerikhuize/repos#2 (comment)](https://github.com/jvanheerikhuize/repos/pull/2#issuecomment-5230741300).
+- [ ] 2026-08-09 **Closed the gap that caused it.** `workspace-repo-inventory-drift`
+  extended and re-verified with a note (all three PR states re-checked live via
+  the GitHub API). `AUTONOMY.md`'s standing mandate step 2 now says to list a
+  target repo's open PRs before starting — the sibling-repo equivalent of this
+  repo's own `git ls-remote`-before-picking-a-backlog-item rule, which had no
+  counterpart across repos until today. No code touched in either repo; this
+  session's only `knowledge-base` changes are `AUTONOMY.md` and the KB entry.
+  498 tests green, lint and triage clean.

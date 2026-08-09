@@ -1,11 +1,11 @@
 ---
 name: workspace-repo-inventory-drift
 type: semantic
-description: 2026-07-27's ~/Repos/CLAUDE.md count-drift was superseded by a full workspace rewrite (2026-08-06) into a git-submodule meta-repo, jvanheerikhuize/repos; that rewrite shipped its own drift — two submodules pointed at pre-rename repo URLs — fixed 2026-08-07 (PR jvanheerikhuize/repos#2)
+description: workspace-repo rewrite (2026-08-06, jvanheerikhuize/repos) shipped its own submodule drift, fixed but still unmerged three-deep: #2 (this entry's eidolon/llm-wiki fix), #1 (an independent, overlapping fix of the same drift, opened first), #3 (ubunutu-cast typo) all open as of 2026-08-09
 confidence: verified
 source: 2026-07-27 filesystem enumeration (original finding, now historical); 2026-08-07 audit of jvanheerikhuize/repos' .gitmodules via git ls-remote per entry
 created: 2026-07-27
-last_verified: 2026-08-07
+last_verified: 2026-08-09
 links: [persist-insight-to-knowledge-base, sibling-repo-access-denied-in-routines]
 ---
 
@@ -63,3 +63,5 @@ was listed but absent (closest live repo `llm-wiki`, unconfirmed rename
 guess — see above); `3d-printing`, `centauri-control`, and `llm-wiki` existed
 on disk but were unlisted. That specific `CLAUDE.md`/filesystem pair no
 longer exists to check — see "Superseded structure" above.
+
+Checked back in on 2026-08-09: none of the three PRs this line of work opened have merged. jvanheerikhuize/repos#2 (this entry's fix), #3 (the ubunutu-cast typo fix), and a third, #1 ("chore: rename eidolon to undervault and add /name-sync", opened 2026-08-06T20:40Z, draft, by a session this store has no other record of), are all still open. #1 and #2 independently fix the identical eidolon->undervault and llm-wiki .gitmodules/AGENTS.md drift -- two sessions did the same audit because neither checked for an already-open PR before starting, the sibling-repo equivalent of this repo's own "check git ls-remote before picking a backlog item" rule, which the standing cross-repo mandate never asked for. Left both open rather than resolving the overlap unilaterally -- flagged on #2 instead, since merging both as-is conflicts on .gitmodules/AGENTS.md and choosing which one wins (#1 also ships a /name-sync drift-detection skill; #2 documents the audit in ROADMAP.md) is Jerry's call, not a session's.
