@@ -296,6 +296,22 @@ class TestContext(RankingTestCase):
         self.assertFalse(pack["budget_bound"])
         self.assertNotIn("Stopped on", pack["text"])
 
+    def test_a_pack_capped_by_limit_blames_limit_not_the_matches(self):
+        """`--limit` is the caller capping the pack, not the store running out.
+
+        Without this the pack would say "nothing else scored" about entries it
+        was told not to look at.
+        """
+        for i in range(4):
+            self.make("semantic", f"widget-{i}", "widget " * (4 - i))
+        pack = json.loads(
+            self.run_kb("context", "widget", "--limit", "2", "--json").stdout)
+        self.assertFalse(pack["budget_bound"])
+        self.assertEqual(pack["limited_out"], 2)
+        self.assertEqual(pack["omitted"], 2)
+        self.assertIn("Stopped on --limit, not on budget", pack["text"])
+        self.assertNotIn("nothing else scored", pack["text"])
+
     def test_limit_caps_how_many_ranked_hits_are_considered(self):
         for i in range(4):
             self.make("semantic", f"widget-{i}", "widget " * (4 - i))

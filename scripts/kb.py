@@ -1014,6 +1014,10 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
     """
     hits = rank(query, types=types, include_episodic=include_episodic,
                 docs=docs)
+    # `--limit` is the caller capping the pack, not the budget doing it. Kept
+    # apart from `omitted` below so the pack never reports "nothing else
+    # scored" about entries the caller asked it not to look at.
+    limited_out = len(hits) - len(hits[:limit]) if limit else 0
     if limit:
         hits = hits[:limit]
 
@@ -1070,10 +1074,14 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
         head += (
             f"Stopped on budget, not on matches: the next entry "
             f"({omitted[0]['name']}, relevance {omitted[0]['score']}) did not "
-            f"fit, and {len(omitted)} ranked match"
-            f"{'' if len(omitted) == 1 else 'es'} remain. Raise --budget or "
-            f"narrow the query.\n"
+            f"fit, and {len(omitted) + limited_out} ranked match"
+            f"{'' if len(omitted) + limited_out == 1 else 'es'} remain. Raise "
+            f"--budget or narrow the query.\n"
         )
+    elif limited_out:
+        head += (f"Stopped on --limit, not on budget: {limited_out} further "
+                 f"ranked match{'' if limited_out == 1 else 'es'} were not "
+                 f"considered.\n")
     elif included:
         head += "Stopped on matches, not on budget: nothing else scored.\n"
     head += "\n"
@@ -1084,7 +1092,8 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
         "entries": [{k: v for k, v in h.items() if k != "body"} for h in included],
         "trimmed": trimmed,
         "budget_bound": bool(omitted),
-        "omitted": len(omitted),
+        "omitted": len(omitted) + limited_out,
+        "limited_out": limited_out,
         "next_omitted": omitted[0]["name"] if omitted else None,
         "text": head + "\n".join(sections) if sections else head + "(no matches)\n",
     }
