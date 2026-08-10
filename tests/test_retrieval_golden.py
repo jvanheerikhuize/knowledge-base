@@ -31,6 +31,16 @@ import kb  # noqa: E402
 FLOOR_SUCCESS_AT_1 = 0.40
 FLOOR_MRR = 0.55
 FLOOR_RECALL_AT_5 = 0.75
+# What the product returns, which the three floors above cannot see: they are
+# rank metrics and `context_pack` stops on a token budget. Today 0.714 over 28
+# queries; the floor sits ~4 queries below, the same margin as the others.
+FLOOR_RECALL_AT_PACK = 0.55
+# Not a fitted constant — a definition. Below two entries a "pack" is one entry
+# and a header, which is `search --limit 1` under another name. The pack held
+# 5.14 entries on 2026-07-27 and 2.75 on 2026-08-09, shrinking only because the
+# store's entries got longer (ROADMAP Phase 13), so this is the boundary that
+# says the drift has gone far enough to have eaten the feature.
+MIN_MEAN_PACK_ENTRIES = 2.0
 # A query that restates its entry's title tests the tokenizer, not retrieval.
 MAX_TITLE_OVERLAP = 0.60
 
@@ -125,10 +135,40 @@ class TestRetrievalMeetsItsFloor(GoldenSetTestCase):
         self.assertGreaterEqual(self.summary["mrr"], FLOOR_MRR, self._diagnosis())
 
     def test_recall_at_5(self):
-        """What `kb.py context` actually hands back, so the metric that matters
-        most as the store grows."""
+        """Where the ranker put the entry — not what the pack hands back.
+
+        This docstring used to claim the latter. It was true on 2026-07-27,
+        when a default pack held 5.1 entries, and false by the time it was
+        written; see `test_recall_at_pack`.
+        """
         self.assertGreaterEqual(self.summary["recall_at_5"], FLOOR_RECALL_AT_5,
                                 self._diagnosis())
+
+    def test_recall_at_pack(self):
+        """What `kb.py context` actually hands back, at the default budget."""
+        self.assertGreaterEqual(
+            self.summary["recall_at_pack"], FLOOR_RECALL_AT_PACK,
+            f"the context pack delivered the right entry for only "
+            f"{self.summary['recall_at_pack']:.1%} of golden queries at budget "
+            f"{self.summary['pack_budget']} (mean "
+            f"{self.summary['mean_pack_entries']} entries). Rank metrics cannot "
+            f"see this — check entry length before checking the ranker.\n"
+            + self._diagnosis())
+
+    def test_the_pack_is_still_more_than_one_entry(self):
+        """The pack shrinks silently as entries get longer, at a fixed budget.
+
+        Nothing in the rank metrics moves when this happens, which is why it
+        went from 5.14 entries to 2.75 over thirteen days unnoticed.
+        """
+        self.assertGreaterEqual(
+            self.summary["mean_pack_entries"], MIN_MEAN_PACK_ENTRIES,
+            f"a default context pack now averages "
+            f"{self.summary['mean_pack_entries']} entries. Entries have grown "
+            f"long enough that the budget fits barely one. Either raise "
+            f"DEFAULT_CONTEXT_BUDGET deliberately, or shorten entries — but "
+            f"decide, rather than letting the feature erode.",
+        )
 
     def _diagnosis(self):
         misses = [f"  #{r['rank'] or '-'} {r['query']!r} -> want {r['expect']}, "
@@ -137,6 +177,38 @@ class TestRetrievalMeetsItsFloor(GoldenSetTestCase):
         return ("retrieval fell below its floor. Run `kb.py eval` for the "
                 "full picture. Queries whose top hit is wrong:\n"
                 + "\n".join(misses))
+
+
+class TestRankMetricsCannotSeeTheBudget(GoldenSetTestCase):
+    """Why `recall_at_pack` exists as a separate number rather than a synonym.
+
+    `recall@3` and `recall@5` ask where the ranker put an entry. The pack asks
+    what fits in a token budget. Sweeping the budget moves one and not the
+    other, so a store whose entries double in length degrades the product with
+    every rank metric holding steady — which is exactly what happened between
+    2026-07-27 and 2026-08-09 (ROADMAP Phase 13). If someone deletes
+    `recall_at_pack` as redundant, this fails.
+    """
+
+    def test_sweeping_the_budget_moves_the_pack_and_not_the_ranking(self):
+        tight = kb.eval_report(golden=self.golden, docs=self.docs,
+                               budget=1000)["summary"]
+        roomy = kb.eval_report(golden=self.golden, docs=self.docs,
+                               budget=12000)["summary"]
+        self.assertGreater(
+            roomy["recall_at_pack"], tight["recall_at_pack"],
+            "a 12x budget delivered no more of the golden set than a tight "
+            "one — the pack is no longer budget-bound, so this finding has "
+            "expired and the separate metric may go",
+        )
+        self.assertGreater(roomy["mean_pack_entries"], tight["mean_pack_entries"])
+        for metric in ("recall_at_3", "recall_at_5", "success_at_1", "mrr"):
+            self.assertEqual(
+                tight[metric], roomy[metric],
+                f"{metric} changed with the context budget. A rank metric has "
+                f"no budget term; if this now varies, the two measurements "
+                f"have been entangled and neither means what it says.",
+            )
 
 
 class TestTheSetCanStillFail(GoldenSetTestCase):

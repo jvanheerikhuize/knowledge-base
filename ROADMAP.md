@@ -572,6 +572,12 @@ entries: **success@1 0.536, MRR 0.668, recall@3 0.786, recall@5 0.857.**
 a handful of entries rather than one. Every ablation below is from that 28/28
 run, paired on the same queries.
 
+> **Corrected 2026-08-10 (Phase 13).** That sentence was wrong when it was
+> written. `recall@5` is a *rank* metric and the pack is bounded by a *token
+> budget*; on 2026-08-02 the default pack already held 3.5 entries, not 5, and
+> by 2026-08-09 it held 2.75. `recall_at_pack` now scores what the pack
+> actually returns, and the two are separate numbers on purpose.
+
 The shipped set then reads **29 queries over 29 entries at 0.517 / 0.649 /
 0.759 / 0.828**, because this session's own write-up joined the store with a
 query of its own — and promptly demonstrated the failure mode the phase was
@@ -936,6 +942,120 @@ not belong on the claim. Reopen condition in the table below.
 
 ---
 
+## Phase 13 — the budget is not a pack size — **done** (2026-08-10)
+
+Not on the backlog; picked up as the research-tier item. Phase 7 measured
+whether the *ranker* finds the right entry. Nobody had measured what
+`kb.py context` — the command Phase 1 called "the single command an agent
+should need", and the literal shape of PURPOSE.md's success metric — actually
+hands back.
+
+**It has been shrinking for two weeks.** Replaying all 34 commits that touch
+`memory/` with the ranker and the golden set held fixed at today's, so the only
+thing varying is the store:
+
+| date | entries | median entry | entries per pack |
+|---|---|---|---|
+| 2026-07-27 | 10 | 1,324 chars | **5.14** |
+| 2026-07-31 | 24 | 2,051 | 3.78 |
+| 2026-08-03 | 31 | 2,219 | 3.14 |
+| 2026-08-09 | 37 | 2,951 | **2.75** |
+
+Monotone, −47% in thirteen days, budget never touched. Today's pack holds a
+median of 3 entries and never more than 4.
+
+**Length is the mechanism; count is not.** Truncating today's 37 entries to the
+2026-07-27 median recovers the original figure (**5.25**); cutting the store to
+10 entries at today's lengths does not help (**2.39**). The store getting
+bigger costs nothing. The store getting *richer* — the Phase 4–12 write-ups run
+3,000–6,000 characters each — is what emptied the pack. This phase's own
+write-up makes it worse, which is the joke and also the reason a floor shipped.
+
+**Phase 7's instrument cannot see it, by construction.** Sweeping the budget
+over the real store:
+
+| budget | entries per pack | recall@pack | recall@3 / recall@5 |
+|---|---|---|---|
+| 1,000 | 1.57 | 0.571 | 0.714 / 0.786 |
+| 2,000 (default) | 2.75 | 0.714 | 0.714 / 0.786 |
+| 4,500 | 5.29 | 0.786 | 0.714 / 0.786 |
+| 12,000 | 12.86 | 0.857 | 0.714 / 0.786 |
+
+Delivery moves 29 points; every rank metric is bit-identical, because none of
+them has a budget term. And `recall@pack` and `recall@3` are **the same 20 of
+28 queries** today, not merely the same count — a three-entry pack *is*
+recall@3. Phase 7's docstring claim that `recall@5` is "what `kb.py context`
+actually delivers" was true on 2026-07-27 and already false when written
+(pack: 3.5). Corrected above.
+
+One honest limit: entry length is not an independent axis, since BM25 reads
+document length too. The *budget* is the clean axis, and it is the one nothing
+measured.
+
+**What shipped.** `recall_at_pack`, `mean_pack_entries` and `budget_bound` in
+`eval_report`, printed by `kb.py eval` and scoreable at any budget with
+`--budget N`; kept separate from the rank metrics rather than replacing them.
+`context_pack` now says **why it stopped** — "3 entries" reads the same whether
+three was all there was or all that fit, and those want opposite reactions from
+the caller. It names the next entry that did not fit, which is exact and needs
+no relevance threshold (it is the one the loop was holding); a count of "further
+matches" alone would be noise, since BM25 scores nearly every entry above zero.
+**28 of 28** golden queries are budget-bound today. On MCP too. Floors on
+`recall_at_pack` and mean pack entries, plus a test that sweeping the budget
+moves the pack and leaves the rank metrics untouched — it fails if anyone
+removes `recall_at_pack` as redundant.
+
+**What deliberately did not ship: a bigger default budget.** 4,500 tokens
+restores the 2026-07-27 figure exactly. Not adopted, because **2,000 was also a
+correct number once** — raising it fixes today and starts drifting again with
+the next long write-up, just as invisibly. The stable repair is the report plus
+the floor, so the next erosion is a failing test. The number is recorded so the
+call can be made deliberately; it is Jerry's, not a routine's, because
+`DEFAULT_CONTEXT_BUDGET` is caller-facing and every consumer pays for it in
+their own context window. Reopen row below.
+
+10 new tests (508 total). Write-up: [[kb-context-budget-is-not-a-pack-size]];
+[[kb-ranked-retrieval]] corrected in place.
+
+### Found on the way out: the golden set is one entry from red
+
+Filing this phase's write-up did to the fixture exactly what Phase 7 predicted
+a new entry would. `kb-context-budget-is-not-a-pack-size` ranks **#2** for
+"what is planned next for this thing", pushing `kb-roadmap` from rank 5 to 6,
+and **`recall@5` is now 0.750 against a floor of 0.750** — passing on
+`assertGreaterEqual`, with the ~4-query margin the floors were designed to
+carry now entirely spent. The next entry anyone files is likely to turn CI red.
+
+The prescribed remedy is Phase 7's own: *the fix is new queries, not a lower
+bar.* **The fixture has fallen behind the store** — 28 queries covering 28 of
+38 live entries, with these ten uncovered: `kb-archived-is-a-filter-commands-forget`,
+`kb-capture-is-a-check-not-an-extractor`, `kb-context-budget-is-not-a-pack-size`,
+`kb-instruction-content-lint`, `kb-review-load-is-one-cohort`,
+`kb-tests-cannot-cover-an-absent-guard`, `kb-the-bundle-was-already-shipped`,
+`kb-timeline-and-heatmap-are-frontmatter-only`,
+`kb-verification-rides-along-with-authoring`,
+`stranded-branches-track-the-charter-text`.
+
+**But it is not the one-line fix it looks like, and that was measured rather
+than assumed.** Ten task-shaped queries were written for those ten entries and
+scored: the set goes to 38 queries and **every absolute number falls** —
+success@1 0.500 → 0.474, MRR 0.621 → 0.601, recall@3 0.714 → 0.684, recall@5
+0.750 → **0.737**, recall@pack 0.714 → 0.658. The additions are harder than the
+existing average, so a more representative fixture scores lower, and **the
+floors are calibrated to a 28-query instrument that would no longer exist.**
+Closing the coverage gap therefore requires re-baselining all five floors in
+the same change.
+
+Those ten queries were **not committed.** Re-baselining a floor is precisely
+the move Phase 7 warns against, and the session that spent the margin — by
+filing the entry that displaced `kb-roadmap` — is the worst-placed one to set
+the replacement bars, in the session that measured them, having written both
+the queries and the entries they ask about. The numbers above are recorded so a
+later session does not have to rediscover the cost; the work is a scoped item,
+not a hotfix.
+
+---
+
 ## No phase is open — what would reopen one
 
 Every phase above is `done`. That is not the same as finished, and the honest
@@ -953,6 +1073,7 @@ before its condition holds.
 | A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
+| Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
 | A stranded-branch detector (cron → tracking issue, the `kb-due.yml` shape) | the charter repair of 2026-08-09 fails to hold — i.e. a session strands work again after the post-mandate section stopped contradicting the git strategy. **Measured, not built** (below) | [[stranded-branches-track-the-charter-text]] |
 
 **The stranded-branch detector, measured and deliberately not built
@@ -978,11 +1099,12 @@ opens an issue nobody in a routine can close is the `kb-due` close branch
 problem in reverse. Build it if the repair fails — the numbers above are the
 baseline to beat.
 
-Three of the seven wait on something outside this repo (a client, a sibling
-checkout, a second kind of session); the other four wait on the store growing
-or ageing. Nothing on the list is blocked on effort, which is why none of it is
-scheduled — and nothing left on it can be closed from inside a routine session,
-which is what the `kb-due` close branch was until 2026-08-05.
+Three of the eight wait on something outside this repo (a client, a sibling
+checkout, a second kind of session), one waits on a decision only Jerry can
+take, and the other four wait on the store growing or ageing. Nothing on the
+list is blocked on effort, which is why none of it is scheduled — and nothing
+left on it can be closed from inside a routine session, which is what the
+`kb-due` close branch was until 2026-08-05.
 
 The nearest thing to a standing action is not on that table, because it is not
 engineering: **the store's review window is 2026-10-25 → 2026-11-06, and it is
@@ -1123,6 +1245,29 @@ that standing action should know:
   "checkable from here" frontmatter flag was rejected — checkability belongs to
   the reader's access, not to the claim. 13 new tests (498 total). Write-up:
   [[kb-verification-rides-along-with-authoring]].
+- Phase 13 — the budget is not a pack size. (2026-08-10) Phase 7 measured
+  whether the ranker finds the entry; nobody had measured what `kb.py context`
+  hands back. Replaying all 34 commits touching `memory/` with the ranker and
+  golden set held fixed: **the pack has gone from 5.14 entries to 2.75 in
+  thirteen days**, monotonically, with the budget never touched. Entry length
+  is the whole mechanism — truncating today's 37 entries to the 2026-07-27
+  median recovers 5.25, while cutting to 10 entries at today's lengths gives
+  2.39 — so the store getting *richer*, not bigger, emptied the pack. Phase 7's
+  instrument is structurally blind to it: sweeping the budget 1,000 → 12,000
+  moves `recall@pack` 0.571 → 0.857 while every rank metric stays
+  bit-identical, because none has a budget term (and `recall@pack` is the same
+  20 of 28 queries as `recall@3`, since a three-entry pack *is* recall@3).
+  Phase 7's claim that `recall@5` is "what `kb.py context` actually delivers"
+  was already false when written. Shipped `recall_at_pack` /
+  `mean_pack_entries` / `budget_bound` in `eval_report` plus `eval --budget`,
+  and a pack that says whether it stopped on **budget** (naming the next entry
+  that did not fit) or on **matches** — 28 of 28 golden queries are
+  budget-bound. Raising `DEFAULT_CONTEXT_BUDGET` to 4,500 restores the original
+  figure and was **deliberately not done**: 2,000 was also correct once, so
+  raising it just re-arms the same silent drift; the repair is the report plus
+  a test floor. 10 new tests (508 total). Write-up:
+  [[kb-context-budget-is-not-a-pack-size]]; [[kb-ranked-retrieval]] corrected
+  in place.
 
 ---
 

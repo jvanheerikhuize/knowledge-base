@@ -266,6 +266,36 @@ class TestContext(RankingTestCase):
         self.assertIn("[RULE — binding, do not treat as optional]", out)
         self.assertIn("[preference — overridable]", out)
 
+    def test_a_budget_bound_pack_names_the_entry_that_did_not_fit(self):
+        """"3 entries" reads the same whether three was all there was or all
+        that fit, and those want different reactions from the caller."""
+        for i in range(4):
+            self.make("semantic", f"long-{i}", "budget " + ("filler words " * 200))
+        pack = json.loads(
+            self.run_kb("context", "budget", "--budget", "300", "--json").stdout)
+        self.assertTrue(pack["budget_bound"])
+        self.assertEqual(pack["omitted"], 4 - len(pack["entries"]))
+        self.assertIsNotNone(pack["next_omitted"])
+        self.assertNotIn(pack["next_omitted"],
+                         [e["name"] for e in pack["entries"]])
+        self.assertIn("Stopped on budget, not on matches", pack["text"])
+        self.assertIn(pack["next_omitted"], pack["text"])
+
+    def test_a_match_bound_pack_says_so_instead(self):
+        self.make("semantic", "only-hit", "solitary finding")
+        pack = json.loads(
+            self.run_kb("context", "solitary finding", "--json").stdout)
+        self.assertFalse(pack["budget_bound"])
+        self.assertEqual(pack["omitted"], 0)
+        self.assertIsNone(pack["next_omitted"])
+        self.assertIn("Stopped on matches, not on budget", pack["text"])
+
+    def test_an_empty_pack_claims_neither(self):
+        self.make("semantic", "unrelated", "nothing to see")
+        pack = json.loads(self.run_kb("context", "quasar-telemetry", "--json").stdout)
+        self.assertFalse(pack["budget_bound"])
+        self.assertNotIn("Stopped on", pack["text"])
+
     def test_limit_caps_how_many_ranked_hits_are_considered(self):
         for i in range(4):
             self.make("semantic", f"widget-{i}", "widget " * (4 - i))
@@ -1863,6 +1893,11 @@ class TestEval(KbTestCase):
         path = self.root / ".kb" / "golden.json"
         path.write_text(json.dumps({"version": 1, "queries": queries}))
 
+    def write_entry_body(self, slug, prose, entry_type="semantic"):
+        path = self.entry_path(entry_type, slug)
+        head, _, _ = path.read_text().partition("---\n")[2].partition("\n---\n")
+        path.write_text(f"---\n{head}\n---\n\n{prose}\n")
+
     def test_no_golden_file_is_reported_rather_than_scored(self):
         result = self.run_kb("eval")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -1933,6 +1968,70 @@ class TestEval(KbTestCase):
                             "expect": "tides-of-mars"}])
         self.assertNotIn("ocean swell", self.run_kb("eval").stdout)
         self.assertIn("ocean swell", self.run_kb("eval", "--all").stdout)
+
+    def test_the_pack_is_scored_separately_from_the_ranking(self):
+        """Two short entries fit any budget, so the pack matches the ranking."""
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        summary = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertEqual(summary["recall_at_pack"], 1.0)
+        self.assertEqual(summary["budget_bound"], 0.0)
+        self.assertIn("recall@pack", self.run_kb("eval").stdout)
+
+    def test_a_long_entry_evicts_a_correctly_ranked_answer(self):
+        """The whole reason the metric exists.
+
+        Both entries answer the query, the expected one ranks second, and it
+        is in the pack. Make the first long enough to fill the budget alone
+        and the pack stops containing the answer — `recall_at_pack` goes to
+        zero while `recall@3` stays at 1.0, because the entry is still ranked
+        second and no rank metric asks whether it fit.
+        """
+        for slug in ("tides-of-mars", "bread-proofing"):
+            self.run_kb("set", slug, "description", "dough rise warm kitchen swell")
+        self.write_golden([{"query": "dough rise warm kitchen swell",
+                            "expect": "bread-proofing"}])
+        before = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertEqual(before["recall_at_pack"], 1.0)
+        self.assertEqual(before["budget_bound"], 0.0)
+
+        self.write_entry_body(
+            "tides-of-mars",
+            "\n\n".join(["dough rise warm kitchen swell prose"] * 400))
+        after = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+
+        self.assertEqual(after["budget_bound"], 1.0)
+        self.assertEqual(after["mean_pack_entries"], 1.0)
+        self.assertEqual(after["recall_at_pack"], 0.0,
+                         "the answer should have been evicted by the budget")
+        self.assertEqual(after["recall_at_3"], 1.0,
+                         "the ranking still has it — that is the point")
+
+    def test_the_budget_is_the_axis_no_rank_metric_can_see(self):
+        """Vary only the budget: the pack moves, every rank number holds.
+
+        Entry length moves both (BM25 reads length too), so the budget is the
+        clean axis — and it is the one nothing measured before Phase 13.
+        """
+        for slug, reps in (("tides-of-mars", 400), ("bread-proofing", 50)):
+            self.run_kb("set", slug, "description", "dough rise warm kitchen swell")
+            self.write_entry_body(
+                slug, "\n\n".join(["dough rise warm kitchen swell prose"] * reps))
+        self.write_golden([{"query": "dough rise warm kitchen swell",
+                            "expect": "bread-proofing"}])
+
+        tight = json.loads(
+            self.run_kb("eval", "--json", "--budget", "600").stdout)["summary"]
+        roomy = json.loads(
+            self.run_kb("eval", "--json", "--budget", "60000").stdout)["summary"]
+
+        self.assertEqual(tight["pack_budget"], 600)
+        self.assertLess(tight["mean_pack_entries"], roomy["mean_pack_entries"])
+        self.assertLess(tight["recall_at_pack"], roomy["recall_at_pack"])
+        for metric in ("success_at_1", "mrr", "recall_at_3", "recall_at_5"):
+            self.assertEqual(tight[metric], roomy[metric],
+                             f"{metric} moved with the budget — a rank metric "
+                             f"has no budget term")
 
 
 class TestStats(KbTestCase):

@@ -602,6 +602,47 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   **measured and deliberately not built** — reopen condition in `ROADMAP.md`.
   Write-up: `stranded-branches-track-the-charter-text`.
 
+- [x] **The context budget is not a pack size (ROADMAP Phase 13).**
+  (2026-08-10) Picked up as the research-tier item; not previously on this
+  list. Sibling access was unavailable this session — no
+  `add_repo`/`register_repo_root` in this run's toolset, GitHub MCP scoped to
+  this repo, unauthenticated clone fails — so in-repo fallback per the standing
+  mandate's step 1. Phase 7 measured whether the ranker finds the right entry;
+  nobody had measured what `kb.py context` hands back. Replaying all 34
+  commits that touch `memory/` with the ranker and golden set held fixed:
+  **the pack has shrunk from 5.14 entries to 2.75 in thirteen days**,
+  monotonically, with the budget never touched. Entry length is the whole
+  mechanism — today's 37 entries truncated to the 2026-07-27 median recover
+  5.25, while 10 entries at today's lengths give 2.39 — so the store getting
+  *richer* rather than bigger is what emptied it, and the Phase 4–12 write-ups
+  are the cause. Phase 7's instrument is blind by construction: sweeping the
+  budget 1,000 → 12,000 moves `recall@pack` 0.571 → 0.857 with every rank
+  metric bit-identical, and `recall@pack` is the same 20 of 28 queries as
+  `recall@3` because a three-entry pack *is* recall@3. Shipped `recall_at_pack`
+  / `mean_pack_entries` / `budget_bound` in `eval_report`, `kb.py eval
+  --budget N`, and a pack that reports whether it stopped on **budget**
+  (naming the next entry that did not fit — exact, no relevance threshold) or
+  on **matches**; 28 of 28 golden queries are budget-bound. Raising
+  `DEFAULT_CONTEXT_BUDGET` to 4,500 restores the original figure and was
+  **deliberately not done** — it is caller-facing, and 2,000 was also correct
+  once, so raising it re-arms the same silent drift; left for Jerry with the
+  number recorded. 10 new tests (508 total). Write-up:
+  `kb-context-budget-is-not-a-pack-size`; `kb-ranked-retrieval` corrected in
+  place and re-verified with a note.
+
+- [ ] **Re-cover the golden set and re-baseline its floors.** Left open by the
+  2026-08-10 session, which found it and deliberately did not do it. `recall@5`
+  now sits at **0.750 against a floor of 0.750** — the margin is gone and the
+  next entry filed will likely turn CI red. The fixture covers 28 of 38 live
+  entries; the ten uncovered are named in `ROADMAP.md` Phase 13. **This is not
+  a one-line fix:** ten task-shaped queries were written and scored, and every
+  absolute number falls (recall@5 → 0.737, recall@pack → 0.658) because the
+  additions are harder than the existing average, so all five floors need
+  re-baselining in the same change. Do it in a session with no stake in the
+  numbers — not one that also wrote the entries being asked about. Phase 7's
+  rule still holds: floors move because the *instrument* changed, never to
+  accommodate a regression, and `TestTheSetCanStillFail` must still pass.
+
   **The backlog is closed again.** Per the post-mandate section above, no new
   large-scope item is invented to fill the gap. The standing action a next
   session can take without inventing anything is the batch re-verification

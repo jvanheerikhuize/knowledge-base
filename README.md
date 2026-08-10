@@ -211,7 +211,7 @@ python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both c
 python3 scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe — proposals only
 python3 scripts/kb.py history <name>   # what it used to say — corrections here are made in place
 python3 scripts/kb.py stats            # counts, graph density, age, growth — the store in aggregate
-python3 scripts/kb.py eval [--all]     # score retrieval against the golden query set
+python3 scripts/kb.py eval [--all] [--budget N]  # score retrieval against the golden query set
 python3 scripts/kb.py set <name> description "a better summary"
 python3 scripts/kb.py link <name> <target> [--remove]
 python3 scripts/kb.py edit <name>      # opens $EDITOR
@@ -267,6 +267,15 @@ task-shaped questions with the entry each one should return — and reports
 `success@1`, MRR, and recall@3/@5. `tests/test_retrieval_golden.py` runs the
 same set against the real store in CI, so retrieval getting worse is a failing
 test rather than a feeling.
+
+It also reports **`recall@pack`**, which is a different question and not a
+synonym for `recall@5`. The four numbers above ask where the *ranker* put an
+entry; `kb.py context` is bounded by a **token budget**, so what it returns
+depends on how long entries are. Measured 2026-08-10: the default pack held
+5.14 entries on 2026-07-27 and 2.75 on 2026-08-09, purely because entries got
+longer — and no rank metric moved, because none of them has a budget term.
+`kb.py eval --budget N` scores the pack at any budget; the rank numbers will
+not move with it, and that is the point (ROADMAP Phase 13).
 
 Two things about that set are load-bearing, and both were measured rather than
 assumed (ROADMAP Phase 7):
