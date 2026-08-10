@@ -506,3 +506,49 @@ Set up 2026-07-27 before you left.
   counterpart across repos until today. No code touched in either repo; this
   session's only `knowledge-base` changes are `AUTONOMY.md` and the KB entry.
   498 tests green, lint and triage clean.
+- [ ] 2026-08-10 **ROADMAP Phase 13 — the context budget is not a pack size.**
+  Research-tier item; not previously on the backlog. Nobody had measured what
+  `kb.py context` actually hands back, only whether the ranker finds the entry.
+  Replaying all 34 commits that touch `memory/` with the ranker and golden set
+  held fixed: **the pack has gone from 5.14 entries to 2.75 in thirteen days**,
+  monotonically, with `DEFAULT_CONTEXT_BUDGET` never touched. Entry length is
+  the whole mechanism (truncating today's 37 entries to the 2026-07-27 median
+  recovers 5.25; cutting to 10 entries at today's lengths gives 2.39), so the
+  store getting *richer* — not bigger — emptied the pack. Phase 7's golden set
+  cannot see it: sweeping the budget 1,000 → 12,000 moves delivery 0.571 →
+  0.857 while every rank metric stays bit-identical, and its docstring claim
+  that `recall@5` is "what `kb.py context` actually delivers" was already false
+  when written. Shipped `recall_at_pack`/`mean_pack_entries`/`budget_bound` in
+  `kb.py eval` (plus `eval --budget N`), and a pack that reports whether it
+  stopped on **budget** — naming the next entry that did not fit — or on
+  **matches**; 28 of 28 golden queries are budget-bound. 10 new tests (508
+  total), lint `--strict` and triage clean.
+- [ ] 2026-08-10 **One decision left for you.** Raising `DEFAULT_CONTEXT_BUDGET`
+  from 2,000 to **4,500** restores the original 5.1 entries per pack exactly. A
+  routine did not make that change: it is caller-facing, every consumer pays
+  for it in their own context window, and 2,000 was also a correct number once
+  — so raising it re-arms the same silent drift rather than ending it. Recorded
+  in `ROADMAP.md`'s reopen table with the number, so it can be decided rather
+  than defaulted. Write-up: `kb-context-budget-is-not-a-pack-size`;
+  `kb-ranked-retrieval` corrected in place and re-verified with a note.
+- [ ] 2026-08-10 **Sibling access unavailable this session** (recorded per the
+  standing mandate's step 1): no `add_repo`/`register_repo_root` in this run's
+  toolset, GitHub MCP scoped to `knowledge-base` only, and an unauthenticated
+  `git clone` of `jvanheerikhuize/repos` fails on credentials. Same per-session
+  tooling gap as the 2026-08-08 first firing, not a revocation of your
+  2026-08-06 grant. In-repo fallback taken, as step 1 directs.
+- [ ] 2026-08-10 **Found on the way out — the golden set is one entry from
+  red, and left that way deliberately.** This phase's own write-up ranks #2 for
+  a query about `kb-roadmap` and pushed it from rank 5 to 6, so **recall@5 is
+  now 0.750 against a floor of 0.750** — passing, with the ~4-query margin the
+  floors were built to carry entirely spent. The next entry filed will probably
+  turn CI red. Phase 7's prescribed fix is new queries, and the fixture has
+  indeed fallen behind (28 queries covering 28 of 38 live entries; the ten
+  uncovered are listed in `ROADMAP.md`). I wrote and scored those ten and then
+  **did not commit them**: with 38 queries every absolute number falls
+  (recall@5 0.750 → 0.737, recall@pack 0.714 → 0.658) because the additions are
+  harder than the existing average, so closing the gap means re-baselining all
+  five floors — and the session that spent the margin, wrote the queries, and
+  measured them is the worst-placed one to set the replacement bars. The
+  numbers are in `ROADMAP.md` so the next session inherits a scoped task
+  instead of a surprise.

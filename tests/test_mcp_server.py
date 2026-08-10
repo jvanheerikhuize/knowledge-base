@@ -251,6 +251,22 @@ class TestReadTools(McpTestCase):
         self.assertEqual(result["structuredContent"]["budget"], 500)
         self.assertNotIn("text", result["structuredContent"])
 
+    def test_context_tells_an_agent_whether_the_budget_truncated_the_pack(self):
+        """An agent reading a short pack has to know which question to ask:
+        'is that all there is' or 'should I raise the budget'."""
+        for i in range(4):
+            self.kb("new", f"bulky-{i}", "--type", "semantic")
+            self.kb("set", f"bulky-{i}", "description",
+                    "retrieval ranking " + ("filler words " * 200))
+        self.handshake()
+        result = self.result_of(self.call(
+            "context", {"query": "retrieval ranking", "budget": 300}))
+        structured = result["structuredContent"]
+        self.assertTrue(structured["budget_bound"])
+        self.assertIsNotNone(structured["next_omitted"])
+        self.assertIn("Stopped on budget, not on matches",
+                      result["content"][0]["text"])
+
     def test_triage_reports_the_same_queue_the_cli_does(self):
         self.handshake()
         result = self.result_of(self.call("triage"))

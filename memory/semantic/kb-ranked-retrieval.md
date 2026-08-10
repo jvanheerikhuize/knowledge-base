@@ -5,8 +5,8 @@ description: retrieval ranks with BM25 plus three memory-specific signals (type,
 confidence: verified
 source: scripts/kb.py rank()/context_pack(); implemented and tested 2026-07-27
 created: 2026-07-27
-last_verified: 2026-08-02
-links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base, kb-golden-set-lives-in-the-wording]
+last_verified: 2026-08-10
+links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base, kb-golden-set-lives-in-the-wording, kb-context-budget-is-not-a-pack-size]
 ---
 
 The store is deliberately infra-free (see [[kb-is-file-based]]), so a vector
@@ -46,6 +46,14 @@ tokenizer, no dependency). Two decisions there matter:
   trim marker is charged against the same budget, so it never overshoots.
 - Episodic is **excluded by default**. One past run crowds out durable
   knowledge; `--episodic` opts back in.
+
+**How many entries that buys is not fixed, and falls as entries get longer**
+— 5.14 per pack on 2026-07-27, 2.75 on 2026-08-09, with the budget unchanged
+throughout. Measured 2026-08-10; the mechanism is entry length alone, and no
+rank metric above can see it because none has a budget term
+([[kb-context-budget-is-not-a-pack-size]]). A pack now reports whether it
+stopped on the budget or on matches, and `kb.py eval` scores `recall_at_pack`
+next to the rank numbers.
 
 Every entry in a pack carries its own provenance line — confidence,
 `last_verified`, and source path — so nothing enters an agent's context

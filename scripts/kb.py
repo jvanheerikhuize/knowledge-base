@@ -996,7 +996,7 @@ def est_tokens(text):
 
 
 def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
-                 include_episodic=False, limit=None):
+                 include_episodic=False, limit=None, docs=None):
     """A paste-ready, budgeted brief on a task, with provenance per entry.
 
     Entries go in best-first until the budget is spent; the one that straddles
@@ -1004,8 +1004,20 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
     pack always uses the budget it was given. Episodic logs are left out by
     default: they describe one past run, which usually crowds out the durable
     knowledge a task actually needs.
+
+    The pack says whether it stopped on **budget** or on **matches**, because
+    those are different answers and the entry count alone cannot tell them
+    apart: "3 entries" reads the same whether three was all there was or all
+    that fit. It is nearly always the budget — 28 of 28 golden queries, and a
+    pack that is budget-bound has been getting smaller as the store's entries
+    get longer, with nothing reporting it (ROADMAP Phase 13).
     """
-    hits = rank(query, types=types, include_episodic=include_episodic)
+    hits = rank(query, types=types, include_episodic=include_episodic,
+                docs=docs)
+    # `--limit` is the caller capping the pack, not the budget doing it. Kept
+    # apart from `omitted` below so the pack never reports "nothing else
+    # scored" about entries the caller asked it not to look at.
+    limited_out = len(hits) - len(hits[:limit]) if limit else 0
     if limit:
         hits = hits[:limit]
 
@@ -1046,18 +1058,43 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
         used += est_tokens(header) + est_tokens(body)
         included.append(hit)
 
+    # Naming the *next* entry is exact and needs no relevance threshold: it is
+    # the one the loop was holding when the budget ran out. A count of "further
+    # matches" alone would be noise — BM25 scores almost every entry above zero
+    # — so the count is reported as what it is, and the actionable part is the
+    # name and the knob.
+    omitted = hits[len(included):]
     head = (
         f"# Context for: {query}\n\n"
         f"{len(included)} entr{'y' if len(included) == 1 else 'ies'} from the "
         f"knowledge base, most relevant first, ~{used} tokens "
-        f"(budget {budget}).\n\n"
+        f"(budget {budget}).\n"
     )
+    if omitted:
+        head += (
+            f"Stopped on budget, not on matches: the next entry "
+            f"({omitted[0]['name']}, relevance {omitted[0]['score']}) did not "
+            f"fit, and {len(omitted) + limited_out} ranked match"
+            f"{'' if len(omitted) + limited_out == 1 else 'es'} remain. Raise "
+            f"--budget or narrow the query.\n"
+        )
+    elif limited_out:
+        head += (f"Stopped on --limit, not on budget: {limited_out} further "
+                 f"ranked match{'' if limited_out == 1 else 'es'} were not "
+                 f"considered.\n")
+    elif included:
+        head += "Stopped on matches, not on budget: nothing else scored.\n"
+    head += "\n"
     return {
         "query": query,
         "budget": budget,
         "tokens": used,
         "entries": [{k: v for k, v in h.items() if k != "body"} for h in included],
         "trimmed": trimmed,
+        "budget_bound": bool(omitted),
+        "omitted": len(omitted) + limited_out,
+        "limited_out": limited_out,
+        "next_omitted": omitted[0]["name"] if omitted else None,
         "text": head + "\n".join(sections) if sections else head + "(no matches)\n",
     }
 
@@ -1112,24 +1149,36 @@ def load_golden(path=None):
     return queries
 
 
-def eval_report(golden=None, docs=None, rank_fn=None):
+def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
+                budget=DEFAULT_CONTEXT_BUDGET):
     """Score retrieval against the golden query set.
 
-    Three numbers, because they answer different questions. `success@1` is
-    what a caller reading one hit gets. `MRR` is how far down the right entry
-    sits when it is not first. `recall@3`/`recall@5` are what `kb.py context`
-    actually delivers, since a context pack is a handful of entries and not a
-    single answer — that is the metric to watch when the store grows.
+    Four numbers, because they answer different questions. `success@1` is what
+    a caller reading one hit gets. `MRR` is how far down the right entry sits
+    when it is not first. `recall@3`/`recall@5` say where the entry landed in
+    the *ranking*.
+
+    `recall_at_pack` is the only one that scores what `kb.py context` hands
+    back, and it is separate from the rank metrics because those cannot see
+    the budget at all. Measured 2026-08-09 (ROADMAP Phase 13): sweeping the
+    budget from 1000 to 12000 moves `recall_at_pack` from 0.571 to 0.857 while
+    `recall@3`/`recall@5` sit unchanged at 0.714/0.786, because no rank metric
+    has a budget term in it. `recall@5` used to describe the pack by accident
+    — the pack held 5.1 entries on 2026-07-27 — and drifted away from it as
+    entries got longer, reaching 2.75 with nothing reporting the change.
 
     `also_ok` names are a defensible answer to the same question. They count
     for recall (the pack is useful) but never for `success@1` (the question
-    had one best answer). `rank_fn` is injectable so a caller can score a
-    deliberately degraded ranker and find out whether the set can still tell
-    the difference — see `tests/test_retrieval_golden.py`.
+    had one best answer). `rank_fn` and `pack_fn` are injectable so a caller
+    can score a deliberately degraded ranker and find out whether the set can
+    still tell the difference — see `tests/test_retrieval_golden.py`.
     """
     golden = load_golden() if golden is None else golden
     docs = entry_documents() if docs is None else docs
     rank_fn = (lambda q: rank(q, docs=docs)) if rank_fn is None else rank_fn
+    if pack_fn is None:
+        def pack_fn(q):
+            return context_pack(q, budget=budget, docs=docs)
     # An expectation is only answerable if its entry is in the retrieval set.
     # Archiving takes an entry out of that set without deleting the file, so
     # testing existence alone lets an archived expectation score as a miss on
@@ -1143,7 +1192,13 @@ def eval_report(golden=None, docs=None, rank_fn=None):
         names = [h["name"] for h in rank_fn(g["query"])]
         acceptable = {g["expect"], *g["also_ok"]}
         position = names.index(g["expect"]) + 1 if g["expect"] in names else None
+        pack = pack_fn(g["query"])
+        packed = [e["name"] for e in pack["entries"]]
         rows.append({
+            "pack_size": len(packed),
+            "in_pack": next((i + 1 for i, n in enumerate(packed)
+                             if n in acceptable), None),
+            "budget_bound": pack.get("budget_bound", False),
             "query": g["query"],
             "expect": g["expect"],
             "also_ok": g["also_ok"],
@@ -1171,6 +1226,12 @@ def eval_report(golden=None, docs=None, rank_fn=None):
                                  and r["acceptable_rank"] <= 3),
             "recall_at_5": share(lambda r: r["acceptable_rank"] is not None
                                  and r["acceptable_rank"] <= 5),
+            # What the product returns, as opposed to where the ranker put it.
+            "recall_at_pack": share(lambda r: r["in_pack"] is not None),
+            "pack_budget": budget,
+            "mean_pack_entries": (round(sum(r["pack_size"] for r in rows) / n, 2)
+                                  if n else 0.0),
+            "budget_bound": share(lambda r: r["budget_bound"]),
             "unresolved": sorted({name for r in rows for name in r["unresolved"]}),
         },
         "queries": rows,
@@ -2368,7 +2429,7 @@ def cmd_context(args):
 
 
 def cmd_eval(args):
-    report = eval_report()
+    report = eval_report(budget=args.budget)
     if args.json:
         print(json.dumps(report, indent=2))
         return
@@ -2390,6 +2451,13 @@ def cmd_eval(args):
     print(f"{s['queries']} queries over {s['entries']} entries: "
           f"success@1 {s['success_at_1']:.3f}  MRR {s['mrr']:.3f}  "
           f"recall@3 {s['recall_at_3']:.3f}  recall@5 {s['recall_at_5']:.3f}")
+    print(f"context pack at budget {s['pack_budget']}: "
+          f"recall@pack {s['recall_at_pack']:.3f}  "
+          f"mean {s['mean_pack_entries']} entries  "
+          f"budget-bound {s['budget_bound']:.3f}")
+    if s["budget_bound"] and s["recall_at_pack"] < s["recall_at_5"]:
+        print("  The pack delivers less than recall@5 suggests: it stops on the "
+              "token budget, which no rank metric can see.")
     if not args.all:
         print("Only queries whose top hit is wrong are listed; --all shows every query.")
     if s["unresolved"]:
@@ -2986,6 +3054,10 @@ def main():
     p_eval.add_argument("--all", action="store_true",
                         help="list every query, not only the ones ranked wrong")
     p_eval.add_argument("--json", action="store_true", help="machine-readable output")
+    p_eval.add_argument("--budget", type=int, default=DEFAULT_CONTEXT_BUDGET,
+                        help="context budget to score the pack at (default "
+                             f"{DEFAULT_CONTEXT_BUDGET}); the rank metrics do "
+                             "not move with it, recall@pack does")
     p_eval.set_defaults(func=cmd_eval)
 
     p_show = sub.add_parser("show", help="print one entry")
