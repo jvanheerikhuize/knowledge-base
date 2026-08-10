@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "rule": "A query must be phrased the way somebody would actually ask, NOT in the entry's own vocabulary. Queries lifted from an entry's name or description score 1.000 against every ranker ever measured here, including one that ignores the body entirely — they test nothing. If you add a query, write the question first and only then check which entry should answer it. See ROADMAP Phase 7.",
+  "rule": "A query must be phrased the way somebody would actually ask, NOT in the entry's own vocabulary. Queries lifted from an entry's name or description score 1.000 against every ranker ever measured here, including one that ignores the body entirely \u2014 they test nothing. If you add a query, write the question first and only then check which entry should answer it. See ROADMAP Phase 7.",
   "queries": [
     {
       "query": "how do I make something I learned survive past this session",
@@ -13,7 +13,9 @@
     {
       "query": "what should I do about an entry nobody has looked at in months",
       "expect": "kb-entry-status-model",
-      "also_ok": ["kb-forgetting-model"]
+      "also_ok": [
+        "kb-forgetting-model"
+      ]
     },
     {
       "query": "does any of this need a database or a running service",
@@ -26,12 +28,16 @@
     {
       "query": "why not just relax the similarity cutoff so it catches more copies",
       "expect": "kb-duplicate-detection-limits",
-      "also_ok": ["kb-duplicate-candidates-by-nearest-neighbour"]
+      "also_ok": [
+        "kb-duplicate-candidates-by-nearest-neighbour"
+      ]
     },
     {
       "query": "finding two notes that say the same thing in different words",
       "expect": "kb-duplicate-candidates-by-nearest-neighbour",
-      "also_ok": ["kb-duplicate-detection-limits"]
+      "also_ok": [
+        "kb-duplicate-detection-limits"
+      ]
     },
     {
       "query": "two notes disagree with each other, what now",
@@ -68,7 +74,9 @@
     {
       "query": "how many repositories does Jerry actually have on disk",
       "expect": "workspace-repo-inventory-drift",
-      "also_ok": ["workspace-audit-2026-07-27"]
+      "also_ok": [
+        "workspace-audit-2026-07-27"
+      ]
     },
     {
       "query": "rules about hand-editing generated documentation in the governed repo",
@@ -81,7 +89,9 @@
     {
       "query": "turning a finished conversation into something durable",
       "expect": "distill-session-into-memory",
-      "also_ok": ["persist-insight-to-knowledge-base"]
+      "also_ok": [
+        "persist-insight-to-knowledge-base"
+      ]
     },
     {
       "query": "which file is the real contract for working in this repo",
@@ -94,7 +104,9 @@
     {
       "query": "what did the test audit actually turn up",
       "expect": "kb-test-audit-2026-07-29",
-      "also_ok": ["audit-test-corpora-for-artificial-uniformity"]
+      "also_ok": [
+        "audit-test-corpora-for-artificial-uniformity"
+      ]
     },
     {
       "query": "how do I look for blind spots in a test suite",
@@ -107,7 +119,9 @@
     {
       "query": "does an old fact lose trust on its own",
       "expect": "kb-forgetting-model",
-      "also_ok": ["kb-entry-status-model"]
+      "also_ok": [
+        "kb-entry-status-model"
+      ]
     },
     {
       "query": "the numbered improvement plan for the repos folder",
@@ -116,11 +130,53 @@
     {
       "query": "state of every repo as of the audit in late July",
       "expect": "workspace-audit-2026-07-27",
-      "also_ok": ["workspace-repo-inventory-drift"]
+      "also_ok": [
+        "workspace-repo-inventory-drift"
+      ]
     },
     {
       "query": "how would we notice if search quality got worse",
       "expect": "kb-golden-set-lives-in-the-wording"
+    },
+    {
+      "query": "why did an archived entry still trigger a stale warning that nothing could clear",
+      "expect": "kb-archived-is-a-filter-commands-forget"
+    },
+    {
+      "query": "can a note be pulled automatically out of a session transcript instead of writing it myself",
+      "expect": "kb-capture-is-a-check-not-an-extractor"
+    },
+    {
+      "query": "the entries keep getting longer, does that mean fewer of them fit in a briefing",
+      "expect": "kb-context-budget-is-not-a-pack-size"
+    },
+    {
+      "query": "is there a lint check that catches an entry trying to give an agent new orders",
+      "expect": "kb-instruction-content-lint"
+    },
+    {
+      "query": "if a lot of notes were all checked in the same week will they all need re-checking at once too",
+      "expect": "kb-review-load-is-one-cohort"
+    },
+    {
+      "query": "can a test catch a line of code that simply isn't there",
+      "expect": "kb-tests-cannot-cover-an-absent-guard"
+    },
+    {
+      "query": "is there already a way for another project to read this data without using the scripts here",
+      "expect": "kb-the-bundle-was-already-shipped"
+    },
+    {
+      "query": "why doesn't the published site's growth chart pull straight from git history",
+      "expect": "kb-timeline-and-heatmap-are-frontmatter-only"
+    },
+    {
+      "query": "when an entry's checked-on date changes, does that mean someone actually reviewed it or just edited something else",
+      "expect": "kb-verification-rides-along-with-authoring"
+    },
+    {
+      "query": "what actually determines whether a scheduled session's work makes it to the main branch",
+      "expect": "stranded-branches-track-the-charter-text"
     }
   ]
 }

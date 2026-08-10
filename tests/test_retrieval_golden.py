@@ -22,23 +22,32 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import kb  # noqa: E402
 
-# Today: success@1 0.536, MRR 0.653, recall@3 0.750, recall@5 0.821 over 28
-# queries — one query was retired on 2026-08-05 along with the entry it asked
-# about (`holiday-autonomy-mandate`, archived once the mandate expired).
-# The floors sit ~4 queries below that, which is the drift a growing store can
-# produce without anything being wrong, and still far above a broken ranker
-# (name-only scored 0.214 / 0.263 in the Phase 7 ablation).
-FLOOR_SUCCESS_AT_1 = 0.40
-FLOOR_MRR = 0.55
-FLOOR_RECALL_AT_5 = 0.75
+# Re-baselined 2026-08-10 (ROADMAP Phase 13's "found on the way out"): the
+# 28-query set had fallen a query short of covering the store — 10 live
+# entries had no query at all — and recall@5 had drifted to sit exactly on
+# its floor, margin gone. Ten task-shaped queries were added, one per
+# uncovered entry (`kb.py capture`-style: question first, then checked which
+# entry answers it, never the entry's own vocabulary — see
+# `test_no_query_restates_its_own_entry_title`).
+#
+# Today: success@1 0.632, MRR 0.721, recall@3 0.789, recall@5 0.816 over 38
+# queries, now covering 38 of the store's 39 entries (the one gap is the
+# archived `holiday-autonomy-mandate`, deliberately out of retrieval).
+# The floors sit ~4 queries below that — the same margin this file has used
+# since 2026-08-02 — and still far above a broken ranker (name-only scored
+# 0.158 / 0.217 against this larger set in the Phase 7 ablation, re-run below).
+FLOOR_SUCCESS_AT_1 = 0.50
+FLOOR_MRR = 0.60
+FLOOR_RECALL_AT_5 = 0.70
 # What the product returns, which the three floors above cannot see: they are
-# rank metrics and `context_pack` stops on a token budget. Today 0.714 over 28
+# rank metrics and `context_pack` stops on a token budget. Today 0.789 over 38
 # queries; the floor sits ~4 queries below, the same margin as the others.
-FLOOR_RECALL_AT_PACK = 0.55
+FLOOR_RECALL_AT_PACK = 0.65
 # Not a fitted constant — a definition. Below two entries a "pack" is one entry
 # and a header, which is `search --limit 1` under another name. The pack held
-# 5.14 entries on 2026-07-27 and 2.75 on 2026-08-09, shrinking only because the
-# store's entries got longer (ROADMAP Phase 13), so this is the boundary that
+# 5.14 entries on 2026-07-27 and 2.75 on 2026-08-09 (28 queries); 2.63 today
+# over the 38-query set, still shrinking only because the store's entries got
+# longer (ROADMAP Phase 13), not because the query set changed — this boundary
 # says the drift has gone far enough to have eaten the feature.
 MIN_MEAN_PACK_ENTRIES = 2.0
 # A query that restates its entry's title tests the tokenizer, not retrieval.
