@@ -125,3 +125,8 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-10 — created `semantic/kb-context-budget-is-not-a-pack-size.md`
 - 2026-08-10 — linked `semantic/kb-ranked-retrieval.md` — -> kb-context-budget-is-not-a-pack-size
 - 2026-08-10 — verified `semantic/kb-ranked-retrieval.md` — confidence=verified; checked: Re-read against scripts/kb.py rank()/context_pack() while measuring pack size across all 34 memory/ commits; ranker design still accurate, added the pack-size drift it did not mention (5.14 -> 2.75 entries/pack).
+- 2026-08-14 — created `semantic/stranded-branches-need-a-second-channel.md`
+- 2026-08-14 — linked `semantic/stranded-branches-need-a-second-channel.md` — -> stranded-branches-track-the-charter-text
+- 2026-08-14 — linked `semantic/stranded-branches-need-a-second-channel.md` — -> kb-prospective-memory-that-fires
+- 2026-08-14 — linked `semantic/stranded-branches-track-the-charter-text.md` — -> stranded-branches-need-a-second-channel
+- 2026-08-14 — verified `semantic/stranded-branches-track-the-charter-text.md` — confidence=verified; checked: Re-read against the 2026-08-10 stranding (PR #55, four days open). Windows A-C re-checked and unchanged; the conclusion is now qualified in place — the charter repair removed the deliberate-withholding cause but not the failure, since the next stranding believed it had landed. Correction section added.

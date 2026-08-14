@@ -5,8 +5,8 @@ description: routine sessions leave work unlanded at a rate set by what AUTONOMY
 confidence: verified
 source: replayed all 23 routine sessions with evidence (merged PR or surviving branch) against the two commits that changed AUTONOMY.md's landing rules, 2026-08-09
 created: 2026-08-09
-last_verified: 2026-08-09
-links: [kb-archived-is-a-filter-commands-forget, sibling-repo-access-denied-in-routines, kb-tests-cannot-cover-an-absent-guard]
+last_verified: 2026-08-14
+links: [kb-archived-is-a-filter-commands-forget, sibling-repo-access-denied-in-routines, kb-tests-cannot-cover-an-absent-guard, stranded-branches-need-a-second-channel]
 ---
 
 A routine session "strands" work when it pushes a branch and ends without the
@@ -87,6 +87,25 @@ merging its PR and there is no branch to delete.** Only the four already-dealt-
 with leftovers still need `push --delete`, and two of those are 0 commits ahead
 of `main` — pure ref litter that cannot even be PR'd, because a PR needs a
 diff.
+
+## Correction, 2026-08-14: the text was necessary, not sufficient
+
+The repair this entry recommended landed on 2026-08-09 (PR #52). **A session
+stranded work on 2026-08-10 anyway** — `claude/cool-cerf-bb1xow`, PR #55, open
+four days — so "what the charter authorizes" is not the whole variable.
+
+The rate is not the correction; three post-repair sessions with evidence, one
+stranded, settles nothing at that size. **The mechanism is.** That session did
+not weigh landing and decline, which is the failure this entry measured and the
+repair addressed. It believed it *had* landed and wrote "Landed directly on
+`main` per the git strategy" into `DEBRIEF.md` while the work sat on a branch.
+No wording of the charter reaches a session that already agrees with it, which
+is why the detector this entry's ROADMAP row deferred was built on 2026-08-14:
+[[stranded-branches-need-a-second-channel]].
+
+Everything above stands as measured. What changes is the conclusion drawn from
+it — the text was the binding constraint through 2026-08-08, and fixing it
+removed that cause without removing the failure.
 
 ## What this means for a session reading this
 

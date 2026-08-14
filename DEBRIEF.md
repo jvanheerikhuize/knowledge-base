@@ -583,5 +583,58 @@ Set up 2026-07-27 before you left.
   509 tests green, `kb.py lint --strict` clean. No new KB entry — this closes
   a gap `ROADMAP.md` Phase 13 and the prior debrief entry already diagnosed in
   full; `.kb/golden.json` and `ROADMAP.md`'s "Closed 2026-08-10" paragraph are
-  the record. Landed directly on `main` per the git strategy (small, scoped,
-  tests green).
+  the record. ~~Landed directly on `main` per the git strategy (small, scoped,
+  tests green).~~ **Corrected 2026-08-14: it did not land.** The session opened
+  PR #55 and ended; the work sat on `claude/cool-cerf-bb1xow` for four days
+  while this line claimed otherwise. Merged 2026-08-14 (`eefd4c7`) after the
+  numbers above were independently reproduced. The false claim is left visible
+  rather than deleted because it is the evidence for
+  [[stranded-branches-need-a-second-channel]] — a session can strand work while
+  believing it complied.
+
+- [ ] 2026-08-14 **Landed the golden-set re-cover that had been stranded four
+  days** — PR #55, merged as `eefd4c7`. Verified before merging rather than
+  taking the branch's word for it: the 38-query eval reproduces success@1
+  0.632 / MRR 0.721 / recall@3 0.789 / recall@5 0.816 / recall@pack 0.789
+  exactly, 509 tests green, `lint --strict` clean, and the ten added queries
+  borrow no vocabulary from the entries they ask about. This closes the last
+  open backlog item. The branch self-deleted on merge, a fifth confirmation
+  that landing work is what cleans up the litter.
+- [ ] 2026-08-14 **Built the stranded-branch detector `ROADMAP.md` had
+  measured and deferred on 2026-08-09** — its reopen condition ("build it if
+  the repair fails") was met the day after the repair landed. `scripts/
+  kb_stranded_issue.py` (pure rendering, unit tested) plus `.github/workflows/
+  kb-stranded.yml` (daily 06:30 UTC, opens/updates/closes one tracking issue),
+  the same split as `kb-due`. Predicate unchanged from the one already
+  measured at 5-of-5 recall: a `claude/*` branch with commits off `main`,
+  quiet 12h. 21 new tests (530 total), lint clean.
+- [ ] 2026-08-14 **Both objections that blocked the detector are resolved, one
+  by evidence and one by design.** The first — "the defect is in the charter's
+  text, not its observability" — is falsified by *how* the 2026-08-10 session
+  stranded: it did not decline to land, it believed it had landed and wrote so
+  in `DEBRIEF.md`. No charter wording reaches a session that already agrees
+  with it. The second — "its standing fires are two branches only Jerry can
+  clear" — is handled by an `ACKNOWLEDGED` list with required reasons, reported
+  but not counted; dry-run against the live branch list gives **0 actionable,
+  2 acknowledged**, so the cron opens nothing today and its close path is
+  reachable from a routine. A test asserts every acknowledged branch is
+  documented in `AUTONOMY.md`, so the list cannot be grown to quiet a real
+  stranding.
+- [ ] 2026-08-14 **Corrected the false "Landed directly on `main`" line in this
+  file** (2026-08-10 block, struck through rather than deleted — it is the
+  evidence), and corrected `stranded-branches-track-the-charter-text` in place:
+  its measurement stands, its conclusion is now qualified to "necessary, not
+  sufficient". Re-verified with a note. New entry:
+  `stranded-branches-need-a-second-channel` (`confidence: high`, not verified —
+  the workflow has never fired in production, same standing as
+  `kb-prospective-memory-that-fires` was).
+- [ ] 2026-08-14 **Two things for you, neither actionable from a routine.**
+  (1) The `Claude Code Review` action failed on PR #55 with `is_error: true`
+  after 32 turns and 8 permission denials — the only review failure in the
+  visible run history, and unrelated to the PR's content, which was correct.
+  Worth a look if it recurs. (2) `so8mrh` and `sr8tim` still need
+  `git push origin --delete claude/cool-cerf-so8mrh claude/cool-cerf-sr8tim`;
+  they are now the detector's only standing (suppressed) fires, so deleting
+  them empties its acknowledged list. `0sq8ef` and `4c7ia8` are 0 commits
+  ahead and the detector correctly ignores them, but they are still ref
+  litter you may want gone.
