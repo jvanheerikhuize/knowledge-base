@@ -5,7 +5,7 @@ description: a global similarity threshold cannot find semantic duplicates — m
 confidence: verified
 source: measured 2026-07-28 against the live 20-entry store; scripts/kb.py dupe_pairs, tests/test_kb.py TestDupes
 created: 2026-07-28
-last_verified: 2026-07-28
+last_verified: 2026-08-14
 links: [kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, kb-duplicate-candidates-by-nearest-neighbour, kb-golden-set-lives-in-the-wording]
 ---
 

@@ -5,7 +5,7 @@ description: an entry's one-line claim is not recoverable even from its own body
 confidence: verified
 source: ROADMAP Phase 6 measurement, 2026-08-03
 created: 2026-08-03
-last_verified: 2026-08-03
+last_verified: 2026-08-14
 links: [kb-consolidation-is-owed-work, kb-duplicate-candidates-by-nearest-neighbour, kb-corrections-happen-in-place, kb-is-file-based, distill-session-into-memory]
 ---
 

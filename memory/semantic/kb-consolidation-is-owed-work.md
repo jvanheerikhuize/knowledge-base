@@ -5,7 +5,7 @@ description: a curated store accumulates overlap, not duplicates — 87 verdicts
 confidence: verified
 source: measured 2026-07-31 against this store's own .kb/verdicts.json plus 7 planted restatement passages; scripts/kb.py consolidation_report()/restatements(), tests/test_kb.py TestConsolidate
 created: 2026-07-31
-last_verified: 2026-07-31
+last_verified: 2026-08-14
 links: [kb-duplicate-candidates-by-nearest-neighbour, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-entry-status-model, kb-roadmap, distill-session-into-memory, kb-corrections-happen-in-place]
 ---
 

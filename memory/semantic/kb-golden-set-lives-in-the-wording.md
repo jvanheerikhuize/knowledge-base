@@ -5,7 +5,7 @@ description: a retrieval golden set generated from entry titles scores a perfect
 confidence: verified
 source: measured 2026-08-02 in this repo; ROADMAP Phase 7
 created: 2026-08-02
-last_verified: 2026-08-02
+last_verified: 2026-08-14
 links: [kb-ranked-retrieval, kb-duplicate-detection-limits, kb-forgetting-model]
 ---
 
