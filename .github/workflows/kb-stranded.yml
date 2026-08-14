@@ -31,6 +31,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Explicit, and `--prune` is load-bearing: a stale remote-tracking
+          # ref for a branch that was deleted on merge still answers
+          # `rev-list --count` with the squash-merge's commit and would be
+          # reported as stranded forever. Observed locally on
+          # claude/cool-cerf-bb1xow the moment PR #55 merged.
+          git fetch --quiet --prune origin '+refs/heads/*:refs/remotes/origin/*'
           gh pr list --state open --json number,headRefName > prs.json
           python3 - <<'PY'
           import json, subprocess
