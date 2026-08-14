@@ -32,7 +32,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr list --state open --json number,headRefName > prs.json
-          python3 - <<'PY' > inventory.json
+          python3 - <<'PY'
           import json, subprocess
 
           def git(*args):
@@ -54,8 +54,11 @@ jobs:
                   "tip": tip,
                   "pr": prs.get(branch),
               })
-          json.dump(rows, open("inventory.json", "w"))
+          with open("inventory.json", "w") as fh:
+              json.dump(rows, fh)
           PY
+
+          cat inventory.json
 
       - name: Render stranded branches
         id: render
