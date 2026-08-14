@@ -5,7 +5,7 @@ description: three commands shipped without an archived filter and the diagnosis
 confidence: verified
 source: measured 2026-08-07 in this repo — 13-mutant run over the archived axis, twice (before and after), plus AST discovery over all four scripts
 created: 2026-08-07
-last_verified: 2026-08-07
+last_verified: 2026-08-14
 links: [kb-archived-is-a-filter-commands-forget, audit-test-corpora-for-artificial-uniformity, kb-forgetting-model, kb-entry-status-model, kb-test-audit-2026-07-29, kb-over-mcp]
 ---
 

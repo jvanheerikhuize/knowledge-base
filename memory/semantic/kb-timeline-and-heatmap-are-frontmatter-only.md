@@ -5,7 +5,7 @@ description: the site's timeline and type×status heat map (ROADMAP Phase 8) rea
 confidence: verified
 source: scripts/build_site.py build_timeline(), 2026-08-03
 created: 2026-08-03
-last_verified: 2026-08-03
+last_verified: 2026-08-14
 links: [kb-corrections-happen-in-place, memory-overview-site, kb-instruction-content-lint]
 ---
 

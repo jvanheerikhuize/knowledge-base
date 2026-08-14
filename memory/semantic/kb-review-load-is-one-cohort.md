@@ -5,7 +5,7 @@ description: every live entry was verified inside one 8-day window of a 90-day c
 confidence: verified
 source: scripts/kb.py (review_forecast, effective_confidence), measured against the real store 2026-08-05, ROADMAP Phase 11
 created: 2026-08-05
-last_verified: 2026-08-05
+last_verified: 2026-08-14
 links: [kb-forgetting-model, kb-entry-status-model, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-corrections-happen-in-place, memory-overview-site, kb-the-bundle-was-already-shipped]
 ---
 
@@ -76,3 +76,17 @@ information was always determined — a review date is just `last_verified + 90`
 — and no command reported it, so a store nine days from needing all of its
 attention at once read as perfectly clean. See [[kb-entry-status-model]] for
 what the board says about today.
+
+**Correction, 2026-08-14: "batches on different days" needs a unit, and this
+session got it wrong.** "Different days" was written assuming different
+*sessions*, spread naturally across the calendar by when work happens to touch
+each entry. A single autonomous session picking up the "batch re-verification"
+standing action and genuinely checking 13 never-reviewed entries in one sitting
+is still one day, no matter how real each check was — and it moved the busiest
+review day from **6 to 15** entries (2026-11-12), the opposite of spreading.
+Every one of those 13 checks was honest (see `.kb/log.md` for what was
+verified against what), so reverting them would trade a true record for a
+false one — not done. But the lesson holds: a re-verification pass has to
+throttle itself to a handful of entries per calendar day even within a single
+session that could technically check more, or the "spread the sweep" advice
+above is violated by the exact mechanism meant to satisfy it.

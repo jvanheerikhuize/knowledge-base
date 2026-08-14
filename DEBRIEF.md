@@ -638,3 +638,35 @@ Set up 2026-07-27 before you left.
   them empties its acknowledged list. `0sq8ef` and `4c7ia8` are 0 commits
   ahead and the detector correctly ignores them, but they are still ref
   litter you may want gone.
+- [ ] 2026-08-14 (second same-day session) **Batch re-verification, the
+  standing action `AUTONOMY.md` pointed at once the backlog closed again.**
+  Confirmed no new stranded branches (`git ls-remote` matches the four
+  already-dealt-with rows exactly) and lint/triage were clean before starting.
+  Read all 13 of the 24 never-reverified entries that make claims about this
+  repo's own code (not about `~/.claude/settings.json`, the `asdlc`/
+  `digital-twin` repos, or the claude.ai Routines UI — those five-of-nine are
+  the ones Phase 12 already found no routine can reach), checked each specific
+  claim — function names, default constants, CLI flags, test names — against
+  the current source, and `kb.py verify --note` each one: `kb-duplicate-
+  detection-limits`, `kb-forgetting-model`, `kb-over-mcp`, `kb-duplicate-
+  candidates-by-nearest-neighbour`, `kb-contradiction-is-a-second-axis`,
+  `kb-consolidation-is-owed-work`, `kb-corrections-happen-in-place`,
+  `kb-golden-set-lives-in-the-wording`, `kb-instruction-content-lint`,
+  `kb-capture-is-a-check-not-an-extractor`, `kb-timeline-and-heatmap-are-
+  frontmatter-only`, `kb-the-bundle-was-already-shipped`, `kb-review-load-is-
+  one-cohort`, `kb-tests-cannot-cover-an-absent-guard`. All 13 checked out
+  exactly against current code — no drift found, nothing to fix.
+- [ ] 2026-08-14 **The batch verification above reproduced the exact failure
+  mode its own subject warned about, and I'm flagging it rather than quietly
+  letting it stand.** `kb-review-load-is-one-cohort` says the fix for the
+  store's cohort problem is re-verifying "in batches on different days" —
+  and this session did 13 of them in one sitting, moving the busiest review
+  day from 6 entries to **15** (`2026-11-12`). The checks were genuine so the
+  dates are honest and were not reverted, but doing this many in one session
+  works against the entry's own advice rather than with it. Added a
+  correction to `kb-review-load-is-one-cohort` in place, recording the
+  6→15 jump as new evidence and restating the lesson precisely: "different
+  days" means different *sessions*, and even a single session doing real
+  work has to throttle itself to a handful of re-verifications per calendar
+  day, not spend a whole sitting on the queue. Worth reading before the next
+  re-verification pass.

@@ -698,6 +698,24 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   third of the queue is not a routine's to clear. Otherwise check for new
   instructions from Jerry or new drift (`kb.py triage`, a fresh `.gitmodules`
   audit) before starting anything non-trivial.
+- [x] **Batch re-verification, taken up as the standing action above.**
+  (2026-08-14, second same-day session) Re-confirmed no new stranded branches
+  and a clean lint/triage first. Genuinely re-checked 13 of the 24
+  never-reverified entries against current source — every claim (function
+  names, constants, CLI flags, test names) still held, nothing needed fixing.
+  Left the other 11 alone: the five Phase 12 already named as unreachable from
+  a routine (`~/.claude/settings.json`, `asdlc`/`digital-twin`, the Routines
+  UI, the old `~/Repos` shape), plus the ones freshly written today, plus
+  episodic run-records where "re-verify" doesn't mean what it means for a
+  claim about code. **Found a real, if minor, defect in the process itself:**
+  doing 13 in one sitting moved the busiest forecasted review day from 6 to 15
+  entries — precisely the cohort-concentration `kb-review-load-is-one-cohort`
+  warned a same-day sweep would cause. Corrected that entry in place with the
+  new evidence rather than let it pass quietly. **For the next session picking
+  this item back up: throttle to a handful of re-verifications per calendar
+  day, even within one sitting** — "spread the sweep" means spread across
+  days, and one session doing the whole reachable queue at once defeats it
+  regardless of how genuine each check is.
 - [x] **Cross-repo rotation, taken up as the freed-up backlog item.**
   (2026-08-08, second firing) `add_repo`/`register_repo_root` were available
   this session — the immediately prior firing the same day had neither and

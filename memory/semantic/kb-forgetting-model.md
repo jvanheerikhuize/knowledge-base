@@ -5,7 +5,7 @@ description: the KB forgets in two ways — confidence decays with age at read t
 confidence: verified
 source: scripts/kb.py (effective_confidence, is_archived, cmd_archive), tests/test_kb.py, ROADMAP Phase 3
 created: 2026-07-28
-last_verified: 2026-07-28
+last_verified: 2026-08-14
 links: [kb-ranked-retrieval, kb-entry-status-model, kb-is-file-based, kb-over-mcp, kb-duplicate-detection-limits, memory-overview-site, kb-corrections-happen-in-place, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort, kb-archived-is-a-filter-commands-forget]
 ---
 

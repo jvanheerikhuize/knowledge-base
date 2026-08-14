@@ -5,7 +5,7 @@ description: the KB is served to agents as MCP tools and resources over stdio, s
 confidence: verified
 source: scripts/mcp_server.py, tests/test_mcp_server.py, MCP spec 2025-11-25
 created: 2026-07-28
-last_verified: 2026-07-28
+last_verified: 2026-08-14
 links: [kb-is-file-based, editing-the-kb-without-a-cms, kb-ranked-retrieval, kb-agent-entrypoint-is-agent-md, kb-prospective-memory-that-fires, kb-instruction-content-lint]
 ---
 
