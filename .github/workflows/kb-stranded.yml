@@ -1,0 +1,93 @@
+name: Stranded branch reminders
+
+on:
+  schedule:
+    - cron: "30 6 * * *"  # daily, 06:30 UTC — after kb-due's 06:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  stranded:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the predicate is `origin/main..origin/<branch>`
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # Enumeration lives here rather than in the script for the same reason
+      # kb-due.yml owns its `gh issue` calls: nothing in a unit test can stand
+      # up a remote with stranded branches on it. The half that can be tested
+      # is kb_stranded_issue.py, which takes this step's JSON.
+      - name: Inventory remote branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --state open --json number,headRefName > prs.json
+          python3 - <<'PY' > inventory.json
+          import json, subprocess
+
+          def git(*args):
+              return subprocess.run(
+                  ["git", *args], capture_output=True, text=True, check=True
+              ).stdout.strip()
+
+          prs = {p["headRefName"]: p["number"] for p in json.load(open("prs.json"))}
+          rows = []
+          fmt = "%(refname:lstrip=3)%09%(committerdate:iso-strict)"
+          for line in git("for-each-ref", "--format", fmt, "refs/remotes/origin").splitlines():
+              branch, _, tip = line.partition("\t")
+              if branch in ("main", "HEAD") or not branch:
+                  continue
+              ahead = int(git("rev-list", "--count", f"origin/main..origin/{branch}"))
+              rows.append({
+                  "branch": branch,
+                  "ahead": ahead,
+                  "tip": tip,
+                  "pr": prs.get(branch),
+              })
+          json.dump(rows, open("inventory.json", "w"))
+          PY
+
+      - name: Render stranded branches
+        id: render
+        run: |
+          python3 scripts/kb_stranded_issue.py inventory.json > rendered.json
+          python3 -c "import json; print('count=' + str(json.load(open('rendered.json'))['count']))" >> "$GITHUB_OUTPUT"
+          python3 -c "import json; open('body.md', 'w').write(json.load(open('rendered.json'))['body'])"
+
+      - name: Find existing tracking issue
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(gh issue list --state open --search "\"Routine sessions: work stranded off main\" in:title" \
+            --json number,title --jq '.[] | select(.title == "Routine sessions: work stranded off main") | .number' \
+            | head -n1)
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update issue
+        if: steps.render.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ steps.find.outputs.number }}" ]; then
+            gh issue edit "${{ steps.find.outputs.number }}" --body-file body.md
+          else
+            gh issue create --title "Routine sessions: work stranded off main" --body-file body.md
+          fi
+
+      - name: Close issue when nothing is stranded
+        if: steps.render.outputs.count == '0' && steps.find.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue close "${{ steps.find.outputs.number }}" --comment "Nothing stranded anymore — closing."

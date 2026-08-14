@@ -43,6 +43,14 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   2026-07-29 and 2026-07-30 (`claude/cool-cerf-so8mrh`,
   `claude/cool-cerf-sr8tim`), including three bug fixes and a debrief line that
   never reached `main`. Pushing to a branch is a checkpoint, not an ending.
+- **A daily cron now checks this too, and it is the more reliable half.** Since
+  2026-08-14 `.github/workflows/kb-stranded.yml` opens a tracking issue titled
+  "Routine sessions: work stranded off main" for any `claude/*` branch holding
+  commits off `main` and quiet for 12h. It exists because the session-start
+  check below only runs when a session runs, and a stranding is what a session
+  leaves behind when it stops — the 2026-08-10 strand went unseen for three
+  days that left no session trace at all. If that issue is open, clearing it is
+  the first thing to do this session. ([[stranded-branches-need-a-second-channel]])
 - **Before picking a backlog item, check `git ls-remote --heads origin`.** An
   unmerged `claude/*` branch may already hold the work. **Read the branch — a
   leftover branch is a symptom, not a prior session's considered decision**
@@ -651,6 +659,36 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   under both new floors. 509 tests, all green; `kb.py lint --strict` clean.
   Write-up: none needed — `ROADMAP.md`'s Phase 13 section and `.kb/golden.json`
   itself are the record.
+
+  **Landed 2026-08-14, not 2026-08-10** (PR #55, `eefd4c7`). The session above
+  opened a PR and ended; this checkbox and every number in it were off `main`
+  for four days, and its `DEBRIEF.md` line claimed it had landed directly. The
+  work itself was correct — all five figures reproduced exactly before merging.
+  That gap is what [[stranded-branches-need-a-second-channel]] is about.
+
+- [x] **The repair failed in a day, so the detector shipped (ROADMAP Phase 14).**
+  (2026-08-14) Picked up as the research-tier item after landing PR #55; the
+  reopen condition `ROADMAP.md` recorded on 2026-08-09 — "build it if the
+  repair fails" — had been met on 2026-08-10. **The rate is not the finding;
+  the mechanism is.** Strandings 1–3 weighed landing and declined on
+  authorization grounds, which is what the 2026-08-09 charter repair fixed.
+  Stranding 6 never weighed it: it believed it had landed and wrote "Landed
+  directly on `main`" into `DEBRIEF.md` while PR #55 sat open for four days
+  against a 62-minute historical maximum. No wording reaches a session that
+  already agrees with it, and every repair tried so far — the 2026-07-31 rule,
+  the 2026-08-09 disambiguation, the session-start `ls-remote` check — is a
+  message delivered *before* the strand, while the error only exists *after*.
+  Days 2–4 of the strand left no repo-visible session trace at all, so the
+  in-session channel recovered it on day 4. Shipped `scripts/
+  kb_stranded_issue.py` + `.github/workflows/kb-stranded.yml` in the `kb-due`
+  shape, predicate unchanged from the 5-of-5 one already measured. The second
+  objection (two standing fires only Jerry can clear) is handled by an
+  `ACKNOWLEDGED` list, reported but not counted, with a test binding it to
+  `AUTONOMY.md`'s own table: **0 actionable, 2 acknowledged** against the live
+  branch list today. 21 new tests (530 total). Write-up:
+  `stranded-branches-need-a-second-channel`;
+  `stranded-branches-track-the-charter-text` corrected in place and re-verified
+  with a note.
 
   **The backlog is closed again.** Per the post-mandate section above, no new
   large-scope item is invented to fill the gap. The standing action a next

@@ -1106,7 +1106,7 @@ before its condition holds.
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
-| A stranded-branch detector (cron → tracking issue, the `kb-due.yml` shape) | the charter repair of 2026-08-09 fails to hold — i.e. a session strands work again after the post-mandate section stopped contradicting the git strategy. **Measured, not built** (below) | [[stranded-branches-track-the-charter-text]] |
+| ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
 
 **The stranded-branch detector, measured and deliberately not built
 (2026-08-09).** The domain was real — 5 stranded branches in 12 days, one
@@ -1130,6 +1130,51 @@ are `so8mrh` and `sr8tim`, which only Jerry can clear; shipping a cron that
 opens an issue nobody in a routine can close is the `kb-due` close branch
 problem in reverse. Build it if the repair fails — the numbers above are the
 baseline to beat.
+
+### Phase 14 — the repair failed, so the detector shipped (2026-08-14)
+
+**The condition held for one day.** The charter repair landed 2026-08-09 07:31
+(PR #52); `claude/cool-cerf-bb1xow` was stranded 2026-08-10 09:20 and sat
+behind open **PR #55 for four days**, against a historical maximum merge
+latency of 62 minutes.
+
+**The first objection above is falsified, and by the mechanism rather than the
+rate.** Three post-repair sessions with evidence and one stranding settles
+nothing statistically. But the stranding was not the failure the repair
+addressed: the session did not weigh landing and decline on authorization
+grounds — it believed it had landed, and committed
+`DEBRIEF.md` text saying "Landed directly on `main` per the git strategy."
+Observability is exactly what was missing, because every previous repair is a
+message delivered to a session *before* it strands, and the error only exists
+*after*. Full argument: [[stranded-branches-need-a-second-channel]].
+
+**The second objection was real and is handled.** `ACKNOWLEDGED` in
+`scripts/kb_stranded_issue.py` carries `so8mrh` and `sr8tim` with a required
+reason; they render under their own heading with the `push --delete` Jerry
+needs, and are excluded from the count that opens the issue. Dry-run against
+the live branch list after PR #55 merged: **0 actionable, 2 acknowledged**, so
+the cron opens nothing today and its close path is reachable from a routine.
+`tests/test_kb_stranded_issue.py` asserts every acknowledged branch is
+documented in `AUTONOMY.md`, so the list cannot be grown to silence a real
+stranding — the one way this detector could be turned into decoration.
+
+Shipped in the `kb-due.yml` shape Phase 5 established, for the same reason:
+`kb_stranded_issue.py` is pure rendering and fully unit tested;
+`.github/workflows/kb-stranded.yml` owns the `git for-each-ref` /
+`gh pr list` / `gh issue` half that no test here can stand up. Predicate is the
+5-of-5 one measured above, unchanged. 21 new tests (530 total).
+
+**Not verified in production.** Nothing in this environment can fire a
+scheduled Action, so — as with Phase 5 — the entry is `confidence: high` until
+the workflow's first real run. Two things to check when it fires: that a real
+stranding opens the issue within a day, and that the close path runs when the
+last actionable branch lands. A *false* fire is the signal to lower it.
+
+**One standing dependency**, worth stating because it is a repo setting and not
+code: delete-branch-on-merge must stay on. A squash merge leaves the branch's
+commits off `main`, so a squash-merged branch that survived would read as
+stranded forever. All 19 PR-merged branches were deleted on the spot, so this
+has never happened here.
 
 Three of the eight wait on something outside this repo (a client, a sibling
 checkout, a second kind of session), one waits on a decision only Jerry can
