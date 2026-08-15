@@ -46,7 +46,14 @@ from kb import (  # noqa: E402
 # so a change here cannot go out silently — data.json is published to Pages and
 # is the only way to read this store without importing the tooling.
 # 3 (2026-08-08): stats.review_forecast gained `never_reverified`.
-BUNDLE_SCHEMA_VERSION = 3
+# 4 (2026-08-15): stats.review_forecast gained `sustainable_per_day` and
+#     `effective_days`. Both are derivable from `by_date`, which the bundle
+#     already carried — they ship anyway because the point of the bundle is to
+#     be readable "without importing this tooling" (Phase 9), and a consumer
+#     who has to know the inverse Simpson index to see the concentration is
+#     reading `by_date` the way the store's own sessions read `busiest`: as if
+#     the tallest bar were the whole shape.
+BUNDLE_SCHEMA_VERSION = 4
 
 DEFAULT_OUT = ROOT / "site"
 
@@ -657,11 +664,16 @@ def build_status(entries, statuses, slug=None, forecast=None) -> str:
             f"entries fall due for review between {html.escape(forecast['first'])} "
             f"and {html.escape(forecast['last'])} — {forecast['span_days']}d wide "
             f"inside a {forecast['cycle_days']}d cycle, busiest "
-            f"{html.escape(forecast['busiest'])} ({peak}).")
+            f"{html.escape(forecast['busiest'])} ({peak}), effectively "
+            f"concentrated on {forecast['effective_days']} of those days.")
         if forecast.get("is_cohort"):
             ahead += (" That is one cohort rather than a spread: re-verifying "
                       "them in a single sweep re-dates them together and brings "
-                      "the same pile-up back one cycle later.")
+                      "the same pile-up back one cycle later. The rate that "
+                      f"spreads it is {forecast['sustainable_per_day']} entries "
+                      "a day sustained for a whole cycle — faster re-clusters "
+                      "it, because the spread you can create is the calendar "
+                      "days you spend, not the entries you do.")
         ahead += "</p>"
 
     body = (

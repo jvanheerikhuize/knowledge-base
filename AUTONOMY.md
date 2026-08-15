@@ -746,6 +746,41 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   redo the audit a fourth time. No code changed in `repos`; the fix is
   process, and it landed as a doc change plus one comment.
 
+- [x] **Re-verification has one rate (ROADMAP Phase 15).** (2026-08-15) Picked
+  up as the research-tier item. Sibling access unavailable again this session
+  (no `add_repo`/`list_repos` in this run's toolset, unauthenticated clone
+  fails) — in-repo fallback per the standing mandate's step 1; the 2026-08-06
+  grant is unchanged, this is the per-session tooling gap
+  `sibling-repo-access-denied-in-routines` already records. **The item the
+  backlog above ends on prescribes the wrong number.** The 2026-08-14 session
+  corrected "batches on different days" to "a handful per calendar day";
+  simulated against this store's real dates over two cycles, 5/day does **127
+  verifications and lands an effective spread of 9.7 days**, while the only
+  self-sustaining rate — `live entries / cycle`, **0.433/day** — does 66 and
+  lands 22.0. Faster is nearly twice the work for less than half the spread,
+  because a pace above the cycle rate empties the ripe pool in bursts and the
+  bursts are the clusters; convergence takes one whole cycle at any pace, since
+  the spread you create is the calendar days you spend. **The instrument was
+  also blind:** `busiest` names only the tallest bar, so batching any k from 0
+  to 13 onto today leaves it reading 15 while the effective spread falls 4.83 →
+  3.46 — the 2026-08-14 session's "6 → 15" was luck, not detection. Shipped
+  `sustainable_per_day` + `effective_days` (inverse Simpson) in
+  `review_forecast`, on the board and in `data.json` (`schema_version: 4`), and
+  `verify_pace_warning()` on `kb.py verify` — a number after the batch, not a
+  refusal, because an honest verification is a true record. Also found: the
+  **six entries no routine can re-verify all come due 2026-10-25**, so the
+  queue has a permanent floor of 6 that only Jerry can lift (recorded in
+  ROADMAP's reopen table). Bonus: `kb-stranded.yml`'s **first production fire**
+  (2026-08-15T07:05Z, run 31871058533) opened nothing, 0 actionable / 2
+  acknowledged as predicted. 11 new tests (541 total). Write-up:
+  `kb-reverification-has-one-rate`; `kb-review-load-is-one-cohort` corrected in
+  place a second time.
+
+  **For the next session: this replaces the standing action's prescription.**
+  Re-verify **one** entry, and only when `kb.py status` shows the store is
+  behind its `sustainable pace` — not a handful, not a batch, not "the
+  reachable queue". `kb.py verify` will now tell you when you have passed it.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

@@ -2254,6 +2254,112 @@ class TestNeverRechecked(KbTestCase):
         self.assertIn("never re-checked since", self.run_kb("status").stdout)
 
 
+class TestReviewPace(KbTestCase):
+    """The rate that flattens the review queue, and the statistic that can see
+    a batch happening.
+
+    Both exist because prose could not carry either. `kb-review-load-is-one-
+    cohort` said "re-verify in batches on different days" (2026-08-05), was
+    corrected to "a handful per calendar day" (2026-08-14), and simulation
+    against this store's real dates says both are wrong by an order of
+    magnitude — 5/day does nearly twice the verifications of 0.43/day and
+    lands less than half the spread."""
+
+    def forecast(self):
+        return json.loads(self.run_kb("stats", "--json").stdout)["review_forecast"]
+
+    def entry(self, slug, days_ago):
+        self.run_kb("new", slug, "--type", "semantic")
+        when = (datetime.date.today() - datetime.timedelta(days=days_ago)).isoformat()
+        self.edit_frontmatter("semantic", slug, last_verified=when)
+
+    def test_the_sustainable_rate_is_the_store_over_the_cycle(self):
+        for i in range(9):
+            self.entry(f"fact-{i}", i)
+        f = self.forecast()
+        self.assertEqual(f["dated"], 9)
+        self.assertEqual(f["sustainable_per_day"], round(9 / 90, 3))
+
+    def test_effective_days_is_one_when_the_whole_store_shares_a_date(self):
+        for i in range(8):
+            self.entry(f"fact-{i}", 3)
+        self.assertEqual(self.forecast()["effective_days"], 1.0)
+
+    def test_effective_days_is_the_count_when_every_entry_has_its_own_date(self):
+        for i in range(8):
+            self.entry(f"fact-{i}", i)
+        self.assertEqual(self.forecast()["effective_days"], 8.0)
+
+    def test_a_batch_concentrates_the_queue_while_busiest_reads_unchanged(self):
+        """The reason `effective_days` is reported at all.
+
+        `busiest` names only the tallest bar, so a new pile has to beat the
+        existing maximum before the number moves. Measured on the real store
+        2026-08-15: batching any k from 0 to 13 left `busiest` at 15 while the
+        effective spread fell 4.83 → 3.46, so a session reading only `busiest`
+        sees "no change" across exactly the batch sizes it would plausibly do.
+        This is that shape in miniature — six entries already share one date,
+        and re-verifying three singletons onto today cannot beat six."""
+        for i in range(6):
+            self.entry(f"heap-{i}", 40)          # six on one due date
+        for i in range(3):
+            self.entry(f"loner-{i}", 10 + i)     # three on dates of their own
+        before = self.forecast()
+        self.assertEqual(dict(before["by_date"])[before["busiest"]], 6)
+
+        for i in range(3):
+            self.run_kb("verify", f"loner-{i}", "--note", "batched in one sitting")
+        after = self.forecast()
+
+        # The tallest bar is untouched — and so, therefore, is `busiest`.
+        self.assertEqual(after["busiest"], before["busiest"])
+        self.assertEqual(dict(after["by_date"])[after["busiest"]], 6)
+        # The concentration measure is not fooled: three separate days became
+        # one, so the load is spread over strictly fewer effective days.
+        self.assertLess(after["effective_days"], before["effective_days"])
+
+    def test_verify_says_nothing_at_or_below_the_sustainable_rate(self):
+        for i in range(9):
+            self.entry(f"fact-{i}", 30 + i)
+        r = self.run_kb("verify", "fact-0", "--note", "one today")
+        self.assertNotIn("pace:", r.stderr)
+
+    def test_verify_reports_the_pace_once_a_batch_passes_the_rate(self):
+        """The message has to arrive after the batch, not before it.
+
+        ROADMAP Phase 14: every previous repair was a sentence in a document,
+        and a document is delivered before the mistake — which is why the
+        2026-08-14 session read all of it and still verified 13 entries in one
+        sitting. This fires on the batch itself."""
+        for i in range(9):
+            self.entry(f"fact-{i}", 30 + i)
+        for i in range(3):
+            r = self.run_kb("verify", f"fact-{i}", "--note", "sweeping")
+        self.assertIn("pace: 3 entries verified today", r.stderr)
+        self.assertIn("sustainable 0.1/day", r.stderr)
+        self.assertIn("effectively on", r.stderr)
+        # Reported, never refused: the verification really happened, and the
+        # record of it stays true. The 2026-08-14 session was right that
+        # reverting an honest check would trade a true record for a false one,
+        # so the response to over-pacing is a number, not a veto.
+        self.assertEqual(r.returncode, 0)
+        self.assertIn(f"last_verified: {datetime.date.today().isoformat()}",
+                      self.entry_path("semantic", "fact-2").read_text())
+
+    def test_the_board_names_the_rate_instead_of_saying_spread_it(self):
+        for i in range(8):
+            self.entry(f"fact-{i}", i)
+        out = self.run_kb("status").stdout
+        self.assertIn("The rate that spreads it is", out)
+        self.assertIn("Effectively concentrated on", out)
+
+    def test_an_empty_store_has_no_rate_and_no_spread(self):
+        f = self.forecast()
+        self.assertEqual(f["dated"], 0)
+        self.assertIsNone(f["sustainable_per_day"])
+        self.assertIsNone(f["effective_days"])
+
+
 class TestCapture(KbTestCase):
     """Filing a claim you have already written, with the restatement check
     that `memory/AGENT.md` asks an author to do by hand run first.

@@ -6,7 +6,7 @@ confidence: verified
 source: replayed all 73 commits touching memory/ on 2026-08-08 (scratch script diffing each entry's frontmatter and body per commit); first standalone re-verification sweep run the same day over the nine oldest entries
 created: 2026-08-08
 last_verified: 2026-08-08
-links: [kb-review-load-is-one-cohort, kb-corrections-happen-in-place, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-entry-status-model, workspace-improvement-phases]
+links: [kb-review-load-is-one-cohort, kb-corrections-happen-in-place, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-entry-status-model, workspace-improvement-phases, kb-reverification-has-one-rate]
 ---
 
 The whole staleness model rests on one field. `effective_confidence` decays

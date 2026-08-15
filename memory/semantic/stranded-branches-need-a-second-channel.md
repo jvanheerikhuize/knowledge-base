@@ -5,7 +5,7 @@ description: the sixth stranding was a session that believed it had landed and w
 confidence: high
 source: PR #55 (opened 2026-08-10T09:20:13Z, merged 2026-08-14 after 4 days open) read against its own DEBRIEF text, the 2026-08-09 charter repair in PR #52, and the workflow-run history for 2026-08-11 through 08-13
 created: 2026-08-14
-last_verified: 2026-08-14
+last_verified: 2026-08-15
 links: [stranded-branches-track-the-charter-text, kb-prospective-memory-that-fires]
 ---
 

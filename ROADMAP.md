@@ -1107,6 +1107,7 @@ before its condition holds.
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
 | ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
+| Clearing the six-entry floor under the review queue | **Only Jerry can.** All six rest on a sibling repo, the Routines UI, or his own machine, all six were stamped on opening day, and all six therefore come due together on 2026-10-25 — after which `already_due` never falls below 6 and `busiest` never below 6, at any pace a routine keeps. Named in the standing action above. Not an engineering item and not a reason to sweep harder | Phase 15 |
 
 **The stranded-branch detector, measured and deliberately not built
 (2026-08-09).** The domain was real — 5 stranded branches in 12 days, one
@@ -1170,33 +1171,124 @@ the workflow's first real run. Two things to check when it fires: that a real
 stranding opens the issue within a day, and that the close path runs when the
 last actionable branch lands. A *false* fire is the signal to lower it.
 
+**First production fire: 2026-08-15T07:05Z, run `31871058533`, success.**
+Inventory and render ran; "Open or update issue" and "Close issue" both
+skipped; the repo has no open issue. That is 0 actionable / 2 acknowledged,
+exactly what the pre-merge dry run predicted, so **the no-false-fire half is
+confirmed** — which is the half that would have made the detector decoration.
+The two checks above are still unexercised, because nothing was stranded to
+exercise them, so the entry stays `confidence: high`. (Scheduling note for
+anyone reading run times: the 06:30 cron fired at 07:05, and `kb-due`'s 06:00
+cron has landed between 06:42 and 07:48 over its 14 runs. GitHub's scheduled
+queue runs 40–110 minutes late here; a missing run before ~08:00 UTC is not yet
+evidence of anything.)
+
 **One standing dependency**, worth stating because it is a repo setting and not
 code: delete-branch-on-merge must stay on. A squash merge leaves the branch's
 commits off `main`, so a squash-merged branch that survived would read as
 stranded forever. All 19 PR-merged branches were deleted on the spot, so this
 has never happened here.
 
-Three of the eight wait on something outside this repo (a client, a sibling
-checkout, a second kind of session), one waits on a decision only Jerry can
-take, and the other four wait on the store growing or ageing. Nothing on the
+### Phase 15 — re-verification has one rate (2026-08-15)
+
+Phase 11 said the store is one cohort and the repair is to *spread the sweep*.
+Phase 12 asked what a re-verification actually is. Nobody had asked **how many
+per day**, and the 2026-08-14 session answered it in prose — "a handful per
+calendar day" — after its own 13-entry batch moved the busiest review day from
+6 to 15. Simulating that prescription against the store's real `last_verified`
+dates says it is wrong by an order of magnitude, and wrong in the same
+direction it was correcting.
+
+**There is exactly one sustainable rate: `live entries / cycle`, here 39/90 =
+0.433 a day.** Over two cycles, oldest-due first, unreachable entries excluded,
+a session declining to re-check anything younger than half a cycle:
+
+| pace | verifications | effective spread | distinct due dates |
+|---|---|---|---|
+| do nothing | 0 | 4.83d | 12 |
+| **0.433/day (cycle rate)** | **66** | **22.04d** | **34** |
+| 1/day | 115 | 22.04d | 34 |
+| 5/day ("a handful") | 127 | 9.69d | 14 |
+| 10/day | 132 | 7.07d | 13 |
+
+Five a day is **nearly twice the work for less than half the spread**. A pace
+above the cycle rate empties the pool of entries worth re-checking, then idles
+until it refills, and the bursts *are* the clusters. Sampled every 15 days, the
+cycle-rate run sits at 4.83 through day +45, reaches 15.36 at +90 and settles at
+22.04 by +105: **convergence takes one full cycle and cannot be bought with
+effort**, because the span of review dates you create is the span of calendar
+days you spend creating them. That makes this a standing habit at a low rate,
+not a task a session can finish — which is the opposite of how the backlog has
+been treating it.
+
+**The instrument was blind to the thing it warned about.** `review_forecast`
+summarised concentration as `busiest`, which names only the tallest bar. On the
+real store on 2026-08-15, batching k entries onto today leaves `busiest` at 15
+for **every k from 0 to 13** while the effective spread falls 4.83 → 3.46 — so a
+session checking whether its batch did harm reads "unchanged" across exactly the
+batch sizes it would plausibly do. The 2026-08-14 session's 6 → 15 was luck: its
+own pile happened to become the maximum. Shipped `effective_days` (inverse
+Simpson index over the due-date histogram, `1 / Σ(nᵢ/N)²`) alongside it, which
+is monotone under that batching, plus `sustainable_per_day`; both in `kb.py
+status`, `kb.py stats`, the status board and `data.json` (`schema_version: 4`).
+
+**The warning is on `verify`, not in another document.** Three prior repairs
+were sentences added to files — the entry in 2026-08-05, its own correction in
+2026-08-14, the standing action above — and Phase 14 already measured why that
+shape fails: a message delivered before the mistake never reaches a session that
+believes it is doing the right thing. `verify_pace_warning()` prints today's
+count against the rate once a batch passes it. Deliberately not a refusal and
+not a lint failure: a verification that really happened is a true record, and
+reverting it would trade it for a false one. The defect is in how many were
+scheduled onto one date, so the response is a number, not a veto.
+
+**A floor no routine can lift, found on the way.** The six entries a scheduled
+sandbox cannot re-verify were all stamped on opening day and have never moved,
+so all six come due on **2026-10-25**, the first day of the queue. After that
+date `already_due` never falls below 6 and `busiest` never below 6, at any pace.
+This revises Phase 12's conclusion in the other direction: spreading a queue
+does not make a third of it checkable, *and* the unreachable part stays a cohort
+permanently — so part of the busiest-day number is not a thing to fix, and
+reporting it as one invites a session to sweep harder against a wall. Recorded
+in the reopen table as Jerry's, not a routine's.
+
+11 new tests (541 total). The archived-axis registry from 2026-08-07 caught
+`verify_pace_warning` as an undeclared store scanner before any of them ran,
+which is the second time that enumeration has paid for itself. Write-up:
+[[kb-reverification-has-one-rate]]; [[kb-review-load-is-one-cohort]] corrected
+in place for the second time.
+
+Three of the nine wait on something outside this repo (a client, a sibling
+checkout, a second kind of session), two wait on a decision or an action only
+Jerry can take, and the other four wait on the store growing or ageing. Nothing on the
 list is blocked on effort, which is why none of it is scheduled — and nothing
 left on it can be closed from inside a routine session, which is what the
 `kb-due` close branch was until 2026-08-05.
 
 The nearest thing to a standing action is not on that table, because it is not
-engineering: **the store's review window is 2026-10-25 → 2026-11-06, and it is
+engineering: **the store's review window is 2026-10-25 → 2026-11-12, and it is
 one cohort** (Phase 11). Re-verifying in batches on different days before then
 spreads it permanently; one sweep re-creates it. `kb.py status` now says so on
 every run, and since Phase 12 it also says how much of that load has never been
-re-checked at all (22 of 36 as of 2026-08-08). Two things a session picking up
+re-checked at all (11 of 39 as of 2026-08-15). Three things a session picking up
 that standing action should know:
 
+- **The batch size is one, and the pace is `kb.py status`'s `sustainable pace`
+  row — 0.433/day here, one entry every 2.3 days.** Not "a handful". Phase 15
+  measured it: 5/day does nearly twice the verifications of the cycle rate and
+  lands less than half the spread, because a pace above the cycle rate empties
+  the ripe pool in bursts and the bursts are the clusters. Convergence takes one
+  full cycle at *any* pace, so this is a standing habit, not a task to finish.
 - **A verify with no `--note` is not a review.** The date will move either way;
   only the note distinguishes "somebody checked this" from "somebody was
   editing this anyway". `kb.py log --action verified` is the trail.
-- **Roughly a third of the queue is not a routine's to clear** — those entries
-  rest on machines and repos a scheduled sandbox cannot see. Sort them out of
-  the batch first rather than discovering them one at a time.
+- **Six of the 39 are not a routine's to clear, and they are all due
+  2026-10-25** — `asdlc-governed-change-rules`, `purge-context-after-each-change`,
+  `routines-ui-not-api-for-prompts`, `twin-sovereignty-constraint`,
+  `workspace-audit-2026-07-27`, `workspace-improvement-phases`. They rest on
+  sibling repos, the Routines UI, and a machine a scheduled sandbox cannot see.
+  Sort them out of the batch first rather than discovering them one at a time —
+  and read the floor they leave in the table below before sweeping harder at it.
 
 ---
 

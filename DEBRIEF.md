@@ -670,3 +670,41 @@ Set up 2026-07-27 before you left.
   work has to throttle itself to a handful of re-verifications per calendar
   day, not spend a whole sitting on the queue. Worth reading before the next
   re-verification pass.
+- [ ] 2026-08-15 **ROADMAP Phase 15 — the "handful per calendar day" above is
+  wrong by an order of magnitude, and the number it should be is now in the
+  tooling instead of in prose.** Re-verification has exactly one sustainable
+  rate: live entries over the review cycle, **0.433/day** here (39 entries,
+  90-day cycle) — one entry every 2.3 days. Simulated against the store's real
+  dates over two cycles: 5/day does **127 verifications for an effective spread
+  of 9.7 days**, the cycle rate does **66 for 22.0**. Faster is nearly twice the
+  work for less than half the result, because a pace above the cycle rate
+  empties the pool of entries worth re-checking and then idles — and the bursts
+  are the clusters. Convergence takes one whole cycle at any pace, so this is a
+  standing habit, not a task to finish. Second finding: **`busiest` could not
+  see the problem it was reporting** — batching any k from 0 to 13 onto today
+  leaves it reading 15 while the effective spread falls 4.83 → 3.46, so
+  yesterday's "6 → 15" was luck rather than detection. Shipped
+  `sustainable_per_day` and `effective_days` (inverse Simpson index) in
+  `review_forecast`, on `kb.py status`/`stats`, the status board and
+  `data.json` (`schema_version: 4`), plus `verify_pace_warning()` printing the
+  pace on `kb.py verify` once a session passes the rate — after the batch, which
+  Phase 14 established is the only place such a message lands. Reported, never
+  refused: an honest verification is a true record. 11 new tests (541 total),
+  lint `--strict` and triage clean. Write-up: `kb-reverification-has-one-rate`;
+  `kb-review-load-is-one-cohort` corrected in place a second time.
+- [ ] 2026-08-15 **Six entries no routine can re-verify all come due on the same
+  day, 2026-10-25 — a floor under the review queue only you can lift.**
+  `asdlc-governed-change-rules`, `purge-context-after-each-change`,
+  `routines-ui-not-api-for-prompts`, `twin-sovereignty-constraint`,
+  `workspace-audit-2026-07-27`, `workspace-improvement-phases`. They rest on the
+  `asdlc` and `digital-twin` repos, the claude.ai Routines UI, your
+  `~/.claude/settings.json`, and the pre-2026-08-06 `~/Repos` shape — all
+  invisible from a scheduled sandbox — and all six still carry their opening-day
+  date. After 2026-10-25 the queue's `already_due` never falls below 6 whatever
+  a routine does. Recorded in ROADMAP's reopen table as yours; no action taken.
+- [ ] 2026-08-15 **`kb-stranded.yml` fired in production for the first time and
+  behaved exactly as designed** (2026-08-15T07:05Z, run `31871058533`, success):
+  0 actionable / 2 acknowledged, both issue steps skipped, nothing opened.
+  Confirms the no-false-fire half; a real stranding opening the issue and the
+  close path are still unexercised, so `stranded-branches-need-a-second-channel`
+  stays `confidence: high`, re-verified with a note saying exactly that.
