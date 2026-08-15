@@ -422,6 +422,11 @@ class StatusForecastTests(unittest.TestCase):
         "today": "2026-08-05", "cycle_days": 90, "dated": 6, "undated": 0,
         "first": "2026-10-25", "last": "2026-10-27", "span_days": 2,
         "busiest": "2026-10-25", "already_due": 0, "is_cohort": True,
+        "never_reverified": 0,
+        # 6 entries / 90d cycle, and (4,1,1) of 6 has an inverse Simpson index
+        # of 1 / ((4/6)² + (1/6)² + (1/6)²) = 2.0 — three dates that behave
+        # like two, which is the point of reporting it next to `busiest`.
+        "sustainable_per_day": 0.067, "effective_days": 2.0,
         "by_date": [["2026-10-25", 4], ["2026-10-26", 1], ["2026-10-27", 1]],
     }
 
@@ -431,6 +436,14 @@ class StatusForecastTests(unittest.TestCase):
         self.assertIn("2026-10-27", page)
         self.assertIn("2d wide", page)
         self.assertIn("busiest 2026-10-25 (4)", page)
+
+    def test_the_concentration_and_the_pace_are_rendered_with_the_window(self):
+        # A reader of the board is the one person who can act on the pace, and
+        # `busiest` alone reads as "one bad day" rather than "three dates
+        # behaving like two".
+        page = build_site.build_status([], [], None, self.FORECAST)
+        self.assertIn("concentrated on 2.0 of those days", page)
+        self.assertIn("0.067 entries a day", page)
 
     def test_a_cohort_is_named_as_one(self):
         page = build_site.build_status([], [], None, self.FORECAST)
@@ -471,7 +484,7 @@ class BundleContractTests(unittest.TestCase):
     FORECAST_KEYS = {
         "today", "cycle_days", "dated", "undated", "first", "last",
         "span_days", "busiest", "already_due", "is_cohort", "never_reverified",
-        "by_date",
+        "sustainable_per_day", "effective_days", "by_date",
     }
 
     def setUp(self):
@@ -500,6 +513,22 @@ class BundleContractTests(unittest.TestCase):
         forecast = self.data["stats"]["review_forecast"]
         self.assertEqual(set(forecast), self.FORECAST_KEYS)
         self.assertEqual(forecast["cycle_days"], kb.STALE_DAYS)
+
+    def test_the_bundle_carries_the_pace_a_consumer_would_otherwise_derive(self):
+        # Phase 9's contract is that the bundle is readable without importing
+        # this tooling. `by_date` alone technically contains both numbers, but
+        # a consumer who has to know the inverse Simpson index to see the
+        # concentration will read the tallest bar and call it the shape —
+        # which is exactly the mistake this store's own sessions made.
+        forecast = self.data["stats"]["review_forecast"]
+        if not forecast["dated"]:
+            self.skipTest("no dated entries to forecast")
+        self.assertAlmostEqual(forecast["sustainable_per_day"],
+                               forecast["dated"] / forecast["cycle_days"],
+                               places=2)
+        distinct = len(forecast["by_date"])
+        self.assertGreaterEqual(forecast["effective_days"], 1.0)
+        self.assertLessEqual(forecast["effective_days"], distinct)
 
     def test_schema_version_is_declared(self):
         self.assertIsInstance(self.data["schema_version"], int)

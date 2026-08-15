@@ -102,6 +102,10 @@ SCANNER_POLICY = {
         EXCLUDES, "archiving is how a spent prospective entry ends"),
     ("kb.py", "review_forecast"): (
         EXCLUDES, "a retired entry is never coming up for review"),
+    ("kb.py", "verify_pace_warning"): (
+        EXCLUDES, "inherits review_forecast — the sustainable rate is the live "
+                  "store over the cycle, and counting retired entries would "
+                  "licence a faster sweep than the queue can actually absorb"),
     ("kb.py", "cmd_lint"): (
         EXCLUDES, "the three attention warnings (stale, unverified, overdue) "
                   "only; schema and date-validity problems stay unconditional, "
@@ -350,6 +354,18 @@ class TestArchivedPolicyHolds(ArchivedAxisTestCase):
         stats = self.json_kb("stats")
         forecast = json.dumps(stats.get("review_forecast", stats))
         self.assertNotIn("retired", forecast)
+
+    def test_the_sustainable_pace_counts_only_live_entries(self):
+        # An archived entry inflating the rate would licence a faster sweep
+        # than the live queue can absorb — the same defect as counting it in
+        # the forecast, one step downstream.
+        # A third entry so archiving one still leaves a live store to have a
+        # rate at all — an empty store has no pace, which is a different case.
+        self.run_kb("new", "also-kept", "--type", "semantic")
+        before = self.json_kb("stats")["review_forecast"]["sustainable_per_day"]
+        self.run_kb("archive", "kept")
+        after = self.json_kb("stats")["review_forecast"]["sustainable_per_day"]
+        self.assertLess(after, before)
 
     # --- CLASSIFIES -------------------------------------------------------
 

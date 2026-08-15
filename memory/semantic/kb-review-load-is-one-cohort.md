@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/kb.py (review_forecast, effective_confidence), measured against the real store 2026-08-05, ROADMAP Phase 11
 created: 2026-08-05
 last_verified: 2026-08-14
-links: [kb-forgetting-model, kb-entry-status-model, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-corrections-happen-in-place, memory-overview-site, kb-the-bundle-was-already-shipped]
+links: [kb-forgetting-model, kb-entry-status-model, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-corrections-happen-in-place, memory-overview-site, kb-the-bundle-was-already-shipped, kb-reverification-has-one-rate]
 ---
 
 This store was written in nine days. Every one of its 32 live entries carries a
@@ -87,6 +87,28 @@ review day from **6 to 15** entries (2026-11-12), the opposite of spreading.
 Every one of those 13 checks was honest (see `.kb/log.md` for what was
 verified against what), so reverting them would trade a true record for a
 false one — not done. But the lesson holds: a re-verification pass has to
-throttle itself to a handful of entries per calendar day even within a single
-session that could technically check more, or the "spread the sweep" advice
-above is violated by the exact mechanism meant to satisfy it.
+throttle itself even within a single session that could technically check
+more, or the "spread the sweep" advice above is violated by the exact
+mechanism meant to satisfy it.
+
+**Second correction, 2026-08-15: "a handful per calendar day" is still wrong,
+by an order of magnitude, and it is wrong in the same direction.** The
+correction above named a unit but no quantity, and the quantity turns out to
+decide the outcome. Simulated against this store's real dates over two cycles,
+5/day does 127 verifications and lands an effective spread of 9.7 days, while
+0.433/day — `live entries / cycle`, the only self-sustaining rate — does 66 and
+lands 22.0. Faster is not a faster way to the same place; it is a slower way to
+a worse one, because a pace above the cycle rate empties the ripe pool in bursts
+and the bursts are the clusters. Convergence takes one whole cycle at any pace,
+since the spread you create is the calendar days you spend.
+
+Two things in this entry should be read with that in mind. The "busiest day 6 →
+15" evidence in the correction above is real but was **luck**: `busiest` names
+only the tallest bar, so the same 13-entry batch performed on 2026-08-15 would
+have left it at 15 and reported no harm at all. And "re-verify in batches on
+different days", the original advice at the top, is not enough on its own — the
+batch size is the variable, and it should be one entry. Both are now measured
+and instrumented in [[kb-reverification-has-one-rate]]; `kb.py verify` says the
+pace out loud once a session passes it, because three attempts to fix this in
+prose (including this paragraph) is the evidence that prose is the wrong
+channel.

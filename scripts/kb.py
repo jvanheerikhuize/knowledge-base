@@ -1840,6 +1840,29 @@ def review_forecast(today=None):
         # was created is indistinguishable from one never re-verified. That is
         # the honest reading anyway — a same-day re-check is the write.
         "never_reverified": 0,
+        # The rate that both flattens the queue and holds it flat: one full
+        # store per cycle, so `dated / cycle_days` entries a day. Reported
+        # because prose could not carry it. `kb-review-load-is-one-cohort`
+        # first said "re-verify in batches on different days", was corrected
+        # on 2026-08-14 to "a handful per calendar day", and *both* are wrong
+        # by an order of magnitude — simulated against this store's real dates
+        # over two cycles with the routine-unreachable entries excluded,
+        # 5/day does 127 verifications and lands an effective spread of 9.7
+        # days, while 0.43/day does 66 and lands 22.0. Going faster costs
+        # nearly twice the work and gives less than half the flatness, because
+        # a rate above the cycle rate exhausts the ripe pool in bursts and the
+        # bursts are the clusters. See [[kb-reverification-has-one-rate]].
+        "sustainable_per_day": None,
+        # Inverse Simpson index over the due-date histogram: the number of days
+        # the load would occupy if it were spread evenly at its current
+        # concentration. Bounded by 1 and the number of distinct due dates, and
+        # it is here because `busiest` is not monotone in the harm — on this
+        # store on 2026-08-15, batching k entries in one sitting leaves
+        # `busiest` at 15 for every k from 0 to 13 (a new pile has to beat the
+        # tallest one before the number moves at all) while effective_days
+        # falls 4.83 → 3.46. A session reading only `busiest` sees "unchanged"
+        # in exactly the range of batch sizes it would plausibly do.
+        "effective_days": None,
         "by_date": [],
     }
     if not dated:
@@ -1859,6 +1882,9 @@ def review_forecast(today=None):
                            if datetime.date.fromisoformat(d) <= today),
         "is_cohort": dated >= COHORT_MIN_ENTRIES and span <= STALE_DAYS * COHORT_RATIO,
         "never_reverified": never_reverified,
+        "sustainable_per_day": round(dated / STALE_DAYS, 3),
+        "effective_days": round(
+            1 / sum((n / dated) ** 2 for n in by_date.values()), 2),
         "by_date": [[d, by_date[d]] for d in dates],
     })
     return forecast
@@ -1880,10 +1906,18 @@ def format_review_forecast(f):
     if f["undated"]:
         lines.append(f"  {f['undated']} entr{'y' if f['undated'] == 1 else 'ies'} "
                      "have no usable last_verified and are not in this forecast.")
+    if f["effective_days"] is not None:
+        lines.append(f"  Effectively concentrated on {f['effective_days']} "
+                     f"of those {cycle} days.")
     if f["is_cohort"]:
         lines.append("  That is one cohort, not a spread: re-verifying them "
                      "together re-dates them together, so the same pile-up "
-                     f"returns {cycle}d later. Spread the sweep to spread it.")
+                     f"returns {cycle}d later.")
+        lines.append(f"  The rate that spreads it is {f['sustainable_per_day']}"
+                     f"/day — one entry every "
+                     f"{cycle / f['dated']:.1f} days, for a whole {cycle}d "
+                     "cycle. Faster re-clusters it: the spread you can create "
+                     "is the calendar days you spend, not the entries you do.")
     if f["never_reverified"]:
         lines.append(f"  {f['never_reverified']} of them still carry the date "
                      "they were written with — never re-checked since.")
@@ -1985,6 +2019,8 @@ def cmd_stats(args):
         row("comes due", f"{f['first']} → {f['last']}")
         row("window", f"{f['span_days']}d of a {f['cycle_days']}d cycle")
         row("busiest day", f"{f['busiest']} ({dict(f['by_date'])[f['busiest']]})")
+        row("effective spread", f"{f['effective_days']}d of {f['cycle_days']}d")
+        row("sustainable pace", f"{f['sustainable_per_day']}/day")
         if f["already_due"]:
             row("already past review", f["already_due"])
         if f["undated"]:
@@ -2068,6 +2104,43 @@ def cmd_verify(args):
     if not args.note:
         print("  no --note: the date moved, but nothing records what was checked",
               file=sys.stderr)
+    for line in verify_pace_warning(today):
+        print(line, file=sys.stderr)
+
+
+def verify_pace_warning(today):
+    """Whether today's verifying has already passed the rate that flattens.
+
+    Every previous repair for over-sweeping was a sentence added to a document
+    — `kb-review-load-is-one-cohort` in 2026-08-05, its own correction in
+    2026-08-14, the standing action in `ROADMAP.md`. ROADMAP Phase 14 measured
+    why that shape of repair does not work: a message delivered *before* the
+    mistake never reaches a session that already believes it is doing the right
+    thing, and the 2026-08-14 session read all of that prose and then verified
+    13 entries in one sitting. This is the same message delivered *after* the
+    thirteenth, which is the only place it can land.
+
+    Deliberately not a refusal and not a lint failure. A verification that
+    really happened is a true record and reverting it would trade it for a
+    false one (the 2026-08-14 session was right about that); the defect is
+    only in how many were scheduled onto one date, so the response is a number,
+    not a veto.
+    """
+    f = review_forecast()
+    rate = f["sustainable_per_day"]
+    if not rate:
+        return []
+    done = sum(1 for r in parse_log()
+               if r["action"] == "verified" and r["date"] == today)
+    if done <= max(1, round(rate)):
+        return []
+    return [
+        f"  pace: {done} entries verified today against a sustainable "
+        f"{rate}/day ({f['dated']} entries / {f['cycle_days']}d cycle).",
+        f"  Each one lands on {f['today']}+{f['cycle_days']}, so a batch is a "
+        f"pile-up scheduled one cycle out; the load is now effectively on "
+        f"{f['effective_days']} of {f['cycle_days']} days.",
+    ]
 
 
 def cmd_set(args):
