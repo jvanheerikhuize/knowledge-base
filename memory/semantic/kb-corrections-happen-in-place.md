@@ -6,7 +6,7 @@ confidence: verified
 source: replay of all 21 commits touching memory/ (2026-08-01); scripts/kb.py entry_history() and cmd_history()
 created: 2026-08-01
 last_verified: 2026-08-01
-links: [kb-forgetting-model, kb-entry-status-model, kb-duplicate-detection-limits, kb-roadmap, kb-timeline-and-heatmap-are-frontmatter-only]
+links: [kb-forgetting-model, kb-entry-status-model, kb-duplicate-detection-limits, kb-roadmap, kb-timeline-and-heatmap-are-frontmatter-only, kb-nothing-predicts-the-next-correction]
 ---
 
 ROADMAP Phase 4 proposed temporal validity: `valid_until` to say when a claim

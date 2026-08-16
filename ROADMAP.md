@@ -1102,7 +1102,7 @@ before its condition holds.
 | `kb.py import` | a scaffolded copy exists **and** has diverged, giving a real slug collision to write against | Phase 6 |
 | BM25F / a `k1` retune | a store and a golden set large enough for +0.030 MRR to be distinguishable from noise; the comparison is already implemented and its numbers recorded | Phase 7 |
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
-| A re-verification prioritiser | the store has enough history for "worth re-checking" to be a measurable property — today it is 2 claim rewrites across 33 entries, and the staleness clock has never yet fired | Phase 11 |
+| ~~A re-verification prioritiser~~ | **Condition met 2026-08-16 (6 claim rewrites across 41 entries, up from 2 across 33), measured, and the answer is no** — see "Phase 16" below. Nothing available in this repo beats picking the oldest, and the two refined candidates are worse. Reopens only on a *different* kind of evidence: a correction whose cause was visible here, in this tree, on a day before the fix | [[kb-nothing-predicts-the-next-correction]] |
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
@@ -1258,9 +1258,66 @@ which is the second time that enumeration has paid for itself. Write-up:
 [[kb-reverification-has-one-rate]]; [[kb-review-load-is-one-cohort]] corrected
 in place for the second time.
 
+### Phase 16 — nothing predicts the next correction (2026-08-16)
+
+Phase 11's reopen row asked for a **re-verification prioritiser** once the store
+had "enough history for *worth re-checking* to be a measurable property — today
+it is 2 claim rewrites across 33 entries." Replayed today: **6 claim rewrites
+across 41 entries**, plus 30 body edits across 20 entries. The condition holds,
+so the row was picked up. The answer is no, and it is no in a way that closes
+the row rather than deferring it again.
+
+**The obvious signal is a coarsened age.** The natural predicate — *has a file
+this entry cites changed since its `last_verified`* — fires on **31 of 40** live
+entries (78%), which is the Phase 4 temporal-validity failure mode. Narrowing it
+to the **symbol** level (does a cited `def`/`class`/constant appear in a diff
+since then) cuts that to **15 of 40** (38%) and looks like the fix. Scored
+against what actually got corrected, it is the worst arm measured.
+
+Every one of the 20 commit-days in this repo's history was replayed; each arm
+named a set of entries, and scored a hit when one received a claim or body edit
+within 7 days:
+
+| arm | picks | precision | vs. base rate 0.194 |
+|---|---|---|---|
+| `never_reverified` | 358 | 0.212 | 1.10x |
+| age (oldest `last_verified` first) | 382 | 0.199 | 1.03x |
+| random | 382 | 0.196 | 1.01x |
+| file-level cited-artifact churn | 380 | 0.182 | 0.94x |
+| symbol-level cited-artifact churn | 238 | 0.122 | **0.63x** |
+
+Paired bootstrap over days (4,000 resamples, Δ against random): age `+0.002` CI
+`[-0.030, +0.034]`, file-churn `-0.015` CI `[-0.037, +0.006]`, symbol-churn
+`-0.076` CI `[-0.121, -0.035]`. **The only arm distinguishable from random is
+the most refined one, and it is worse.** Churn keyed on `last_verified` is
+monotone in age by construction — **318 of 380 file-churn picks (84%) are
+entries the age baseline picked anyway** — so refining it does not sharpen a
+semantic signal, it discards age information from one.
+
+**The causal reason, from all six claim rewrites.** One rode along in the commit
+that caused it (window zero). One was caused by another entry disagreeing, not
+by code. Three were caused by state outside this repository entirely — a GitHub
+grant and a sibling repo's submodules — with nothing in this tree changing. The
+sixth is the decisive one: `kb-agent-entrypoint-is-agent-md` was correct while
+`.claude/CLAUDE.md` contradicted it for twelve days, and that file was last
+changed `2026-07-25` against the entry's `last_verified: 2026-07-27` — **so the
+churn detector was silent for the whole twelve days**, on the case Phase 12
+holds up as the store's best catch. Churn detects an artifact *moving*; what
+retires a claim here is an artifact being *wrong*, and a wrong file that stays
+wrong emits no signal.
+
+**Nothing shipped, deliberately.** The deliverable is the closed row above and
+the standing action left alone: oldest due first, one entry, at
+[[kb-reverification-has-one-rate]]'s pace, which is within noise of the best arm
+measured. Both churn arms would have *looked* like they worked — they fire on
+plausible, mostly older entries — so the failure was only visible by scoring
+them. Write-up: [[kb-nothing-predicts-the-next-correction]].
+
+---
+
 Three of the nine wait on something outside this repo (a client, a sibling
 checkout, a second kind of session), two wait on a decision or an action only
-Jerry can take, and the other four wait on the store growing or ageing. Nothing on the
+Jerry can take, and the other three wait on the store growing or ageing. Nothing on the
 list is blocked on effort, which is why none of it is scheduled — and nothing
 left on it can be closed from inside a routine session, which is what the
 `kb-due` close branch was until 2026-08-05.
@@ -1279,6 +1336,11 @@ that standing action should know:
   lands less than half the spread, because a pace above the cycle rate empties
   the ripe pool in bursts and the bursts are the clusters. Convergence takes one
   full cycle at *any* pace, so this is a standing habit, not a task to finish.
+- **Which entry: the oldest due, and there is measurably nothing better.**
+  Phase 16 scored five ways of choosing against every correction this store has
+  ever made; age is within noise of the best arm and the two cited-artifact-churn
+  selectors are worse than random. Oldest-first is the answer, not a placeholder
+  ([[kb-nothing-predicts-the-next-correction]]).
 - **A verify with no `--note` is not a review.** The date will move either way;
   only the note distinguishes "somebody checked this" from "somebody was
   editing this anyway". `kb.py log --action verified` is the trail.

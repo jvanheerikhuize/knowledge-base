@@ -147,3 +147,12 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-15 — linked `semantic/kb-review-load-is-one-cohort.md` — -> kb-reverification-has-one-rate
 - 2026-08-15 — linked `semantic/kb-verification-rides-along-with-authoring.md` — -> kb-reverification-has-one-rate
 - 2026-08-15 — verified `semantic/stranded-branches-need-a-second-channel.md` — confidence=high; checked: First production fire of .github/workflows/kb-stranded.yml, 2026-08-15T07:05Z (run 31871058533, success): inventory + render ran, 'Open or update issue' and 'Close issue' both skipped, and no issue exists in the repo — i.e. 0 actionable / 2 acknowledged exactly as the pre-merge dry run predicted. Confirms the no-false-fire half only; a real stranding opening the issue, and the close path, are still unexercised in production, so confidence stays high rather than verified.
+- 2026-08-16 — created `semantic/kb-nothing-predicts-the-next-correction.md`
+- 2026-08-16 — linked `semantic/kb-nothing-predicts-the-next-correction.md` — -> kb-corrections-happen-in-place
+- 2026-08-16 — linked `semantic/kb-nothing-predicts-the-next-correction.md` — -> kb-reverification-has-one-rate
+- 2026-08-16 — linked `semantic/kb-nothing-predicts-the-next-correction.md` — -> kb-review-load-is-one-cohort
+- 2026-08-16 — linked `semantic/kb-nothing-predicts-the-next-correction.md` — -> kb-verification-rides-along-with-authoring
+- 2026-08-16 — linked `semantic/kb-nothing-predicts-the-next-correction.md` — -> kb-roadmap
+- 2026-08-16 — linked `semantic/kb-reverification-has-one-rate.md` — -> kb-nothing-predicts-the-next-correction
+- 2026-08-16 — linked `semantic/kb-corrections-happen-in-place.md` — -> kb-nothing-predicts-the-next-correction
+- 2026-08-16 — linked `prospective/kb-roadmap.md` — -> kb-nothing-predicts-the-next-correction
