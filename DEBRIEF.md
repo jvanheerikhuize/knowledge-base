@@ -729,3 +729,25 @@ Set up 2026-07-27 before you left.
   per-session gap `sibling-repo-access-denied-in-routines` already records);
   in-repo fallback per the standing mandate's step 1. This entry is the only
   change this session made.
+
+- [ ] **2026-08-16 — ROADMAP Phase 16: measured whether anything predicts which
+  entry needs re-checking, and closed the reopen row with a no.** Phase 11 had
+  promised a re-verification prioritiser once the store had enough history;
+  that condition is now met (6 claim rewrites across 41 entries, up from 2
+  across 33), so it was picked up and actually measured instead of deferred
+  again. Replaying all 20 commit-days and scoring five ways of choosing against
+  every claim/body edit that followed within a week: age 0.199, random 0.196,
+  file-level cited-artifact churn 0.182, symbol-level churn 0.122, against a
+  base rate of 0.194. The paired bootstrap over days says the only arm
+  distinguishable from random is the most refined one — symbol-churn at −0.076,
+  CI [−0.121, −0.035] — i.e. measurably *worse*. The reason is that churn keyed
+  on `last_verified` is monotone in age by construction (84% of its picks are
+  what sorting by age picks anyway), and the things that actually retire a claim
+  here are invisible in this tree: of the six claim rewrites, one rode along in
+  the commit that caused it, one was caused by another entry, three by state
+  outside the repo, and the twelve-day `.claude/CLAUDE.md` case cites a file
+  last changed *before* the entry's own `last_verified`, so churn was silent
+  throughout it. **Nothing was built** — the deliverable is the closed row, the
+  standing action confirmed (oldest due, one entry, at Phase 15's pace) and the
+  write-up. ROADMAP Phase 16 + reopen table + AUTONOMY backlog updated; one new
+  entry `kb-nothing-predicts-the-next-correction`. Lint and tests clean.

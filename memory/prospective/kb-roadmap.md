@@ -6,7 +6,7 @@ confidence: high
 source: research 2026-07-27 into current agent-memory practice, mapped against this repo's actual CLI surface
 created: 2026-07-27
 last_verified: 2026-07-30
-links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-consolidation-is-owed-work, kb-corrections-happen-in-place, kb-prospective-memory-that-fires, kb-instruction-content-lint]
+links: [kb-is-file-based, memory-overview-site, editing-the-kb-without-a-cms, twin-sovereignty-constraint, kb-over-mcp, kb-forgetting-model, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-consolidation-is-owed-work, kb-corrections-happen-in-place, kb-prospective-memory-that-fires, kb-instruction-content-lint, kb-nothing-predicts-the-next-correction]
 due: 2026-10-27
 ---
 

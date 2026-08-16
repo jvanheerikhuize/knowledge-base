@@ -781,6 +781,39 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   behind its `sustainable pace` — not a handful, not a batch, not "the
   reachable queue". `kb.py verify` will now tell you when you have passed it.
 
+- [x] **Nothing predicts the next correction (ROADMAP Phase 16).** (2026-08-16)
+  Picked up as the research-tier item. Sibling access unavailable again this
+  session (no `add_repo`/`list_repos` in this run's toolset, unauthenticated
+  clone fails) — in-repo fallback per the standing mandate's step 1; the
+  2026-08-06 grant is unchanged, this is the per-session tooling gap
+  `sibling-repo-access-denied-in-routines` already records. The item above says
+  re-verify the oldest due entry; **nobody had asked whether "oldest" is the
+  right choice**, and ROADMAP's reopen table promised a prioritiser once the
+  store had "enough history for *worth re-checking* to be a measurable
+  property — today 2 claim rewrites across 33 entries." Measured today: **6
+  across 41**, so the condition holds and the row was picked up rather than
+  deferred a fifth time. **The answer is no.** Replaying all 20 commit-days and
+  scoring five arms against every claim/body edit inside a 7d window: base rate
+  0.194, `never_reverified` 0.212, age 0.199, random 0.196, file-level
+  cited-artifact churn 0.182, **symbol-level churn 0.122** — and the paired
+  bootstrap over days says the *only* arm distinguishable from random is the
+  most refined one, at −0.076, CI [−0.121, −0.035], in the wrong direction.
+  Churn keyed on `last_verified` is monotone in age by construction (**318 of
+  380 of its picks, 84%, are what age picked anyway**), so refining it discards
+  age information instead of adding a semantic signal. The causal reason is in
+  all six claim rewrites: one rode along in the causing commit, one was caused
+  by another entry, three by state outside this repo entirely, and the sixth —
+  `kb-agent-entrypoint-is-agent-md`, wrong-adjacent for twelve days — cites a
+  file last changed **before** its own `last_verified`, so churn was silent
+  throughout the one case Phase 12 holds up as the store's best catch. **Nothing
+  shipped, deliberately**: the deliverable is the reopen row closed with
+  evidence, plus the standing action confirmed rather than replaced. Both churn
+  arms would have *looked* like they worked, which is the transferable part.
+  Write-up: `kb-nothing-predicts-the-next-correction`.
+
+  **The backlog is closed again**, and the standing action above is unchanged
+  and now measured: one entry, oldest due, only when behind pace.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
