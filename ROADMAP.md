@@ -1315,7 +1315,7 @@ them. Write-up: [[kb-nothing-predicts-the-next-correction]].
 
 ---
 
-Three of the nine wait on something outside this repo (a client, a sibling
+Three of the eight wait on something outside this repo (a client, a sibling
 checkout, a second kind of session), two wait on a decision or an action only
 Jerry can take, and the other three wait on the store growing or ageing. Nothing on the
 list is blocked on effort, which is why none of it is scheduled — and nothing
