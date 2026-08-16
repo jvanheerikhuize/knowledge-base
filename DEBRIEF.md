@@ -751,3 +751,35 @@ Set up 2026-07-27 before you left.
   standing action confirmed (oldest due, one entry, at Phase 15's pace) and the
   write-up. ROADMAP Phase 16 + reopen table + AUTONOMY backlog updated; one new
   entry `kb-nothing-predicts-the-next-correction`. Lint and tests clean.
+
+- [ ] **2026-08-16, second same-day session — audited, found nothing new open,
+  took no action rather than re-doing prior work.** Phase 16 above already
+  closed the backlog and landed on `main` (PR #60) before this session started.
+  In-repo: `git ls-remote`/`rev-list --count` confirmed no branch besides the
+  four already-dealt-with leftovers (`4c7ia8`, `so8mrh`, `sr8tim`, `0sq8ef`,
+  none ahead in a way that needs recovery); `kb.py lint --strict` and
+  `kb.py triage` both clean; all 541 tests green; no open issues or PRs on
+  this repo. `kb.py status` shows the review window still doesn't open until
+  2026-10-25, so Phase 15's standing action (re-verify one entry, only when
+  behind pace) does not apply — forcing one now would be the exact pile-up
+  Phase 15 measured against. **Cross-repo: sibling access worked this
+  session** (`list_repos`/`add_repo`/`register_repo_root` all available,
+  unlike several recent same-day firings that had none) — `sibling-repo-access-denied-in-routines`
+  already documents this as per-session, not per-grant, so it needed no
+  further correction. Rotated into `jvanheerikhuize/repos` per the standing
+  mandate's step 2 and checked its open PRs first, per the check that step
+  added after #1/#2 sat unreconciled: three are open (#1 draft by Jerry
+  himself, #2 and #3 from prior sessions), all still exactly as
+  `workspace-repo-inventory-drift` and PR #2's comment thread already
+  describe — #1 and #2 both fix the same `eidolon`→`undervault`/`llm-wiki`
+  drift and would conflict on `.gitmodules`/`AGENTS.md` if both merged, #3
+  (the `ubunutu-cast` typo fix) is independent and `mergeable_state: clean`
+  but merging any of them across repos is explicitly not this session's call
+  per the standing mandate. Re-running that audit or opening a fourth
+  overlapping PR would repeat the exact mistake `workspace-repo-inventory-drift`
+  was written to flag, so nothing was filed. No other repo was picked to
+  rotate into — with the in-repo backlog closed and the cross-repo item
+  already flagged and awaiting Jerry, auditing an arbitrary untouched repo
+  with no signal of what's broken would be inventing scope, which the
+  post-mandate section says not to do. This entry is the only change this
+  session made.
