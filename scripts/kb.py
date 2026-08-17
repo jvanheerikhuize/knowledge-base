@@ -1125,6 +1125,14 @@ def _trim_to_tokens(body, budget):
 # it detects gross breakage and is blind to parameter tuning, which is why
 # nothing here asserts a tuned constant.
 GOLDEN_FILE = KB_DIR / "golden.json"
+# A rank-1 hit this close to the runner-up is one entry away from not being a
+# rank-1 hit. Measured 2026-08-17 (ROADMAP Phase 17): the 28 queries written
+# question-first sat 2 of 15 under this line at filing, the 10 reworded until
+# they scored sat 6 of 10 — and the reworded cohort then lost 3 of 10 to the
+# next 3 entries filed, while the honest cohort did not move. Not a threshold
+# anything is gated on; the share is reported so a set fitted to the store it
+# was written against is visible before its score decays.
+THIN_RANK1_MARGIN = 0.20
 
 
 def load_golden(path=None):
@@ -1149,6 +1157,21 @@ def load_golden(path=None):
     return queries
 
 
+def _rank1_margin(hits, acceptable):
+    """How far clear the top hit finished, as a share of its own score.
+
+    `None` when the top hit is not an acceptable answer — there is no win to
+    measure the safety of. `1.0` when nothing else scored at all: an
+    uncontested hit is as safe as a hit gets.
+    """
+    if not hits or hits[0]["name"] not in acceptable:
+        return None
+    top = hits[0].get("score", 0.0)
+    if len(hits) < 2 or top <= 0:
+        return 1.0
+    return round((top - hits[1].get("score", 0.0)) / top, 4)
+
+
 def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
                 budget=DEFAULT_CONTEXT_BUDGET):
     """Score retrieval against the golden query set.
@@ -1166,6 +1189,14 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
     has a budget term in it. `recall@5` used to describe the pack by accident
     — the pack held 5.1 entries on 2026-07-27 — and drifted away from it as
     entries got longer, reaching 2.75 with nothing reporting the change.
+
+    `median_rank1_margin` / `thin_at_1` score the *set* rather than the ranker.
+    Every metric above counts a win by a hair the same as a win by a mile, so
+    a query reworded until it scored is indistinguishable from one written
+    blind — until the store grows and the hairline wins fall over. Measured
+    2026-08-17 (ROADMAP Phase 17): 10 queries filed at a perfect success@1 on
+    a 38-entry store lost 3 of 10 to the next 3 entries, and their giveaway at
+    filing was the margin (6 of 10 thin) rather than anything in the score.
 
     `also_ok` names are a defensible answer to the same question. They count
     for recall (the pack is useful) but never for `success@1` (the question
@@ -1189,13 +1220,18 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
 
     rows = []
     for g in golden:
-        names = [h["name"] for h in rank_fn(g["query"])]
+        hits = rank_fn(g["query"])
+        names = [h["name"] for h in hits]
         acceptable = {g["expect"], *g["also_ok"]}
         position = names.index(g["expect"]) + 1 if g["expect"] in names else None
         pack = pack_fn(g["query"])
         packed = [e["name"] for e in pack["entries"]]
         rows.append({
             "pack_size": len(packed),
+            # How far clear the top hit finished, relative to its own score.
+            # Only meaningful when the top hit is the right one: it says how
+            # much of this query's success is real and how much is a hair.
+            "rank1_margin": _rank1_margin(hits, acceptable),
             "in_pack": next((i + 1 for i, n in enumerate(packed)
                              if n in acceptable), None),
             "budget_bound": pack.get("budget_bound", False),
@@ -1216,6 +1252,10 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
     def share(pred):
         return round(sum(1 for r in rows if pred(r)) / n, 4) if n else 0.0
 
+    margins = sorted(r["rank1_margin"] for r in rows
+                     if r["rank1_margin"] is not None)
+    thin = sum(1 for m in margins if m < THIN_RANK1_MARGIN)
+
     return {
         "summary": {
             "queries": n,
@@ -1232,6 +1272,21 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
             "mean_pack_entries": (round(sum(r["pack_size"] for r in rows) / n, 2)
                                   if n else 0.0),
             "budget_bound": share(lambda r: r["budget_bound"]),
+            # How safe the wins are, which no score can say. `success@1` counts
+            # a hit that beat the runner-up by 1% the same as one that beat it
+            # by 80%, so a set whose queries were reworded until they scored
+            # reads identically to one written blind — until the store grows
+            # and the thin half falls over. See ROADMAP Phase 17.
+            "median_rank1_margin": (round(margins[len(margins) // 2], 4)
+                                    if margins else 0.0),
+            "thin_at_1": (round(thin / len(margins), 4) if margins else 0.0),
+            "rank1_hits": len(margins),
+            # Entries no query names at all. An uncovered entry can only ever
+            # lower the score — it competes for every query and answers none —
+            # so this is the other half of any drop in `success@1`.
+            "uncovered_entries": sorted(
+                known - {name for g in golden
+                         for name in (g["expect"], *g["also_ok"])}),
             "unresolved": sorted({name for r in rows for name in r["unresolved"]}),
         },
         "queries": rows,
@@ -2531,6 +2586,14 @@ def cmd_eval(args):
     if s["budget_bound"] and s["recall_at_pack"] < s["recall_at_5"]:
         print("  The pack delivers less than recall@5 suggests: it stops on the "
               "token budget, which no rank metric can see.")
+    print(f"how safe the wins are: median rank-1 margin "
+          f"{s['median_rank1_margin']:.3f}  "
+          f"thin (<{THIN_RANK1_MARGIN:.0%}) {s['thin_at_1']:.3f} of "
+          f"{s['rank1_hits']} rank-1 hits")
+    if s["uncovered_entries"]:
+        print(f"  {len(s['uncovered_entries'])} entr(ies) no query names, so "
+              f"they can only lower the score: "
+              f"{', '.join(s['uncovered_entries'])}")
     if not args.all:
         print("Only queries whose top hit is wrong are listed; --all shows every query.")
     if s["unresolved"]:

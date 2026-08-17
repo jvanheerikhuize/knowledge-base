@@ -156,3 +156,10 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-16 — linked `semantic/kb-reverification-has-one-rate.md` — -> kb-nothing-predicts-the-next-correction
 - 2026-08-16 — linked `semantic/kb-corrections-happen-in-place.md` — -> kb-nothing-predicts-the-next-correction
 - 2026-08-16 — linked `prospective/kb-roadmap.md` — -> kb-nothing-predicts-the-next-correction
+- 2026-08-17 — created `semantic/kb-a-fitted-golden-set-starts-perfect.md`
+- 2026-08-17 — linked `semantic/kb-a-fitted-golden-set-starts-perfect.md` — -> kb-golden-set-lives-in-the-wording
+- 2026-08-17 — linked `semantic/kb-a-fitted-golden-set-starts-perfect.md` — -> kb-ranked-retrieval
+- 2026-08-17 — linked `semantic/kb-a-fitted-golden-set-starts-perfect.md` — -> kb-context-budget-is-not-a-pack-size
+- 2026-08-17 — linked `semantic/kb-golden-set-lives-in-the-wording.md` — -> kb-a-fitted-golden-set-starts-perfect
+- 2026-08-17 — verified `semantic/kb-golden-set-lives-in-the-wording.md` — confidence=verified; checked: ROADMAP Phase 17: re-checked its claims against the current fixture and corrected the central one in place. The title-derived-query table, the self-contamination case and the ablation numbers all still hold; 'the wording IS the fixture' did not — 10 of 38 queries were filed by rewording until they reached rank 1, which passes the 60% title-overlap guard at 14% worst reuse and is invisible to every score.
+- 2026-08-17 — updated `semantic/kb-golden-set-lives-in-the-wording.md` — description=a retrieval golden set generated from entry titles scores a perfect 1.000 against every ranker measured, including one that never reads a body — but wording is only half of it: a query reworded until it reaches rank 1 passes every wording guard and is corrupt in a second way

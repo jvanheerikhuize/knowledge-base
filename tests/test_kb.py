@@ -1942,6 +1942,43 @@ class TestEval(KbTestCase):
         self.assertIsNone(report["queries"][0]["rank"])
         self.assertEqual(report["summary"]["mrr"], 0.0)
 
+    def test_an_uncontested_win_gets_the_full_margin(self):
+        # The branch the real store never reaches: no runner-up at all. A win
+        # nothing competed for is as safe as a win gets, so it must not read
+        # as a hairline one — that would report the safest possible hit as the
+        # most fragile.
+        self.write_golden([{"query": "consommé", "expect": "tides-of-mars"}])
+        self.write_entry_body("tides-of-mars", "A consommé is clarified stock.")
+        report = json.loads(self.run_kb("eval", "--json").stdout)
+        self.assertEqual(report["queries"][0]["rank"], 1)
+        self.assertEqual(report["queries"][0]["rank1_margin"], 1.0)
+        self.assertEqual(report["summary"]["thin_at_1"], 0.0)
+
+    def test_a_wrong_top_hit_has_no_margin_to_report(self):
+        self.write_golden([{"query": "dough rise warm kitchen",
+                            "expect": "tides-of-mars"}])
+        report = json.loads(self.run_kb("eval", "--json").stdout)
+        self.assertIsNone(report["queries"][0]["rank1_margin"])
+        self.assertEqual(report["summary"]["rank1_hits"], 0)
+
+    def test_an_entry_with_no_query_is_named_as_uncovered(self):
+        # It competes for every query and answers none, so it can only lower
+        # the score — the drop and its cause have to arrive together, or the
+        # next reader blames the ranker (ROADMAP Phase 17).
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        summary = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertIn("bread-proofing", summary["uncovered_entries"])
+        self.assertNotIn("tides-of-mars", summary["uncovered_entries"])
+        self.assertIn("no query names", self.run_kb("eval").stdout)
+
+    def test_an_archived_entry_is_not_reported_as_needing_a_query(self):
+        self.write_golden([{"query": "ocean swell red planet",
+                            "expect": "tides-of-mars"}])
+        self.run_kb("archive", "bread-proofing")
+        summary = json.loads(self.run_kb("eval", "--json").stdout)["summary"]
+        self.assertEqual(summary["uncovered_entries"], [])
+
     def test_an_expectation_naming_a_missing_entry_fails_the_command(self):
         self.write_golden([{"query": "ocean swell", "expect": "no-such-entry"}])
         result = self.run_kb("eval")

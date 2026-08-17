@@ -26,16 +26,29 @@ import kb  # noqa: E402
 # 28-query set had fallen a query short of covering the store — 10 live
 # entries had no query at all — and recall@5 had drifted to sit exactly on
 # its floor, margin gone. Ten task-shaped queries were added, one per
-# uncovered entry (`kb.py capture`-style: question first, then checked which
-# entry answers it, never the entry's own vocabulary — see
-# `test_no_query_restates_its_own_entry_title`).
+# uncovered entry, and the floors were raised to sit ~4 queries under the
+# 0.632 / 0.721 / 0.789 / 0.816 that produced.
 #
-# Today: success@1 0.632, MRR 0.721, recall@3 0.789, recall@5 0.816 over 38
-# queries, now covering 38 of the store's 39 entries (the one gap is the
-# archived `holiday-autonomy-mandate`, deliberately out of retrieval).
-# The floors sit ~4 queries below that — the same margin this file has used
-# since 2026-08-02 — and still far above a broken ranker (name-only scored
-# 0.158 / 0.217 against this larger set in the Phase 7 ablation, re-run below).
+# That reading was inflated, and the floors above it are the part that
+# survives (ROADMAP Phase 17, 2026-08-17). Five of those ten queries missed
+# rank 1 on their first phrasing and were **reworded until all ten landed at
+# rank 1** — selection on the very outcome this file measures. It passes
+# `test_no_query_restates_its_own_entry_title` untouched (worst reuse 14%),
+# so nothing here could see it. What it produced: a cohort scoring a perfect
+# 1.000 at filing, sitting on a median rank-1 margin of 0.128 with 6 of 10
+# inside `kb.THIN_RANK1_MARGIN`, against 0.536 and 0.359 with 2 of 15 for the
+# 28 queries filed at whatever they scored. Three entries have been filed
+# since; the tuned cohort has lost 3 of 10 and the honest one has lost
+# nothing. Blind-written queries for the same ten targets, scored once
+# against today's larger store, get 0.100.
+#
+# So today's 0.553 is not a ranker regression — it is the 0.632 unwinding,
+# and it unwinds toward the honest cohort's ~0.50, which is where the floor
+# is. Do NOT re-baseline downward to buy room: that ratifies the inflated
+# reading a second time. Add coverage for uncovered entries (`uncovered_entries`
+# in the report names them), file each query at whatever it scores, and let
+# this go red if it goes red — a red here now means the set is short of
+# queries, and `_diagnosis` says so.
 FLOOR_SUCCESS_AT_1 = 0.50
 FLOOR_MRR = 0.60
 FLOOR_RECALL_AT_5 = 0.70
@@ -180,12 +193,35 @@ class TestRetrievalMeetsItsFloor(GoldenSetTestCase):
         )
 
     def _diagnosis(self):
+        """Why the floor broke — the ranker is only one of the candidates.
+
+        A fixed query set scored against a growing store drifts downward on
+        its own: every entry filed without a query competes for all of them
+        and answers none. Naming that here is the difference between "someone
+        changed the ranker" and "the set is three queries short", which look
+        identical in the number (ROADMAP Phase 17).
+        """
         misses = [f"  #{r['rank'] or '-'} {r['query']!r} -> want {r['expect']}, "
                   f"got {', '.join(r['top'][:3])}"
                   for r in self.report["queries"] if r["rank"] != 1]
-        return ("retrieval fell below its floor. Run `kb.py eval` for the "
-                "full picture. Queries whose top hit is wrong:\n"
-                + "\n".join(misses))
+        s = self.summary
+        lines = ["retrieval fell below its floor. Run `kb.py eval` for the "
+                 "full picture."]
+        if s["uncovered_entries"]:
+            lines.append(
+                f"  Before blaming the ranker: {len(s['uncovered_entries'])} "
+                f"entr(ies) have no golden query, so they can only lower this "
+                f"number — {', '.join(s['uncovered_entries'])}. Write a query "
+                f"for each (question first, and file it at whatever it "
+                f"scores — see the rule in golden.json).")
+        if s["thin_at_1"]:
+            lines.append(
+                f"  {s['thin_at_1']:.0%} of the {s['rank1_hits']} rank-1 hits "
+                f"won by less than {kb.THIN_RANK1_MARGIN:.0%} of their own "
+                f"score, so some of this drop is hairline wins unwinding, not "
+                f"retrieval getting worse.")
+        lines.append("Queries whose top hit is wrong:")
+        return "\n".join(lines + misses)
 
 
 class TestRankMetricsCannotSeeTheBudget(GoldenSetTestCase):
@@ -218,6 +254,77 @@ class TestRankMetricsCannotSeeTheBudget(GoldenSetTestCase):
                 f"no budget term; if this now varies, the two measurements "
                 f"have been entangled and neither means what it says.",
             )
+
+
+class TestTheScoreCannotSeeHowSafeItIs(GoldenSetTestCase):
+    """Why `rank1_margin` exists, and what it caught (ROADMAP Phase 17).
+
+    Every other metric here counts a win by 1% of score the same as a win by
+    80%. That is what let ten queries reworded until they reached rank 1 read
+    as a 46-point improvement over the 28 filed at whatever they scored: same
+    ranker, same store, same day, and nothing in `success@1`, `mrr`,
+    `recall@3`, `recall@5` or `recall_at_pack` could tell the two cohorts
+    apart. The margin could — 0.128 median with 6 of 10 thin against 0.359
+    with 2 of 15 — and it is the only one that moves *before* the score does.
+    """
+
+    def test_margin_is_reported_only_for_wins(self):
+        for r in self.report["queries"]:
+            top_is_right = bool(r["top"]) and r["top"][0] in {
+                r["expect"], *r["also_ok"]}
+            if top_is_right:
+                self.assertIsNotNone(r["rank1_margin"])
+                self.assertGreaterEqual(r["rank1_margin"], 0.0)
+                self.assertLessEqual(r["rank1_margin"], 1.0)
+            else:
+                self.assertIsNone(
+                    r["rank1_margin"],
+                    "a margin over the runner-up is meaningless when the top "
+                    "hit is the wrong entry — there is no win to qualify",
+                )
+
+    def test_a_hairline_win_scores_the_same_as_a_comfortable_one(self):
+        """The blind spot itself, asserted so it cannot be quietly closed.
+
+        If some future change makes `success@1` sensitive to margin, this
+        fails and `thin_at_1` has become redundant. Until then it is the
+        reason a separate number is needed.
+        """
+        margins = [r["rank1_margin"] for r in self.report["queries"]
+                   if r["rank1_margin"] is not None]
+        self.assertTrue(margins, "no query is answered correctly at all")
+        self.assertGreater(
+            max(margins) - min(margins), 0.20,
+            "every rank-1 win now finishes by the same distance, so the "
+            "margin carries no information this set can use",
+        )
+        hits = sum(1 for r in self.report["queries"] if r["rank"] == 1)
+        self.assertEqual(
+            round(hits / len(self.golden), 4), self.summary["success_at_1"],
+            "success@1 is a count of positions and must stay one — the "
+            "moment it weights by margin, the two numbers stop being "
+            "independent and neither can check the other",
+        )
+
+    def test_uncovered_entries_are_named_not_just_counted(self):
+        """An uncovered entry is a distractor with no upside.
+
+        It competes for every query and answers none, so it can only lower
+        the score. Three of them are what turned 0.632 into 0.553 between
+        2026-08-10 and 2026-08-16 with the ranker untouched. Naming them is
+        what makes that a fixable finding rather than an unexplained drift.
+        """
+        s = self.summary
+        named = {g["expect"] for g in self.golden}
+        named |= {n for g in self.golden for n in g["also_ok"]}
+        live = {fm.get("name", path.stem) for _, path, fm, _, _ in self.docs
+                if not kb.is_archived(fm)}
+        self.assertEqual(sorted(live - named), s["uncovered_entries"])
+        self.assertNotIn(
+            "holiday-autonomy-mandate", s["uncovered_entries"],
+            "an archived entry is out of the retrieval set, so it needs no "
+            "query and must never be reported as missing one",
+        )
 
 
 class TestTheSetCanStillFail(GoldenSetTestCase):

@@ -814,6 +814,41 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   **The backlog is closed again**, and the standing action above is unchanged
   and now measured: one entry, oldest due, only when behind pace.
 
+- [x] **The golden set was fitted to the store it was written against (ROADMAP
+  Phase 17).** (2026-08-17) Picked up as the research-tier item; not previously
+  on this list. Nothing on ROADMAP's reopen table had met its condition, so the
+  item was the one live number moving on its own: the same 38 golden queries
+  scored `success@1` 0.632 on 2026-08-10 and 0.553 today, ranker untouched,
+  floor at 0.50 three queries away. Replaying the fixed set against all 34
+  commits that touch `memory/` splits it: the 28 written question-first scored
+  0.536 at filing and **0.500 today** — one query lost across twelve entries
+  added since, no trend — while the 10 added 2026-08-10
+  scored **1.000 at filing and 0.700 today** — all of the decline. The cause is
+  in the entry two items above, in this file: those ten "were reworded ... until
+  all ten landed at rank 1", which selects the fixture on the outcome it
+  measures, so it starts perfect and can only fall. Crowding is refuted (a
+  mechanical probe puts both target sets at rank 1, 10/10 and 28/28) and so is
+  ranker-overfit (perturbation costs the tuned cohort 0.100 vs the honest
+  cohort's 0.071) — **the fitting is to the store's composition**, which is why
+  ablation-based detection would have reported nothing and was not built. The
+  control: ten queries written question-first for the same targets, committed
+  before any ranking and scored once — **0.100**. Shipped the margin
+  (`rank1_margin`, `median_rank1_margin`, `thin_at_1`, `rank1_hits`) and
+  `uncovered_entries`, both reported and neither gated, plus a second rule in
+  `.kb/golden.json`. Floors deliberately **not** re-baselined; the test's
+  `_diagnosis()` now explains a breach instead. 7 new tests (548 total).
+  Write-up: `kb-a-fitted-golden-set-starts-perfect`;
+  `kb-golden-set-lives-in-the-wording` corrected in place and re-verified.
+
+  **For the next session, and this one is specific.** Four live entries have no
+  golden query. Writing them is the standing action now — one query per
+  uncovered entry, **question first, and filed at whatever it scores, even zero**.
+  Do not reword a query to make it land, and do not lower a floor to absorb the
+  result; a query that misses is the only kind that can report a real
+  regression. This session deliberately did not write them: the session that
+  measures the bias has a stake in what the numbers do next, which is exactly
+  the conflict that produced the bias.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
