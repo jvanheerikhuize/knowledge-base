@@ -783,3 +783,53 @@ Set up 2026-07-27 before you left.
   with no signal of what's broken would be inventing scope, which the
   post-mandate section says not to do. This entry is the only change this
   session made.
+
+- [ ] **2026-08-17 — ROADMAP Phase 17: the golden set was fitted to the store it
+  was written against, and the retrieval "regression" is that unwinding.**
+  Nothing on the reopen table had met its condition, so the item picked up was
+  the one number moving on its own: the same 38 golden queries scored
+  `success@1` 0.632 on 2026-08-10 and 0.553 today, with the ranker untouched and
+  a floor at 0.50 three queries away. Replaying the fixed query set against the
+  store at all 34 commits that have ever touched `memory/` splits it in two. The
+  28 queries written question-first on 2026-08-02 scored 0.536 at filing and
+  0.500 today — one query lost across the twelve entries added since, inside a
+  two-query band with no trend. The 10
+  added on 2026-08-10 scored **1.000** at filing and 0.700 today. All of the
+  decline is the second cohort. The cause is in that session's own record in
+  `AUTONOMY.md`: "five of ten missed rank-1 on the first phrasing and were
+  reworded ... until all ten landed at rank 1" — selecting the fixture on the
+  outcome the fixture exists to measure, so it starts perfect by construction
+  and can only fall. Two competing explanations were tested and both fail: a
+  mechanical probe puts 10 of 10 tuned targets and 28 of 28 question-first
+  targets at rank 1 (the targets are equally findable), and perturbing the
+  ranker costs the tuned cohort 0.100 against the honest cohort's 0.071 — so the
+  fitting is to the **store's composition**, not the ranker's parameters, which
+  is why the obvious "an overfit set collapses under ablation" guard would have
+  reported nothing and was deliberately not built. The falsifiable control: ten
+  fresh queries written question-first for the same ten targets, committed to a
+  file before any ranking was run and scored **once** with no rewording —
+  `success@1` **0.100**, against 1.000 at filing. **Shipped** the one signal that
+  separated the cohorts at filing, six days before any score did: `rank1_margin`
+  per query and `median_rank1_margin` / `thin_at_1` / `rank1_hits` in
+  `eval_report` and `kb.py eval` (honest cohort 0.359 median with 2 of 15 thin;
+  tuned 0.128 with 6 of 10), plus `uncovered_entries` naming entries no query
+  mentions — those can only lower the score, and there are four. Reported, never
+  gated: a threshold here would be a constant fitted to 25 rank-1 hits.
+  **Deliberately not done:** the floors were not re-baselined (that ratifies the
+  inflated reading a second time — instead the test's `_diagnosis()` now names
+  the uncovered entries and the thin-win share, so the coming red reads as "the
+  set is short of queries", which is true), the ten tuned queries were not
+  deleted (legitimate questions, only their filing was selected), and **no new
+  queries were written this session** — the session that measured the bias has a
+  stake in what the numbers do next, which is the same conflict that caused it,
+  so that goes to a later session under the second rule now written into
+  `.kb/golden.json`: *file the query at whatever it scores.* Also found and
+  measured but not changed: `rank` filters archived entries from its output
+  while still counting them in `n`/`df`/`avgdl`, so archiving silently reweights
+  every score — worth a whole query today (0.5526 → 0.5789) — recorded as a
+  reopen row because it is a specification question and moving every retrieval
+  score inside this session would have entangled two independent movements. 7
+  new tests (548 total), lint and triage clean. One new entry
+  `kb-a-fitted-golden-set-starts-perfect`; `kb-golden-set-lives-in-the-wording`
+  corrected in place ("the wording *is* the fixture" was wrong) and re-verified
+  with a note.

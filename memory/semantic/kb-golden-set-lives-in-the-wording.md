@@ -1,12 +1,12 @@
 ---
 name: kb-golden-set-lives-in-the-wording
 type: semantic
-description: a retrieval golden set generated from entry titles scores a perfect 1.000 against every ranker measured, including one that never reads a body — the queries must be paraphrases, and at 28 entries the set detects breakage but is blind to tuning
+description: a retrieval golden set generated from entry titles scores a perfect 1.000 against every ranker measured, including one that never reads a body — but wording is only half of it: a query reworded until it reaches rank 1 passes every wording guard and is corrupt in a second way
 confidence: verified
 source: measured 2026-08-02 in this repo; ROADMAP Phase 7
 created: 2026-08-02
-last_verified: 2026-08-14
-links: [kb-ranked-retrieval, kb-duplicate-detection-limits, kb-forgetting-model]
+last_verified: 2026-08-17
+links: [kb-ranked-retrieval, kb-duplicate-detection-limits, kb-forgetting-model, kb-a-fitted-golden-set-starts-perfect]
 ---
 
 A golden set of query → expected-entry pairs is worth having only if it can
@@ -31,11 +31,24 @@ measuring only the tokenizer.
 So every query in `.kb/golden.json` is written as the question first and only
 then matched to the entry that should answer it — for a hypothetical entry
 `deploy-key-rotation`, the question "who do I ask before touching the
-production key", not "deploy key rotation". The wording *is* the fixture.
-`test_no_query_restates_its_own_entry_title` enforces it: no query may reuse
-more than 60% of the words in its entry's name (worst in the current set: 50%).
-Without that guard, the natural repair for a failing query — nudge it toward
-the entry's vocabulary — quietly converts the suite back into decoration.
+production key", not "deploy key rotation". The wording is *half* the fixture.
+`test_no_query_restates_its_own_entry_title` enforces this half: no query may
+reuse more than 60% of the words in its entry's name (worst in the current set:
+50%). Without that guard, one natural repair for a failing query — nudge it
+toward the entry's vocabulary — quietly converts the suite back into decoration.
+
+**Corrected 2026-08-17: the wording is not the only axis, and this entry used to
+say it was.** There is a second natural repair, and the guard above is blind to
+it — nudge the query *away* from the entry's vocabulary but *toward* its
+ranking, i.e. reword until it reaches rank 1 and only then file it. Ten of the
+current 38 queries were filed that way on 2026-08-10. They pass the 60% rule
+comfortably (worst reuse 14%), they scored a perfect 1.000 at filing because
+that was the filing condition, and they have lost 3 of 10 to the next 3 entries
+added while the 28 queries filed at whatever they scored have not moved. So a
+second rule now sits beside the vocabulary one in `.kb/golden.json`: **file the
+query at whatever it scores.** Full measurement, including why no score and no
+ranker-ablation can detect it:
+[[kb-a-fitted-golden-set-starts-perfect]].
 
 **A store that documents itself can contaminate its own fixture.** This entry
 originally illustrated the rule by quoting a real query from the set. Because

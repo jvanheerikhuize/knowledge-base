@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "rule": "A query must be phrased the way somebody would actually ask, NOT in the entry's own vocabulary. Queries lifted from an entry's name or description score 1.000 against every ranker ever measured here, including one that ignores the body entirely \u2014 they test nothing. If you add a query, write the question first and only then check which entry should answer it. See ROADMAP Phase 7.",
+  "rule": "A query must be phrased the way somebody would actually ask, NOT in the entry's own vocabulary. Queries lifted from an entry's name or description score 1.000 against every ranker ever measured here, including one that ignores the body entirely \u2014 they test nothing. If you add a query, write the question first and only then check which entry should answer it. See ROADMAP Phase 7. SECOND RULE, and the one that was broken: file the query at whatever it scores. Do NOT reword a query until it reaches rank 1. That is selecting the fixture on the outcome the fixture exists to measure, it passes the vocabulary rule above untouched, and no score can show it \u2014 the ten queries added on 2026-08-10 that way scored a perfect 1.000 at filing and lost 3 of 10 to the next 3 entries filed, while the 28 filed at their honest 0.536 did not move. A query that misses is data. See ROADMAP Phase 17.",
   "queries": [
     {
       "query": "how do I make something I learned survive past this session",

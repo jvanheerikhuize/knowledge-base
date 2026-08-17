@@ -1107,6 +1107,7 @@ before its condition holds.
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
 | ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
+| Archived entries in the ranker's corpus statistics | somebody decides what `include_archived=True` should mean for `n`/`df`/`avgdl`. `rank` filters archived entries from its *output* but scores everyone against a corpus that includes them, so archiving silently reweights the whole store — worth one query today (success@1 0.5526 → 0.5789 with the single archived entry excluded) and more as the archive grows. **Measured, not changed:** it is a specification question, and moving every retrieval score inside the session that was re-measuring the golden set would have entangled two independent movements | Phase 17 |
 | Clearing the six-entry floor under the review queue | **Only Jerry can.** All six rest on a sibling repo, the Routines UI, or his own machine, all six were stamped on opening day, and all six therefore come due together on 2026-10-25 — after which `already_due` never falls below 6 and `busiest` never below 6, at any pace a routine keeps. Named in the standing action above. Not an engineering item and not a reason to sweep harder | Phase 15 |
 
 **The stranded-branch detector, measured and deliberately not built
@@ -1351,6 +1352,121 @@ that standing action should know:
   sibling repos, the Routines UI, and a machine a scheduled sandbox cannot see.
   Sort them out of the batch first rather than discovering them one at a time —
   and read the floor they leave in the table below before sweeping harder at it.
+
+### Phase 17 — the golden set was fitted to the store it was written against (2026-08-17)
+
+Nothing on the reopen table had met its condition, so the starting point was the
+one live number moving on its own: the same 38 golden queries scored
+**success@1 0.632 on 2026-08-10 and 0.553 today**, with the ranker untouched.
+The floor is 0.50. Three more lost queries breaches it.
+
+**It is not a ranker regression, and it is not ordinary growth either.**
+Replaying the fixed query set against the store at all 34 commits that have ever
+touched `memory/` — same ranker, same queries, `today` pinned, confidence decay
+inert across the whole window — splits the set cleanly in two:
+
+| | filed | s@1 at filing | s@1 today | median rank-1 margin at filing | thin (<20%) at filing |
+|---|---|---|---|---|---|
+| 28 queries written question-first | 2026-08-02 | 0.536 | **0.500** | 0.359 | 2 of 15 |
+| 10 queries added later | 2026-08-10 | **1.000** | **0.700** | 0.128 | 6 of 10 |
+
+Across the **twelve** entries added since it was filed, the question-first
+cohort has lost **one** query net, wandering inside a two-query band (13, 14 or
+15 of 28) with no trend — the same band it has occupied since 2026-08-02. The
+tuned cohort has lost **three of ten across three entries**: 1.000 → 0.900 →
+0.800 → 0.700, one per entry filed. A quarter of the set is producing all of
+the movement.
+
+**The mechanism is in the 2026-08-10 session's own record**, in `AUTONOMY.md`:
+"five of ten missed rank-1 on the first phrasing and were reworded ... until all
+ten landed at rank 1." That is selecting the fixture on the outcome the fixture
+exists to measure. A cohort filed only when it already scores starts at 1.000 by
+construction and has nowhere to go but down — which is exactly the observed
+shape, and it is why that session's headline (every number *raised*) was the
+opposite of what had happened.
+
+**Two competing explanations were tested and both fail.**
+
+- *These ten targets are simply harder — recent, crowded, similar to each
+  other.* A mechanical probe with no query-craft in it (query = the entry's own
+  description, the near-ceiling generator from Phase 7) puts **10 of 10** tuned
+  targets and **28 of 28** question-first targets at rank 1. The targets are
+  equally findable. Low resolution — that probe is near-ceiling for everything —
+  so it rules out a gross difficulty gap, not a subtle one.
+- *The queries are fitted to the ranker's parameters.* They are not, and this is
+  the useful negative. Perturbing the ranker (flat field weights, `k1` 0.6 and
+  4.0) costs the tuned cohort 0.100 at worst against the honest cohort's 0.071 —
+  one query on ten versus two on twenty-eight, indistinguishable. **The fitting
+  is to the store's composition, not to the ranker.** That is why a perturbation
+  test cannot detect it and why adding three entries can, and it means the
+  obvious guard — "an overfitted set collapses under ablation" — would have
+  reported nothing. Deliberately not built.
+
+**The falsifiable test.** Ten fresh queries were written question-first for the
+same ten target entries, committed to a file before any ranking was run, and
+scored **once** with no rewording: **success@1 0.100**, against the tuned
+cohort's 1.000 at filing and 0.700 against today's larger store. Same targets,
+same ranker, same day. Anchoring works against this result rather than for it —
+the tuned wording had already been read, which pulls a blind attempt toward it.
+The gap is selection, not craft or crowding.
+
+**What no existing guard could see.** `test_no_query_restates_its_own_entry_title`
+enforces the rule the fixture actually carried — don't borrow the entry's
+vocabulary — and the tuned queries pass it comfortably (worst reuse 14%; the
+blind cohort's worst is also 14%). Vocabulary overlap is simply not the axis.
+Neither is any score: `success@1`, `mrr`, `recall@3`, `recall@5` and
+`recall_at_pack` all count a win by 1% of score identically to a win by 80%, so
+a fitted set and an honest one read the same until the store grows.
+
+**Shipped: the margin, because it moves before the score does.**
+`rank1_margin` per query and `median_rank1_margin` / `thin_at_1` / `rank1_hits`
+in `eval_report`, on `kb.py eval`. It is the one number that separated the
+cohorts *at filing*, a month before the score did. Reported, never gated — a
+threshold here would be a constant fitted to 25 rank-1 hits, which is the Phase 7
+mistake. Also shipped: `uncovered_entries`, naming entries no query mentions
+(today 3, all filed since 2026-08-14). An uncovered entry competes for every
+query and answers none, so it can only lower the score; it is the other half of
+any drop and the half that is actually fixable.
+
+**Deliberately not done.**
+
+- **The floors were not re-baselined.** They are ~4 queries under an inflated
+  reading, and the honest cohort sits at exactly 0.500 — on the floor. Lowering
+  them to buy room would ratify the 0.632 a second time and start a treadmill.
+  Instead `_diagnosis()` now names the uncovered entries and the thin-win share
+  when a floor breaks, so the coming red reads as "the set is short of queries"
+  rather than "retrieval got worse". A red here is now informative.
+- **The ten tuned queries were not deleted or reworded.** They are legitimate
+  questions; only their filing was selected. Deleting them would lose coverage
+  of ten entries and destroy the evidence. They will settle near the honest
+  cohort's rate on their own, and the second rule in `.kb/golden.json` stops the
+  next set being filed the same way.
+
+**The next action, and why this session did not take it.** Four live entries now
+have no golden query — the three filed since 2026-08-14 plus this phase's own
+write-up. Writing them is the fixable half of the drop, and **it is not this
+session's to write**: the session that measured the bias has a stake in what the
+numbers do next, which is the same conflict that produced the bias. It goes to a
+later session with no stake, under the two rules now in `.kb/golden.json`,
+question first and filed at whatever it scores.
+
+The ten blind queries written as this phase's control are **deliberately not
+added to the fixture**. They were written as an experiment's control, their ten
+targets already have queries, and a second query per target would double-weight
+those ten entries in every metric — an objection that stands independently of
+the 0.100 they scored. They live in this section as evidence, not as fixture.
+
+**Found on the way, measured but not changed.** `rank` filters archived entries
+out of its results but leaves them in the corpus statistics — `n`, `df` and
+`avgdl` are computed over `entry_documents()`, which includes them by declared
+policy. So archiving an entry silently reweights every other entry's score: with
+today's single archived entry, excluding it moves success@1 0.5526 → 0.5789 and
+MRR 0.6755 → 0.6887, a whole query. Whether that is a defect depends on what
+`include_archived=True` should mean — under that flag the archived entries
+belong in the statistics — so it is a specification question, not a bug to fix
+in passing, and fixing it inside the session re-measuring the golden set would
+have entangled two independent movements in one set of numbers. Row added to the
+reopen table.
 
 ---
 
