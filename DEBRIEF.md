@@ -833,3 +833,17 @@ Set up 2026-07-27 before you left.
   `kb-a-fitted-golden-set-starts-perfect`; `kb-golden-set-lives-in-the-wording`
   corrected in place ("the wording *is* the fixture" was wrong) and re-verified
   with a note.
+
+- [ ] 2026-08-17 **Wrote the four uncovered golden queries the prior session
+  left as the standing action, one question-first query per entry, filed at
+  whatever it scored.** Two landed clean — `stranded-branches-need-a-second-
+  channel` at rank 1, `kb-reverification-has-one-rate` at rank 2 — and two
+  missed entirely: `kb-a-fitted-golden-set-starts-perfect` and `kb-nothing-
+  predicts-the-next-correction` don't place in either query's top 10. Filed
+  anyway, per the rule this backlog item exists to enforce ("file the query
+  at whatever it scores... a query that misses is data"). `success@1` moved
+  0.579→0.548 and MRR 0.679→0.653 as a direct result (42 queries, up from
+  38); every floor in `tests/test_retrieval_golden.py` still holds with
+  margin, so none were touched or re-baselined. `uncovered_entries` is now
+  empty. 548 tests green, `kb.py lint --strict` and `kb.py triage` clean.
+  `.kb/golden.json` is the only file changed — no code, no new entry.
