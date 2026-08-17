@@ -177,6 +177,22 @@
     {
       "query": "what actually determines whether a scheduled session's work makes it to the main branch",
       "expect": "stranded-branches-track-the-charter-text"
+    },
+    {
+      "query": "if I only keep the test cases that already pass, is my test suite still telling me anything real",
+      "expect": "kb-a-fitted-golden-set-starts-perfect"
+    },
+    {
+      "query": "is there a way to know in advance which note is about to become wrong",
+      "expect": "kb-nothing-predicts-the-next-correction"
+    },
+    {
+      "query": "will checking notes more often each day clear the backlog faster",
+      "expect": "kb-reverification-has-one-rate"
+    },
+    {
+      "query": "what happens if a session pushes work but wrongly believes it already merged it",
+      "expect": "stranded-branches-need-a-second-channel"
     }
   ]
 }

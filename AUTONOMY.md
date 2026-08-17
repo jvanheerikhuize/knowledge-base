@@ -849,6 +849,20 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   measures the bias has a stake in what the numbers do next, which is exactly
   the conflict that produced the bias.
 
+- [x] **Write the four uncovered golden queries.** (2026-08-17, second same-day
+  session) One question-first query for each of the four entries
+  `kb-a-fitted-golden-set-starts-perfect` named as uncovered — none of the four
+  reused entry-title vocabulary, none was reworded after seeing its score. Two
+  landed clean: `stranded-branches-need-a-second-channel` at rank 1,
+  `kb-reverification-has-one-rate` at rank 2. Two missed outright —
+  `kb-a-fitted-golden-set-starts-perfect` and `kb-nothing-predicts-the-next-
+  correction` do not appear in either query's top 10 — and were filed anyway,
+  per the rule this session exists to follow. `success@1` moved 0.579→0.548,
+  MRR 0.679→0.653 (42 queries now, up from 38); every floor in
+  `tests/test_retrieval_golden.py` still passes with margin, so none were
+  touched. `uncovered_entries` is now empty. 548 tests green, lint and triage
+  clean, no code changed — `.kb/golden.json` only.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
