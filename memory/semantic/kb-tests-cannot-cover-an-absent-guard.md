@@ -5,8 +5,8 @@ description: three commands shipped without an archived filter and the diagnosis
 confidence: verified
 source: measured 2026-08-07 in this repo — 13-mutant run over the archived axis, twice (before and after), plus AST discovery over all four scripts
 created: 2026-08-07
-last_verified: 2026-08-14
-links: [kb-archived-is-a-filter-commands-forget, audit-test-corpora-for-artificial-uniformity, kb-forgetting-model, kb-entry-status-model, kb-test-audit-2026-07-29, kb-over-mcp]
+last_verified: 2026-08-18
+links: [kb-archived-is-a-filter-commands-forget, audit-test-corpora-for-artificial-uniformity, kb-forgetting-model, kb-entry-status-model, kb-test-audit-2026-07-29, kb-over-mcp, kb-a-registry-asks-only-what-it-has-words-for]
 ---
 
 Archiving takes an entry out of retrieval without deleting it
@@ -89,6 +89,26 @@ It earned its keep immediately, on the session that wrote it:
   rather than hiding — dropping it would leave no way to find the entry you
   want to un-archive — which is the `CLASSIFIES` policy `status` already uses
   ([[kb-entry-status-model]]).
+
+## What the registry still could not ask (2026-08-18)
+
+The sentence above — "a new scanner cannot be merged without its author
+answering the question" — is too strong, and the counter-example was already in
+the registry when it was written. `rank` declares `EXCLUDES`, which is true of
+its **results**; its corpus statistics (`n`, `df`, `avgdl`) come from
+`entry_documents()`, which declares `INCLUDES`. A function that reads the store
+for *weights* rather than for *results* decides `archived` twice, and
+`SCANNER_POLICY` has one slot per function meaning output membership. So the
+registry asked one of `rank`'s two questions and reported it compliant for
+eleven days.
+
+Enumeration fixes coverage that cannot see absent code; it does not fix a schema
+that cannot phrase the question. **A registry asks only what it has words for**
+— [[kb-a-registry-asks-only-what-it-has-words-for]], which carries the
+measurement and the repair (a second field, `CORPUS_POLICY`, not a second
+registry: same axis, missing dimension). The transferable step when adding a
+registry is to ask what *kinds* of decision the enumerated thing makes, not only
+which things to enumerate.
 
 ## The method's own trap, recorded
 

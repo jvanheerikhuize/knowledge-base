@@ -1107,7 +1107,7 @@ before its condition holds.
 | A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
 | ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
-| Archived entries in the ranker's corpus statistics | somebody decides what `include_archived=True` should mean for `n`/`df`/`avgdl`. `rank` filters archived entries from its *output* but scores everyone against a corpus that includes them, so archiving silently reweights the whole store — worth one query today (success@1 0.5526 → 0.5789 with the single archived entry excluded) and more as the archive grows. **Measured, not changed:** it is a specification question, and moving every retrieval score inside the session that was re-measuring the golden set would have entangled two independent movements | Phase 17 |
+| ~~Archived entries in the ranker's corpus statistics~~ | **Closed 2026-08-18, not deferred** — see "Phase 18" below. The condition this row was waiting on ("more as the archive grows") is measured never to arrive: the effect saturates by the tenth archived entry at ~10% of top hits and a third of a rank position, and has no direction at any size. Its premise was also backwards — archiving is score-neutral under the shipped corpus (0 of 42 orderings move); the *alternative* is what would reweight the store. The corpus is unchanged; what shipped is the declaration it never had | [[kb-a-registry-asks-only-what-it-has-words-for]] |
 | Clearing the six-entry floor under the review queue | **Only Jerry can.** All six rest on a sibling repo, the Routines UI, or his own machine, all six were stamped on opening day, and all six therefore come due together on 2026-10-25 — after which `already_due` never falls below 6 and `busiest` never below 6, at any pace a routine keeps. Named in the standing action above. Not an engineering item and not a reason to sweep harder | Phase 15 |
 
 **The stranded-branch detector, measured and deliberately not built
@@ -1467,6 +1467,114 @@ belong in the statistics — so it is a specification question, not a bug to fix
 in passing, and fixing it inside the session re-measuring the golden set would
 have entangled two independent movements in one set of numbers. Row added to the
 reopen table.
+
+---
+
+### Phase 18 — a registry with one slot certified half a decision (2026-08-18)
+
+The backlog was closed and the standing action (one re-verification, only when
+behind pace) does not apply: the store has logged **16 verifications in the last
+7 days against a sustainable 3.3**, and 29 in 21 days against 9.8 — ahead on
+every window, mostly from the 2026-08-14 batch of 14 that
+[[kb-reverification-has-one-rate]] exists to discourage. Verifying anything
+today would deepen exactly the pile-up the standing action is rationing. So the
+item was the one reopen row whose condition is not
+waiting on Jerry, a client, or a bigger store: **archived entries in the
+ranker's corpus statistics.**
+
+**The row's premise did not survive contact.** It recorded the effect as "worth
+one query today (success@1 0.5526 → 0.5789 with the single archived entry
+excluded) and more as the archive grows". Both numbers reproduce exactly against
+the store as it stood before Phase 17's own write-up entry landed. Against the
+store today they are **0.5789 → 0.5789** with no query changing rank at all:
+adding one ordinary, unrelated entry erased the entire effect. On the current
+42-query set the comparison moves one query from rank 27 to rank 26 and nothing
+else.
+
+So the honest measurement is not a snapshot. Holding the **candidate set fixed**
+at 20 entries and growing only the corpus — which is exactly "how many archived
+entries are in the statistics", with candidate-set size no longer confounded —
+over 25 random candidate sets:
+
+| extra documents in the corpus | queries whose top hit changes | mean move of the expected entry |
+|---|---|---|
+| 0 | 0.0% | 0.000 |
+| 2 | 3.0% | 0.102 |
+| 6 | 5.4% | 0.186 |
+| 10 | 8.2% | 0.252 |
+| 16 | 8.4% | 0.270 |
+| 22 | 10.0% | 0.296 |
+
+It grows and then it **saturates**: nearly all of the movement arrives by the
+tenth archived entry, and the ceiling is a tenth of queries changing their top
+hit and a third of a rank position. It never becomes a large effect, and it
+never acquires a **direction** — paired over golden queries at three archive
+sizes, `success@1` moves **+0.006 (k=5), +0.009 (k=10), −0.003 (k=20)**, the
+sign flipping and two of three CIs straddling zero (and those CIs are optimistic
+anyway: the same 42 queries recur across trials, so the resamples are not
+independent). No further measurement will pick a winner here. That is the
+finding, and it is what makes this a specification question rather than a
+tuning one — Phase 17 was right about the category and wrong about the size.
+
+**Phase 17's description of the shipped behaviour is also backwards, and this is
+the correction that matters.** It wrote that "archiving an entry silently
+reweights every other entry's score". Under the shipped corpus it does the
+opposite. `entry_documents()` reads every file on disk regardless of the flag,
+so archiving does not remove anything from `n`/`df`/`avgdl`: lifting the flag on
+the one archived entry and re-parsing from disk moves **70 of 1,780** live
+(query, entry) score pairs by **0.001** — the archived date's own tokens
+shifting `avgdl`, so not quite perfect neutrality — and reorders **0 of 42**
+golden queries, top hit or full ordering. Archiving is a pure
+visibility change. The *alternative* is the option that would make archiving a
+store-wide score event. The row proposed the reweighting as the cure when it is
+the side effect.
+
+Two invariants follow from "the corpus is every file on disk", both measured to
+hold today and neither previously tested:
+
+- **Filter-independence.** A live entry's score is identical under `types=`,
+  `include_episodic=False` and `include_archived=True` — 42 of 42 golden
+  queries, every type. Two searches are therefore comparable, which
+  `context_pack` relies on when it fills a budget by comparing scores.
+- **Archive-neutrality.** Archiving an entry does not reorder anything for the
+  entries that stay (0 of 42 orderings).
+
+**What was actually wrong was the record, not the code.** The store has *two*
+BM25 corpora and they disagree: `rank` weighs against `entry_documents()` (43
+documents, archived included) while `_bm25_scorer` — behind `dupes`,
+`candidates`, `restatements` and the `capture` restatement check — is fed from
+`_candidate_docs()` (42, archived excluded, and additionally dropping anything
+under `MIN_CANDIDATE_TOKENS`, a second corpus rule with an empty domain today at
+0 of 42 skipped). `kb.py search` and `kb.py capture` do not weigh terms the same
+way, and nothing said so.
+
+`tests/test_archived_axis.py` is the module built (2026-08-07) to make exactly
+this kind of silence impossible, and it **certified `rank` as compliant from the
+day it was written**. `rank` declares `EXCLUDES`, which is true of its output;
+its corpus `INCLUDES`, which is true of its weights; the registry has one slot
+per function, so it recorded the half nobody doubted. That module's opening line
+is that you cannot mutate a line that is not there. This is the level above it:
+**you cannot declare a decision your vocabulary has no word for**, and a
+registry that enumerates functions still only asks the questions it has words
+for. Coverage did not miss this and neither did the enumeration — the *schema*
+did.
+
+Shipped: a second registry, `CORPUS_POLICY`, on the same pattern. Discovery is
+mechanical and independent of the first — a scorer is any function whose body
+carries both an `idf` and an `avgdl` name, with no transitive closure, because
+a caller passing `docs=` chooses a corpus but does not build the statistics.
+Both corpora are declared with their reasons; the misleading halves of the
+`rank` and `entry_documents` rows and of `rank`'s own docstring are corrected;
+and both invariants above are pinned by tests. Verified by mutation: making the
+corpus follow `include_archived` kills both invariant tests, and adding an
+undeclared scorer kills the discovery test.
+
+**The corpus itself is deliberately unchanged.** No measurement separates the
+two options, the shipped one holds two invariants the alternative breaks, and it
+is caller-facing — the same reasoning that left `DEFAULT_CONTEXT_BUDGET` alone
+in Phase 13. The reopen row is closed rather than re-armed: it was waiting for
+the archive to grow, and growth is now measured to saturate at a bounded,
+directionless effect, so that condition can never be met.
 
 ---
 

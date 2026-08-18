@@ -163,3 +163,12 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-17 — linked `semantic/kb-golden-set-lives-in-the-wording.md` — -> kb-a-fitted-golden-set-starts-perfect
 - 2026-08-17 — verified `semantic/kb-golden-set-lives-in-the-wording.md` — confidence=verified; checked: ROADMAP Phase 17: re-checked its claims against the current fixture and corrected the central one in place. The title-derived-query table, the self-contamination case and the ablation numbers all still hold; 'the wording IS the fixture' did not — 10 of 38 queries were filed by rewording until they reached rank 1, which passes the 60% title-overlap guard at 14% worst reuse and is invisible to every score.
 - 2026-08-17 — updated `semantic/kb-golden-set-lives-in-the-wording.md` — description=a retrieval golden set generated from entry titles scores a perfect 1.000 against every ranker measured, including one that never reads a body — but wording is only half of it: a query reworded until it reaches rank 1 passes every wording guard and is corrupt in a second way
+- 2026-08-18 — created `semantic/a-registry-asks-only-what-it-has-words-for.md`
+- 2026-08-18 — deleted `semantic/a-registry-asks-only-what-it-has-words-for.md`
+- 2026-08-18 — created `semantic/kb-a-registry-asks-only-what-it-has-words-for.md`
+- 2026-08-18 — linked `semantic/kb-a-registry-asks-only-what-it-has-words-for.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-18 — linked `semantic/kb-a-registry-asks-only-what-it-has-words-for.md` — -> kb-archived-is-a-filter-commands-forget
+- 2026-08-18 — linked `semantic/kb-a-registry-asks-only-what-it-has-words-for.md` — -> kb-ranked-retrieval
+- 2026-08-18 — linked `semantic/kb-a-registry-asks-only-what-it-has-words-for.md` — -> kb-a-fitted-golden-set-starts-perfect
+- 2026-08-18 — linked `semantic/kb-tests-cannot-cover-an-absent-guard.md` — -> kb-a-registry-asks-only-what-it-has-words-for
+- 2026-08-18 — verified `semantic/kb-tests-cannot-cover-an-absent-guard.md` — confidence=verified; checked: Re-read against tests/test_archived_axis.py: the mutation numbers, the 11 hand-missed scanners and the resources/list defect all still hold. Corrected the 'cannot be merged without answering the question' claim — rank declares EXCLUDES for its output while its corpus INCLUDES, so the registry asked one of its two archived questions (ROADMAP Phase 18).
