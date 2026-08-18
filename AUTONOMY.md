@@ -863,6 +863,51 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   touched. `uncovered_entries` is now empty. 548 tests green, lint and triage
   clean, no code changed — `.kb/golden.json` only.
 
+- [x] **A registry with one slot certified half a decision (ROADMAP Phase 18).**
+  (2026-08-18) Picked up as the research-tier item. The backlog was closed and
+  the standing action did not fire — the store is **ahead** of its sustainable
+  pace on every window (16 verifications in 7d against 3.3; 29 in 21d against
+  9.8), mostly from the 2026-08-14 batch, so verifying anything would have
+  deepened the pile-up the action is rationing. So: the one reopen row not
+  blocked on Jerry, a client, or a bigger store — archived entries in the
+  ranker's corpus statistics. **Both halves of its premise were wrong.** Its
+  number (success@1 0.5526 → 0.5789) reproduces exactly against the store as it
+  stood before Phase 17's own write-up entry landed, and is 0.5789 → 0.5789
+  today: one ordinary entry erased it. And its mechanism was inverted —
+  archiving is score-neutral under the shipped corpus (0 of 42 orderings move;
+  70 of 1,780 score pairs shift 0.001, from the archived date's own tokens), because
+  `entry_documents()` reads every file regardless of the flag. The *alternative*
+  is what would make archiving a store-wide score event. Measured with the
+  candidate set held fixed so corpus size is unconfounded: top-hit changes rise
+  0% → 8.2% by ten archived entries then flatten (10.0% at 22), and success@1
+  moves +0.006 / +0.009 / −0.003 across three archive sizes — bounded,
+  saturating, directionless. **No measurement can pick a winner, so the corpus
+  was deliberately not changed** (Phase 13's `DEFAULT_CONTEXT_BUDGET` reasoning)
+  and the row is closed rather than re-armed: its condition can never be met.
+  The live defect was in the record. `tests/test_archived_axis.py` — built
+  2026-08-07 to make an undeclared `archived` decision impossible — had
+  certified `rank` compliant from day one: `rank` declares `EXCLUDES`, true of
+  its **results**, while its corpus `INCLUDES`, and the registry has one slot
+  per function meaning output membership. Enumeration fixes coverage that cannot
+  see absent code; it does not fix a schema that cannot phrase the question.
+  Shipped `CORPUS_POLICY` — a second field, not a second registry (same axis,
+  missing dimension) — with mechanical AST discovery, declarations for the
+  store's **two disagreeing corpora** (`rank`'s 43-doc one; `_bm25_scorer`'s
+  42-doc one behind `dupes`/`candidates`/`capture`, a difference nothing stated),
+  and tests pinning the two invariants the whole-store corpus buys that nothing
+  covered — filter-independence (42/42) and archive-neutrality (0/42). All
+  verified by mutation. 7 new tests (555 total). Write-up:
+  `kb-a-registry-asks-only-what-it-has-words-for`;
+  `kb-tests-cannot-cover-an-absent-guard` corrected in place and re-verified
+  with a note.
+
+  **The backlog is closed again**, and the reopen table is now one row shorter
+  rather than one row older. **For the next session:** the standing action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today, so check `kb.py status` before assuming it does. Of the reopen
+  rows that remain, every one waits on Jerry, a bigger store, a second session
+  type, or an upstream release; none is a routine's to start.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

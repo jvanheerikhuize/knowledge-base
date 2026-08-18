@@ -50,10 +50,15 @@ library layer is what stops it being re-decided per caller.
 import ast
 import datetime
 import json
+import sys
 import unittest
 from pathlib import Path
 
 from test_kb import REPO_ROOT, KbTestCase
+
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import kb  # noqa: E402
 
 # --- the policies ----------------------------------------------------------
 # EXCLUDES   archived entries must not appear in this function's output
@@ -83,7 +88,11 @@ SCANNER_POLICY = {
         EXCLUDES, "inherits _candidate_docs"),
     ("kb.py", "rank"): (
         EXCLUDES, "leaving the retrieval set is what archiving means; "
-                  "--archived/include_archived is the explicit opt-in"),
+                  "--archived/include_archived is the explicit opt-in. "
+                  "True of the results and **only** of the results: the same "
+                  "call weighs every candidate against a corpus that keeps "
+                  "the archived rows. See CORPUS_POLICY below — this row "
+                  "described half of what rank decides for eleven days"),
     ("kb.py", "eval_report"): (
         EXCLUDES, "an archived expectation is unanswerable, so scoring it "
                   "is a guaranteed miss forever"),
@@ -130,10 +139,13 @@ SCANNER_POLICY = {
 
     # --- whole-store access: retirement is not deletion --------------------
     ("kb.py", "entry_documents"): (
-        INCLUDES, "the corpus every ranker reads; filtering here would make "
-                  "search --archived unimplementable, so rank filters instead. "
-                  "Any new consumer must filter for itself — this is exactly "
-                  "how eval_report got it wrong on 2026-08-05"),
+        INCLUDES, "the corpus rank reads — not, as this row said until "
+                  "2026-08-18, the corpus *every* ranker reads: _bm25_scorer "
+                  "is fed from _candidate_docs() and the two disagree. "
+                  "Filtering here would make search --archived "
+                  "unimplementable, so rank filters instead. Any new consumer "
+                  "must filter for itself — this is exactly how eval_report "
+                  "got it wrong on 2026-08-05"),
     ("kb.py", "resolve"): (
         INCLUDES, "an archived entry is still readable by name"),
     ("kb.py", "_require"): (
@@ -164,7 +176,77 @@ SCANNER_POLICY = {
                   "link would dangle — see cmd_rm"),
 }
 
+# --- the second axis: what a scorer weighs against -------------------------
+# A store scanner makes *two* decisions about `archived`, not one. The registry
+# above records the first: who is allowed back in the results. This one records
+# the second: who counts in the corpus statistics — `n`, `df`, `avgdl` — that
+# decide how the survivors score against each other.
+#
+# `rank` is why this half exists. It declares EXCLUDES above, and that is true
+# of its output, so `TestScannerRegistryIsComplete` passed it from the day it
+# was written. Its corpus is `entry_documents()`, which declares INCLUDES, so
+# archiving an entry silently reweights every entry that is still live. Both
+# statements are true of the same function and the registry above has one slot
+# per function, so it recorded the half nobody doubted and certified the whole.
+# The module's opening line is that you cannot mutate a line that is not there;
+# this is the level above it. **You cannot declare a decision your vocabulary
+# has no word for.**
+#
+# Measured 2026-08-18 (ROADMAP Phase 18) before adding this: the disagreement
+# is real but small and directionless. Holding the candidate set fixed and
+# growing only the corpus, the share of queries whose top hit changes rises
+# 0% → ~8% by ten extra documents and then flattens (~10% at 22), and the mean
+# move is a third of a rank position. Paired over golden queries at three
+# archive sizes, `success@1` goes +0.006 / +0.009 / −0.003 — the sign flips and
+# two of three CIs straddle zero. So no measurement picks a winner here, which
+# is exactly why the choice has to be *written down* rather than measured
+# again by the next session.
+EXCLUDED_FROM_CORPUS = "corpus-excludes"
+INCLUDED_IN_CORPUS = "corpus-includes"
+
+CORPUS_POLICY = {
+    ("kb.py", "rank"): (
+        INCLUDED_IN_CORPUS,
+        "n/df/avgdl come from entry_documents() — archived rows and all — "
+        "while the same call filters those rows out of its results. Kept, not "
+        "fixed: it is what makes a live entry's score independent of the "
+        "caller's filters (pinned by TestTheCorpusIsNotTheCallersFilter), and "
+        "no measurement separates it from the alternative. Consequence to know "
+        "about: archiving reweights every entry that stays"),
+    ("kb.py", "_bm25_scorer"): (
+        EXCLUDED_FROM_CORPUS,
+        "fed from _candidate_docs(), which drops archived entries — so this "
+        "corpus and rank's disagree by exactly the archived set, and "
+        "kb.py search and kb.py capture do not weigh terms the same way. "
+        "Right here for a different reason than rank's: a claim being captured "
+        "is checked against what the store still stands behind. Also drops "
+        "entries under MIN_CANDIDATE_TOKENS, which is a second corpus rule "
+        "with an empty domain today (0 of 42 skipped)"),
+}
+
 SCRIPTS = ("kb.py", "build_site.py", "serve.py", "mcp_server.py")
+
+
+def discover_scorers():
+    """Every function that builds BM25 corpus statistics, found mechanically.
+
+    A scorer is a function that computes an inverse document frequency: the
+    rule is the presence of both an `idf` and an `avgdl` name in its body,
+    which is what deriving a weight from the whole corpus looks like. Unlike
+    `discover_scanners`, there is no transitive closure — a caller that passes
+    `docs=` in chooses the corpus but does not build the statistics, and the
+    function that builds them is the one that has to declare what is in it.
+    """
+    found = set()
+    for script in SCRIPTS:
+        src = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8")
+        for node in ast.parse(src).body:
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+            if {"idf", "avgdl"} <= names:
+                found.add((script, node.name))
+    return found
 
 
 def discover_scanners():
@@ -254,6 +336,44 @@ class TestScannerRegistryIsComplete(unittest.TestCase):
                     len(reason), 20,
                     f"{key}: a policy without a reason is a policy nobody can "
                     "re-check")
+
+    def test_every_scorer_declares_a_corpus_policy(self):
+        discovered = discover_scorers()
+        missing = discovered - set(CORPUS_POLICY)
+        self.assertEqual(
+            missing, set(),
+            "these functions derive n/df/avgdl from a document collection but "
+            "declare no corpus policy in CORPUS_POLICY — say which entries are "
+            "in the statistics, which is a separate question from which ones "
+            "come back in the results:\n  "
+            + "\n  ".join(sorted(f"{s}:{n}" for s, n in missing)),
+        )
+
+    def test_the_corpus_registry_has_no_stale_rows(self):
+        stale = set(CORPUS_POLICY) - discover_scorers()
+        self.assertEqual(
+            stale, set(),
+            "CORPUS_POLICY names functions that no longer build corpus "
+            "statistics:\n  "
+            + "\n  ".join(sorted(f"{s}:{n}" for s, n in stale)),
+        )
+
+    def test_every_corpus_policy_is_one_of_the_two_and_carries_a_reason(self):
+        for key, (policy, reason) in CORPUS_POLICY.items():
+            with self.subTest(scorer=key):
+                self.assertIn(policy, (EXCLUDED_FROM_CORPUS, INCLUDED_IN_CORPUS))
+                self.assertGreater(
+                    len(reason), 20,
+                    f"{key}: a policy without a reason is a policy nobody can "
+                    "re-check")
+
+    def test_discovery_finds_both_of_the_stores_two_corpora(self):
+        # A discovery rule that found only one would report a complete
+        # registry while the disagreement between them stayed undeclared —
+        # which is the state this half of the module was added to end.
+        discovered = discover_scorers()
+        self.assertIn(("kb.py", "rank"), discovered)
+        self.assertIn(("kb.py", "_bm25_scorer"), discovered)
 
     def test_discovery_finds_the_three_functions_that_shipped_the_bug(self):
         # A discovery rule that missed any of these would be a rule that
@@ -398,6 +518,81 @@ class TestArchivedPolicyHolds(ArchivedAxisTestCase):
         result = self.run_kb("rm", "kept")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("retired", result.stderr)
+
+    # --- the corpus axis --------------------------------------------------
+
+    def test_the_archived_flag_does_not_change_a_live_entrys_score(self):
+        """`--archived` widens the results; it must not move the survivors.
+
+        This is what `rank`'s INCLUDED_IN_CORPUS declaration buys, and it is
+        the test that fails first if somebody reads the corpus row on
+        ROADMAP's reopen table and makes `n`/`df`/`avgdl` follow the caller's
+        flag. Then `kept` would score one number on `kb.py search` and a
+        different one on `kb.py search --archived`, and no caller could
+        compare two searches — including `context_pack`, which fills a budget
+        by comparing scores.
+        """
+        plain = {h["name"]: h["score"]
+                 for h in self.json_kb("search", self.SHARED)}
+        widened = {h["name"]: h["score"]
+                   for h in self.json_kb("search", self.SHARED, "--archived")}
+        self.assertIn("kept", plain)
+        self.assertIn("retired", widened)      # the flag did widen the results
+        self.assertNotIn("retired", plain)
+        for name, score in plain.items():
+            self.assertEqual(score, widened[name],
+                             f"{name} scores differently under --archived, so "
+                             "the corpus followed the filter")
+
+
+class TestTheCorpusIsNotTheCallersFilter(unittest.TestCase):
+    """The corpus is a property of the store, not of the question.
+
+    Run against the real store, like `test_retrieval_golden.py`: what is being
+    pinned is a relationship between two corpora that both exist only here.
+    """
+
+    def setUp(self):
+        self.docs = kb.entry_documents()
+        self.golden = kb.load_golden()
+
+    def test_no_caller_filter_changes_a_surviving_entrys_score(self):
+        types = sorted({t for t, *_ in self.docs})
+        for g in self.golden:
+            full = {h["name"]: h["score"]
+                    for h in kb.rank(g["query"], docs=self.docs)}
+            variants = [
+                ("include_archived", kb.rank(g["query"], docs=self.docs,
+                                             include_archived=True)),
+                ("include_episodic=False", kb.rank(g["query"], docs=self.docs,
+                                                   include_episodic=False)),
+            ]
+            variants += [(f"types={t}", kb.rank(g["query"], docs=self.docs,
+                                                types=[t])) for t in types]
+            for label, hits in variants:
+                for h in hits:
+                    if h["name"] not in full:
+                        continue        # the filter widened, not narrowed
+                    self.assertEqual(
+                        full[h["name"]], h["score"],
+                        f"{h['name']} scores differently under {label} — the "
+                        f"corpus statistics followed the caller's filter")
+
+    def test_the_two_corpora_disagree_by_exactly_the_archived_set(self):
+        """`kb.py search` and `kb.py capture` do not weigh terms the same way.
+
+        Not a defect and not a thing to quietly reconcile — the two have
+        different jobs, and CORPUS_POLICY says so in both rows. It is here so
+        the difference is a fact a test knows rather than one a reader has to
+        rediscover by reading two functions.
+        """
+        ranked = {fm.get("name", path.stem) for _, path, fm, _, _ in self.docs}
+        candidates, skipped = kb._candidate_docs()
+        candidate_names = {d["name"] for d in candidates}
+        archived = {fm.get("name", path.stem) for _, path, fm, _, _ in self.docs
+                    if kb.is_archived(fm)}
+        self.assertEqual(ranked - candidate_names, archived | set(skipped))
+        self.assertEqual(candidate_names - ranked, set())
 
 
 if __name__ == "__main__":

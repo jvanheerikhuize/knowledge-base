@@ -909,6 +909,18 @@ def rank(query, types=None, include_episodic=True, docs=None,
     Archived entries are out of the retrieval set entirely — that is what
     archiving means — but remain readable and remain in the graph.
 
+    **They also stay in the corpus.** `n`, `df` and `avgdl` below come from
+    `docs` as handed in, archived rows and all, and only the candidate loop
+    filters. That is deliberate and it buys one property: a live entry's score
+    does not depend on which filters the caller passed, so two searches are
+    comparable and `context_pack` can fill a budget by comparing scores. The
+    cost is that an entry nobody can retrieve still votes on term weights.
+    Measured 2026-08-18 (ROADMAP Phase 18): the alternative changes the top
+    hit on ~8% of queries once ten entries are archived, flat after that, and
+    improves nothing — `success@1` moves +0.006 / +0.009 / −0.003 at three
+    archive sizes, sign flipping. Both halves are declared in
+    `tests/test_archived_axis.py`; the invariant is pinned there too.
+
     Returns hits scoring above zero, best first.
     """
     q = tokenize(query)

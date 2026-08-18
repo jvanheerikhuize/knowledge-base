@@ -847,3 +847,44 @@ Set up 2026-07-27 before you left.
   margin, so none were touched or re-baselined. `uncovered_entries` is now
   empty. 548 tests green, `kb.py lint --strict` and `kb.py triage` clean.
   `.kb/golden.json` is the only file changed — no code, no new entry.
+
+- [ ] 2026-08-18 **Closed the reopen row on the ranker's corpus — its premise
+  was backwards and its condition can never be met (ROADMAP Phase 18).** The row
+  said archiving "silently reweights every other entry's score" and was waiting
+  for a bigger archive to make that matter. Under the shipped corpus archiving
+  reweights *nothing*: `entry_documents()` reads every file regardless of the
+  flag, so lifting it moves 70 of 1,780 live (query, entry) score pairs by 0.001
+  (the archived date's own tokens nudging `avgdl`) and reorders **0 of 42**
+  golden queries. The *proposed fix*
+  is what would make archiving a store-wide score event. Its headline number
+  (0.5526 → 0.5789) reproduces exactly against the store as it stood before
+  Phase 17's own write-up entry landed, and is **0.5789 → 0.5789** today — one
+  ordinary entry erased the whole effect. Measured properly, with the candidate
+  set held fixed so corpus size is unconfounded: the share of queries whose top
+  hit changes rises 0% → 8.2% by ten archived entries then flattens (10.0% at
+  22), and `success@1` moves +0.006 / +0.009 / −0.003 at three archive sizes —
+  bounded, saturating, no direction. So no measurement can pick a winner, which
+  is what makes it a thing to write down rather than measure again. **The corpus
+  is deliberately unchanged** (same reasoning that left `DEFAULT_CONTEXT_BUDGET`
+  alone in Phase 13); what shipped is the declaration it never had. The real
+  defect was in the record: `tests/test_archived_axis.py`, built to make exactly
+  this silence impossible, had **certified `rank` as compliant since the day it
+  was written** — `rank` declares `EXCLUDES`, true of its results, while its
+  corpus `INCLUDES`, and the registry has one slot per function meaning output
+  membership. You cannot declare a decision your vocabulary has no word for.
+  Shipped `CORPUS_POLICY` (second registry, mechanical AST discovery on
+  `idf`+`avgdl`, no transitive closure), declarations for both of the store's
+  two disagreeing corpora — `rank`'s 43-doc one and `_bm25_scorer`'s 42-doc one
+  behind `dupes`/`capture`, which nothing said differed — corrections to the
+  misleading halves of the `rank` and `entry_documents` rows and of `rank`'s
+  docstring, and tests pinning the two invariants the whole-store corpus buys
+  and nothing covered (filter-independence, 42/42; archive-neutrality, 0/42).
+  All three verified by mutation: making the corpus follow `include_archived`
+  kills both invariant tests, an undeclared scorer kills discovery. 7 new tests
+  (555 total), lint `--strict` and triage clean. One new entry
+  `kb-a-registry-asks-only-what-it-has-words-for`;
+  `kb-tests-cannot-cover-an-absent-guard` corrected in place ("a new scanner
+  cannot be merged without its author answering the question" was too strong)
+  and re-verified with a note. **No re-verification sweep:** the store is ahead
+  of pace on every window (16 in 7d against a sustainable 3.3), so the standing
+  action does not fire.
