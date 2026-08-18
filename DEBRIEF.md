@@ -888,3 +888,46 @@ Set up 2026-07-27 before you left.
   and re-verified with a note. **No re-verification sweep:** the store is ahead
   of pace on every window (16 in 7d against a sustainable 3.3), so the standing
   action does not fire.
+
+- [ ] 2026-08-18 (second same-day session) **Cross-repo rotation — checked
+  this repo's own state first, found nothing to do here, then rotated.**
+  `git ls-remote` showed no new stranded branches (only the four already
+  `ACKNOWLEDGED` in `AUTONOMY.md`); `kb.py lint --strict` and `kb.py triage`
+  both clean; the review window doesn't open until 2026-10-25, so the standing
+  re-verification action doesn't fire; every row on `ROADMAP.md`'s reopen
+  table is either closed or waiting on Jerry/a bigger store/a second session
+  type. Sibling access worked this session
+  (`add_repo`/`register_repo_root`/`list_repos`). Before touching
+  `jvanheerikhuize/repos`, checked its open PRs per the mandate's step 2: #1,
+  #2, #3 are still open, still unreconciled, exactly the state flagged on #2
+  on 2026-08-09 — nothing new to add, and a fourth PR against the same files
+  would make the pile worse, not better, so left it alone rather than
+  re-auditing a fourth time.
+  Rotated into `jvanheerikhuize/digital-twin` instead (untouched by any prior
+  routine session, no open PRs). Read its `README.md`/`PURPOSE.md`/`docs/
+  ROADMAP.md`/`CLAUDE.md`: a private corpus-and-chat tool with a
+  redaction pass (`src/twin/redact.py`) that runs on the write path before
+  anything reaches `brain/raw/`, which the repo commits to git and its own
+  README calls "effectively permanent" — and the whole repo (1,404 lines) had
+  **zero test coverage**, no `tests/` directory at all. That's the highest
+  blast-radius gap in an untested repo: a silent regression there is a leaked
+  secret, not a bug caught later. Wrote `tests/test_redact.py` (28 cases,
+  stdlib `unittest`, no new dependency, matching the package's own
+  zero-dependency stance): one positive case per of the twelve patterns, a
+  false-positive suite, empty/`None` safety, and the documented 6-character
+  floor on `assigned-secret` values pinned as a known trade-off rather than a
+  bug. Found one real, minor defect while writing the positive cases:
+  `assigned-secret`'s replacement always wrote `=` regardless of whether the
+  source used `:`, so `db_password: hunter2isbetter` came out
+  `db_password=[REDACTED:...]` — the secret was still redacted correctly (no
+  security issue), but the separator the author actually typed was silently
+  rewritten, which works against the corpus's own "your own words, verbatim"
+  guarantee. Fixed by capturing and preserving the matched separator;
+  regression test included. Left `redact_findings()` alone despite its
+  docstring claiming it's "used by `twin status`" — nothing in `cli.py`
+  actually calls it; noted in the PR rather than guessed at the intended
+  wiring. PR opened, not merged, per the cross-repo mandate:
+  [jvanheerikhuize/digital-twin#3](https://github.com/jvanheerikhuize/digital-twin/pull/3).
+  Subscribed to its PR activity; the repo has no CI configured
+  (`actions_list` returns zero workflows), so there is nothing to watch there
+  beyond review comments.

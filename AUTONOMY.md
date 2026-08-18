@@ -908,6 +908,26 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   rows that remain, every one waits on Jerry, a bigger store, a second session
   type, or an upstream release; none is a routine's to start.
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (third
+  time).** (2026-08-18, second same-day session) Confirmed this repo's own
+  backlog is genuinely still closed before leaving it: no new stranded
+  branches, lint/triage clean, standing re-verification action doesn't fire
+  (nothing due until 2026-10-25). Re-probed sibling access — worked. Checked
+  `jvanheerikhuize/repos`'s open PRs per step 2 first: #1/#2/#3 are still open
+  and unreconciled from 2026-08-06 through 2026-08-09, already flagged on #2 —
+  left alone rather than piling on a fourth overlapping PR. Rotated into
+  **`jvanheerikhuize/digital-twin`** instead (first routine session to touch
+  it, no open PRs). Found it had **zero test coverage** across 1,404 lines,
+  including `src/twin/redact.py` — the module that scrubs secrets before
+  anything reaches `brain/raw/`, which that repo commits to git permanently.
+  Wrote `tests/test_redact.py` (28 cases) and, while writing the positive
+  cases, found and fixed a real defect: `assigned-secret` always rewrote the
+  separator to `=` even when the source used `:`, silently altering text the
+  corpus promises to keep verbatim (not a security issue — the secret itself
+  was still redacted either way). PR opened, not merged, per the standing
+  mandate: [jvanheerikhuize/digital-twin#3](https://github.com/jvanheerikhuize/digital-twin/pull/3).
+  No CI configured in that repo to watch; subscribed for review comments only.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
