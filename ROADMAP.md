@@ -1576,6 +1576,62 @@ in Phase 13. The reopen row is closed rather than re-armed: it was waiting for
 the archive to grow, and growth is now measured to saturate at a bounded,
 directionless effect, so that condition can never be met.
 
+### Phase 19 — a constant query has a ceiling (2026-08-19)
+
+Nothing on the reopen table had met its condition, and the standing
+re-verification action did not fire (nothing comes due until 2026-10-25). The
+item was the one thing every routine session does and nobody had measured:
+`AUTONOMY.md` step 1 opened every session with the *same string*,
+`kb.py context "autonomous holiday work"`. Phase 13 measured what the pack
+hands back; nobody had asked whether the query could reach the right entries.
+
+**The target set is not a fixture.** For each of the 31 commits that modified
+an entry which already existed at its parent, the "used" set is exactly those
+pre-existing entries — an entry a session went *back* to is an entry it needed.
+87 entries across 31 sessions. Each session is replayed against the store as it
+stood at its parent commit, with `date.today()` frozen to that session's own
+date so confidence decay and episodic recency match what it saw.
+
+| arm | in the pack | |
+|---|---|---|
+| newest `last_verified` first, no ranker | 8/87 = 0.092 | control |
+| the constant query, shipped budget | 17/87 = **0.195** | what sessions got |
+| the commit subject as query, shipped budget | 25/87 = 0.287 | |
+| constant query, unbounded budget | 40/87 = **0.460** | its ceiling |
+| task query, unbounded budget | 84/87 = **0.966** | |
+
+Paired bootstrap over sessions, 4,000 resamples, 95% CI:
+
+- **The ranker earns its keep.** Constant query − no ranker = +0.104,
+  CI [+0.025, +0.200]. Even a bad query beats no ranking.
+- **At the shipped budget the two queries are not distinguishable** (+0.091,
+  CI [−0.024, +0.205]) — both return 2–4 entries, so Phase 13's budget clamp
+  hides the difference. Unbounded, it is +0.506, CI [+0.400, +0.604].
+
+**The mechanism is invisibility.** 47 of 87 needed entries score *zero* against
+the constant query: they share no term with it, so no budget, no re-ranking and
+no tuning returns them. The unbounded arm returns exactly the 40 that were
+visible — the ceiling is the visible set. Under a task-shaped query only 2 of 87
+are invisible. The brief was also nearly constant (one entry in 30 of 31 packs)
+and partly obsolete (16 of 31 led with a mandate archived as spent since
+2026-08-05, because "holiday" is the query's most distinctive term).
+
+**Shipped:** `context_pack` reports `retrievable` / `reachable` / `unreachable`
+/ `reach`, in the pack text, the JSON, and through MCP. The pack's advice was
+actively wrong in this case — it said "Raise `--budget` or narrow the query",
+and narrowing only helps entries that matched — so which repair it names is now
+decided by comparing the two measured losses, not by a threshold on either.
+`AUTONOMY.md` step 1 no longer prescribes a constant.
+
+**Reported, never gated.** Across the 42 golden queries the median reach is
+1.000 whether the query hits rank 1 (n=23) or misses (n=19), so reach predicts
+nothing among queries that can already see the store. It is a precondition, not
+a quality score — which is also why `eval_report` gained no reach term: the
+golden set contains only well-formed queries, so the number would be a constant
+there and report nothing. 6 new tests (561 total); the `_retrievable`/`rank`
+filter agreement is pinned behaviourally and all three filter mutations are
+killed. Write-up: [[kb-a-constant-query-has-a-ceiling]].
+
 ---
 
 ## Done

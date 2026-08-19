@@ -1007,6 +1007,25 @@ def est_tokens(text):
     return max(1, -(-len(text) // CHARS_PER_TOKEN))
 
 
+def _retrievable(docs, types, include_episodic):
+    """How many entries `rank` was allowed to consider, scoring aside.
+
+    The denominator for reach. It applies exactly the filters `rank` applies
+    to its candidate loop, so `len(rank(...))` and this number are the two
+    halves of the same population.
+    """
+    n = 0
+    for t, _path, fm, _body, _tokens in docs:
+        if types and t not in types:
+            continue
+        if not include_episodic and t == "episodic":
+            continue
+        if is_archived(fm):
+            continue
+        n += 1
+    return n
+
+
 def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
                  include_episodic=False, limit=None, docs=None):
     """A paste-ready, budgeted brief on a task, with provenance per entry.
@@ -1023,9 +1042,33 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
     that fit. It is nearly always the budget — 28 of 28 golden queries, and a
     pack that is budget-bound has been getting smaller as the store's entries
     get longer, with nothing reporting it (ROADMAP Phase 13).
+
+    It also reports **reach**: how much of the store the query can score at
+    all. That is a separate failure from the budget and it takes the opposite
+    repair — an entry that scores zero is unreachable at any budget, so the
+    fix is different words, not more of them. The two were conflated until
+    ROADMAP Phase 19 measured a query that is a constant: `AUTONOMY.md`'s
+    standing "autonomous holiday work" could never return 54% of the entries
+    sessions actually went on to edit, while the pack's only advice was to
+    raise the budget or *narrow* the query. Reach is reported, never gated —
+    among queries that can see the whole store it predicts nothing (median
+    1.000 whether the golden query hits rank 1 or misses), so it is a
+    precondition, not a quality score.
     """
+    docs = entry_documents() if docs is None else docs
     hits = rank(query, types=types, include_episodic=include_episodic,
                 docs=docs)
+    # How much of the store this query can see at all, before the budget gets
+    # a say. `omitted` below counts entries that scored and did not fit;
+    # `unreachable` counts entries that never scored, and no budget reaches
+    # those. The two ask for opposite repairs — a bigger budget versus
+    # different words — so a pack that reports only the first gives advice
+    # that is wrong exactly when the query is.
+    # Counted before `--limit` slices `hits`: reach is a property of the query
+    # against the store, not of how many entries the caller asked to see.
+    retrievable = _retrievable(docs, types, include_episodic)
+    reachable = len(hits)
+    unreachable = retrievable - reachable
     # `--limit` is the caller capping the pack, not the budget doing it. Kept
     # apart from `omitted` below so the pack never reports "nothing else
     # scored" about entries the caller asked it not to look at.
@@ -1072,9 +1115,14 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
 
     # Naming the *next* entry is exact and needs no relevance threshold: it is
     # the one the loop was holding when the budget ran out. A count of "further
-    # matches" alone would be noise — BM25 scores almost every entry above zero
-    # — so the count is reported as what it is, and the actionable part is the
-    # name and the knob.
+    # matches" alone would be weak on its own, so the count is reported as what
+    # it is and the actionable part is the name and the knob.
+    #
+    # This used to justify that by saying BM25 scores almost every entry above
+    # zero. That holds for a query written for a task — the 42 golden queries
+    # have a median reach of 1.000 — and fails for a query that is a constant:
+    # `AUTONOMY.md`'s standing "autonomous holiday work" scores 19 of 43
+    # (ROADMAP Phase 19). Hence the reach line below.
     omitted = hits[len(included):]
     head = (
         f"# Context for: {query}\n\n"
@@ -1088,7 +1136,13 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
             f"({omitted[0]['name']}, relevance {omitted[0]['score']}) did not "
             f"fit, and {len(omitted) + limited_out} ranked match"
             f"{'' if len(omitted) + limited_out == 1 else 'es'} remain. Raise "
-            f"--budget or narrow the query.\n"
+            f"--budget"
+            # "Narrow the query" fits more of what *matched* into the budget;
+            # it cannot help when the bigger loss is entries that never
+            # matched. Which advice applies is decided by comparing the two
+            # measured populations, not by a threshold on either.
+            + (".\n" if unreachable > len(omitted) + limited_out
+               else " or narrow the query.\n")
         )
     elif limited_out:
         head += (f"Stopped on --limit, not on budget: {limited_out} further "
@@ -1096,6 +1150,15 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
                  f"considered.\n")
     elif included:
         head += "Stopped on matches, not on budget: nothing else scored.\n"
+    if unreachable:
+        head += (
+            f"Reach: {reachable} of {retrievable} retrievable entries score "
+            f"above zero; {unreachable} "
+            f"{'shares' if unreachable == 1 else 'share'} no term with this "
+            f"query, so no budget returns "
+            f"{'it' if unreachable == 1 else 'them'} — only different words "
+            f"do.\n"
+        )
     head += "\n"
     return {
         "query": query,
@@ -1107,6 +1170,10 @@ def context_pack(query, budget=DEFAULT_CONTEXT_BUDGET, types=None,
         "omitted": len(omitted) + limited_out,
         "limited_out": limited_out,
         "next_omitted": omitted[0]["name"] if omitted else None,
+        "retrievable": retrievable,
+        "reachable": reachable,
+        "unreachable": unreachable,
+        "reach": round(reachable / retrievable, 3) if retrievable else 0.0,
         "text": head + "\n".join(sections) if sections else head + "(no matches)\n",
     }
 

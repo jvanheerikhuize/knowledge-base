@@ -16,8 +16,16 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
 
 ## Session protocol
 
-1. `scripts/kb.py context "autonomous holiday work"` and `scripts/kb.py triage`
-   for background; read `memory/AGENT.md` if you haven't.
+1. `scripts/kb.py context "<the item you are about to work on>"` — **in your own
+   words, and not a constant.** This step used to prescribe the literal string
+   `"autonomous holiday work"`, and measured over all 31 sessions that went back
+   to an existing entry, that query **scored zero against 54% of the entries
+   those sessions actually edited** — unreachable at any budget, not merely
+   crowded out. Its ceiling is 0.460 where a query written for the item reaches
+   0.966; 30 of its 31 packs led with the same entry and 16 with a mandate
+   archived as spent since 2026-08-05. The pack now prints its own reach, so
+   read that line ([[kb-a-constant-query-has-a-ceiling]]). Then
+   `scripts/kb.py triage`; read `memory/AGENT.md` if you haven't.
 2. Pick the **top unchecked item** in the backlog below. One focused piece of
    work, completed end to end, beats three started.
 3. Before pushing: `python3 -m unittest discover -s tests -q` and
@@ -927,6 +935,35 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   was still redacted either way). PR opened, not merged, per the standing
   mandate: [jvanheerikhuize/digital-twin#3](https://github.com/jvanheerikhuize/digital-twin/pull/3).
   No CI configured in that repo to watch; subscribed for review comments only.
+
+- [x] **A constant query has a ceiling (ROADMAP Phase 19).** (2026-08-19)
+  Picked up as the research-tier item. Sibling access unavailable again this
+  session (no `add_repo`/`list_repos` in this run's toolset) — in-repo fallback
+  per the standing mandate's step 1; the 2026-08-06 grant is unchanged, this is
+  the per-session tooling gap `sibling-repo-access-denied-in-routines` already
+  records. Nothing on ROADMAP's reopen table had met its condition and the
+  standing re-verification action did not fire (nothing due until 2026-10-25),
+  so the item was **step 1 of this file's own protocol** — the one thing every
+  session does, never measured. Replaying all 31 commits that modified a
+  pre-existing entry (87 such entries, ranker and clock frozen per session):
+  the constant query put **17 of 87** in the pack against 8 for no ranker at
+  all, and — the finding — **47 of 87 score zero against it**, unreachable at
+  any budget. Its ceiling is 0.460 unbounded where a task-shaped query reaches
+  0.966; at the *shipped* budget the two are **not distinguishable** (+0.091,
+  CI [−0.024, +0.205]), because Phase 13's budget clamp hides the difference,
+  which is why nothing had noticed. 30 of 31 packs led with the same entry and
+  16 with `holiday-autonomy-mandate`, archived as spent since 2026-08-05.
+  Shipped `reach` in `context_pack` (text, JSON, MCP) plus advice that now picks
+  its repair by comparing the two measured losses, and **step 1 above no longer
+  prescribes a constant**. Reported, never gated: median golden reach is 1.000
+  whether the query hits or misses, so it is a precondition and not a quality
+  score — and for the same reason `eval_report` gained no reach term. 6 new
+  tests (561 total). Write-up: `kb-a-constant-query-has-a-ceiling`.
+
+  **The backlog is closed again.** The standing action is unchanged — one
+  entry, oldest due, *only when behind pace* — and it does not fire today.
+  Every remaining reopen row waits on Jerry, a bigger store, a second session
+  type, or an upstream release.
 
 ## Debrief contract
 

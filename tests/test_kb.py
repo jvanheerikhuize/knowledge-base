@@ -312,6 +312,102 @@ class TestContext(RankingTestCase):
         self.assertIn("Stopped on --limit, not on budget", pack["text"])
         self.assertNotIn("nothing else scored", pack["text"])
 
+    def test_a_pack_reports_what_the_query_could_not_see(self):
+        """Budget and reach are different failures wanting opposite repairs.
+
+        `omitted` counts entries that scored and did not fit — raise the
+        budget. `unreachable` counts entries that never scored, and no budget
+        reaches those. Conflating them is what let AUTONOMY.md's constant
+        query miss 54% of what sessions went on to edit while the pack's only
+        advice was to raise the budget or *narrow* the query (Phase 19).
+        """
+        self.make("semantic", "on-topic", "widget calibration procedure")
+        for i in range(3):
+            self.make("semantic", f"off-topic-{i}", "unrelated prose about herons")
+        pack = json.loads(
+            self.run_kb("context", "widget calibration", "--json").stdout)
+        self.assertEqual(pack["retrievable"], 4)
+        self.assertEqual(pack["reachable"], 1)
+        self.assertEqual(pack["unreachable"], 3)
+        self.assertEqual(pack["reach"], 0.25)
+        self.assertIn("3 share no term with this query", pack["text"])
+
+    def test_a_full_reach_query_says_nothing_about_reach(self):
+        for i in range(3):
+            self.make("semantic", f"entry-{i}", "widget calibration procedure")
+        pack = json.loads(self.run_kb("context", "widget", "--json").stdout)
+        self.assertEqual(pack["reach"], 1.0)
+        self.assertEqual(pack["unreachable"], 0)
+        self.assertNotIn("Reach:", pack["text"])
+
+    def test_reach_counts_the_population_rank_considers(self):
+        """`_retrievable` re-states rank's candidate filters, so it can drift
+        from them. Every entry here carries a shared token, so everything rank
+        is allowed to consider scores — which makes the two counts the same
+        number by construction, for every combination of filters."""
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        import kb as kb_module
+
+        self.make("semantic", "s-one", "sentinel semantic body")
+        self.make("procedural", "p-one", "sentinel procedural body")
+        self.make("episodic", "e-one", "sentinel episodic body")
+        self.make("semantic", "s-gone", "sentinel archived body")
+        self.run_kb("archive", "s-gone")
+
+        old_root, old_mem = kb_module.ROOT, kb_module.MEMORY
+        kb_module.ROOT, kb_module.MEMORY = self.root, self.root / "memory"
+        try:
+            docs = kb_module.entry_documents()
+            for types in (None, ["semantic"], ["semantic", "procedural"]):
+                for episodic in (True, False):
+                    considered = len(kb_module.rank(
+                        "sentinel", types=types, include_episodic=episodic,
+                        docs=docs))
+                    declared = kb_module._retrievable(docs, types, episodic)
+                    self.assertEqual(considered, declared, (types, episodic))
+        finally:
+            kb_module.ROOT, kb_module.MEMORY = old_root, old_mem
+
+    def test_an_archived_entry_is_out_of_the_reach_denominator(self):
+        self.make("semantic", "live-one", "widget calibration procedure")
+        self.make("semantic", "retired-one", "unrelated prose about herons")
+        self.run_kb("archive", "retired-one")
+        pack = json.loads(self.run_kb("context", "widget", "--json").stdout)
+        self.assertEqual(pack["retrievable"], 1)
+        self.assertEqual(pack["unreachable"], 0)
+
+    def test_limit_does_not_change_reach(self):
+        """Reach is a property of the query against the store. Counting it
+        after `--limit` sliced the hits would have reported the caller's cap
+        as if the query could not see those entries."""
+        for i in range(4):
+            self.make("semantic", f"widget-{i}", "widget " * (4 - i))
+        unlimited = json.loads(
+            self.run_kb("context", "widget", "--json").stdout)
+        limited = json.loads(
+            self.run_kb("context", "widget", "--limit", "2", "--json").stdout)
+        self.assertEqual(limited["reachable"], unlimited["reachable"])
+        self.assertEqual(limited["reach"], 1.0)
+        self.assertEqual(limited["unreachable"], 0)
+
+    def test_narrowing_is_advised_only_when_it_could_help(self):
+        """Which repair the pack names is decided by comparing the two
+        measured losses, not by a threshold on either."""
+        for i in range(4):
+            self.make("semantic", f"long-{i}", "budget " + ("filler words " * 200))
+        matched = json.loads(
+            self.run_kb("context", "budget", "--budget", "300", "--json").stdout)
+        self.assertEqual(matched["unreachable"], 0)
+        self.assertIn("or narrow the query", matched["text"])
+
+        for i in range(6):
+            self.make("semantic", f"absent-{i}", "unrelated prose about herons")
+        unreachable = json.loads(
+            self.run_kb("context", "budget", "--budget", "300", "--json").stdout)
+        self.assertGreater(unreachable["unreachable"], unreachable["omitted"])
+        self.assertNotIn("or narrow the query", unreachable["text"])
+        self.assertIn("only different words do", unreachable["text"])
+
     def test_limit_caps_how_many_ranked_hits_are_considered(self):
         for i in range(4):
             self.make("semantic", f"widget-{i}", "widget " * (4 - i))
