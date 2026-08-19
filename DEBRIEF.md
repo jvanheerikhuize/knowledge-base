@@ -955,3 +955,21 @@ Set up 2026-07-27 before you left.
   reach is a precondition, not a quality score — and for that same reason
   `eval_report` deliberately gained no reach term. 6 new tests (561 total),
   lint and triage clean.
+
+- [ ] 2026-08-19 **Cross-repo: fixed a hardcoded-token security finding in
+  `action-rsi`.** This repo's own backlog was closed and nothing new due, so
+  rotated to `jvanheerikhuize/action-rsi` per the standing cross-repo mandate
+  (checked for open PRs first — none). That repo's own audit tooling had
+  already found and filed `FEAT-0001` (priority high, 2026-04-12, still open):
+  both `actions/bootstrap` and `actions/publish-results` pushed via
+  `https://x-access-token:${token}@github.com/...`, putting the token in
+  process argv and in the string a failed `execSync` attaches to its thrown
+  `Error`. Fixed both with a new shared `lib/git-push.ts` (they'd duplicated
+  the vulnerable construction identically) that authenticates via a
+  short-lived `GIT_ASKPASS` script instead — token only ever in an env var, 5
+  new unit tests. Lint and tests clean, both `dist/` bundles rebuilt, resolved
+  spec deleted and `.agents/CONTEXT.md` updated per that repo's own agent
+  conventions. PR opened, not merged:
+  [jvanheerikhuize/action-rsi#10](https://github.com/jvanheerikhuize/action-rsi/pull/10).
+  No PR-triggered CI in that repo (only a weekly audit cron) — subscribed for
+  review comments and scheduled a check-in.
