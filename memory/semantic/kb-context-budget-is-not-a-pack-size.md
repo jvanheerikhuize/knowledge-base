@@ -5,8 +5,8 @@ description: a context pack is bounded by a token budget, so it shrinks as entri
 confidence: verified
 source: measured 2026-08-10 by replaying all 34 commits that touch memory/ against today's ranker and golden set; scripts/kb.py context_pack()/eval_report(); ROADMAP Phase 13
 created: 2026-08-10
-last_verified: 2026-08-10
-links: [kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort]
+last_verified: 2026-08-19
+links: [kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort, kb-a-constant-query-has-a-ceiling]
 ---
 
 `kb.py context` is the command [[kb-ranked-retrieval]] calls "the one an agent
@@ -109,3 +109,15 @@ caller-facing, and every consumer pays for it in their own context window.
 The same shape as [[kb-review-load-is-one-cohort]]: a fixed constant whose
 *meaning* is a function of the store, going wrong quietly because nothing
 reported the function.
+
+**Correction, 2026-08-19 — the budget is not the only thing bounding a pack,
+and this entry framed it as if it were.** Everything above holds, but it treats
+"how many entries fit" as the question, and a second bound sits above it:
+entries that score zero against the query are unreachable at *any* budget.
+Measured over the 87 entries sessions actually went back to, the protocol's
+own query could reach only 40 of them however large the budget got
+([[kb-a-constant-query-has-a-ceiling]]). The clamp this entry documents is also
+what hid that: at the default budget a good query and a bad one both return
+2–4 entries, so the difference between them was not distinguishable. Read the
+two together — raise the budget for entries that *matched*, re-word for the
+ones that did not.

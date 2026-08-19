@@ -277,6 +277,16 @@ longer — and no rank metric moved, because none of them has a budget term.
 `kb.py eval --budget N` scores the pack at any budget; the rank numbers will
 not move with it, and that is the point (ROADMAP Phase 13).
 
+The budget is not the only bound. A pack also reports its **reach** — how many
+of the retrievable entries the query scored at all — because an entry that
+scores zero is unreachable at *any* budget, and the repair is different words
+rather than more of them. Write the query for the task in front of you: a
+query that is a constant has a fixed ceiling, and the one this repo's own
+session protocol used to prescribe could reach only 46% of the entries
+sessions went on to edit (ROADMAP Phase 19). Reach is reported and never
+gated — across the golden set its median is 1.000 whether the query hits or
+misses, so it is a precondition, not a quality score.
+
 Two things about that set are load-bearing, and both were measured rather than
 assumed (ROADMAP Phase 7):
 

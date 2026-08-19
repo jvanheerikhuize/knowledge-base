@@ -931,3 +931,27 @@ Set up 2026-07-27 before you left.
   Subscribed to its PR activity; the repo has no CI configured
   (`actions_list` returns zero workflows), so there is nothing to watch there
   beyond review comments.
+
+- [ ] 2026-08-19 **This file's own step 1 was a constant query, and a constant
+  query has a ceiling (ROADMAP Phase 19).** `AUTONOMY.md` told every routine
+  session to open with the literal string `kb.py context "autonomous holiday
+  work"`. Replaying all 31 commits that went back to a pre-existing entry (87
+  such entries, ranker and clock frozen at each session's own date): that query
+  put **17 of 87** in the pack — better than no ranker at all (8/87, CI
+  [+0.025, +0.200], so the ranking is working) — but **47 of 87 score zero
+  against it** and are unreachable at any budget. Its ceiling is **0.460**
+  unbounded where a task-shaped query reaches **0.966**. At the shipped budget
+  the two queries are *not* distinguishable (+0.091, CI [−0.024, +0.205]),
+  which is why nothing caught this: Phase 13's budget clamp holds both packs to
+  2–4 entries and hides the gap. 30 of 31 packs led with the same entry; 16 led
+  with `holiday-autonomy-mandate`, archived as spent since 2026-08-05, because
+  "holiday" is the query's most distinctive term. Shipped `reach`
+  (`retrievable`/`reachable`/`unreachable`) in `context_pack` — text, JSON and
+  MCP — and fixed advice that was wrong in exactly this case ("raise --budget
+  or *narrow* the query"; narrowing cannot reach what never matched), with the
+  repair now chosen by comparing the two measured losses rather than a
+  threshold. Step 1 no longer prescribes a constant. **Reported, never gated:**
+  median golden-set reach is 1.000 whether the query hits rank 1 or misses, so
+  reach is a precondition, not a quality score — and for that same reason
+  `eval_report` deliberately gained no reach term. 6 new tests (561 total),
+  lint and triage clean.

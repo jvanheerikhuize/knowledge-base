@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/kb.py rank()/context_pack(); implemented and tested 2026-07-27
 created: 2026-07-27
 last_verified: 2026-08-10
-links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base, kb-golden-set-lives-in-the-wording, kb-context-budget-is-not-a-pack-size]
+links: [kb-is-file-based, kb-entry-status-model, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-duplicate-detection-limits, kb-roadmap, persist-insight-to-knowledge-base, kb-golden-set-lives-in-the-wording, kb-context-budget-is-not-a-pack-size, kb-a-constant-query-has-a-ceiling]
 ---
 
 The store is deliberately infra-free (see [[kb-is-file-based]]), so a vector

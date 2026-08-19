@@ -172,3 +172,8 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-18 — linked `semantic/kb-a-registry-asks-only-what-it-has-words-for.md` — -> kb-a-fitted-golden-set-starts-perfect
 - 2026-08-18 — linked `semantic/kb-tests-cannot-cover-an-absent-guard.md` — -> kb-a-registry-asks-only-what-it-has-words-for
 - 2026-08-18 — verified `semantic/kb-tests-cannot-cover-an-absent-guard.md` — confidence=verified; checked: Re-read against tests/test_archived_axis.py: the mutation numbers, the 11 hand-missed scanners and the resources/list defect all still hold. Corrected the 'cannot be merged without answering the question' claim — rank declares EXCLUDES for its output while its corpus INCLUDES, so the registry asked one of its two archived questions (ROADMAP Phase 18).
+- 2026-08-19 — created `semantic/kb-a-constant-query-has-a-ceiling.md`
+- 2026-08-19 — linked `semantic/kb-a-constant-query-has-a-ceiling.md` — -> stranded-branches-need-a-second-channel
+- 2026-08-19 — linked `semantic/kb-context-budget-is-not-a-pack-size.md` — -> kb-a-constant-query-has-a-ceiling
+- 2026-08-19 — linked `semantic/kb-ranked-retrieval.md` — -> kb-a-constant-query-has-a-ceiling
+- 2026-08-19 — verified `semantic/kb-context-budget-is-not-a-pack-size.md` — confidence=verified; checked: Re-checked the 34-commit replay's framing against a new measurement of what the query can reach at all (Phase 19). Every number above still holds; corrected in place because the entry presented the budget as the only bound on a pack, and 47 of 87 needed entries were unreachable at any budget.
