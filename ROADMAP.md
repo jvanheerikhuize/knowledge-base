@@ -1184,6 +1184,26 @@ cron has landed between 06:42 and 07:48 over its 14 runs. GitHub's scheduled
 queue runs 40–110 minutes late here; a missing run before ~08:00 UTC is not yet
 evidence of anything.)
 
+**Both checks closed 2026-08-20 — see Phase 20.** The whole lifecycle ran
+inside one session, against a real stranding (`claude/cool-cerf-ak0w1p`,
+PR #67):
+
+| | |
+|---|---|
+| 07:14:42Z | issue **#68** opened by the first scheduled run after the strand appeared (run `32343101110`), body identical to the local dry run — **1 actionable, 2 acknowledged** |
+| ~07:16Z | PR #67 merged; delete-branch-on-merge removed the branch, as the standing dependency below requires |
+| 07:17:25Z | issue #68 **closed** with the workflow's own "Nothing stranded anymore — closing." |
+
+The close ran under `workflow_dispatch` rather than the cron, so what is
+verified is the branch and not the schedule that reaches it — the same
+distinction Phase 5 drew when its close path first fired, and the schedule
+itself is separately confirmed by six successful scheduled runs. So the entry
+goes to `verified`. **The parenthesis
+above is the same measurement Phase 20 is about, and it was written as a note to
+log-readers rather than as a fact about the session** — 40–110 minutes late
+against a 06:30 cron means the issue cannot reach a 07:00 reader, which is
+exactly what happened on the day it mattered.
+
 **One standing dependency**, worth stating because it is a repo setting and not
 code: delete-branch-on-merge must stay on. A squash merge leaves the branch's
 commits off `main`, so a squash-merged branch that survived would read as
@@ -1631,6 +1651,85 @@ golden set contains only well-formed queries, so the number would be a constant
 there and report nothing. 6 new tests (561 total); the `_retrievable`/`rank`
 filter agreement is pinned behaviourally and all three filter mutations are
 killed. Write-up: [[kb-a-constant-query-has-a-ceiling]].
+
+### Phase 20 — the backstop arrives after the session (2026-08-20)
+
+The session-start `git ls-remote` check turned up `claude/cool-cerf-ak0w1p`,
+stranded 2026-08-19 09:12 by the execution-tier session with **PR #67** open and
+unmerged — the record of that session's cross-repo rotation into `action-rsi`,
+so its `DEBRIEF.md` lines and its backlog checkbox were invisible on `main`.
+Landed it. That is the seventh stranding, and the **first actionable case the
+Phase 14 detector has ever had**: the two production checks Phase 14 left open
+were both exercised today, and the detector is correct on both.
+
+**But it was not the channel that found it**, and it could not have been.
+
+`AUTONOMY.md` wires the session to the detector — "If that issue is open,
+clearing it is the first thing to do this session." That instruction has never
+been reachable. GitHub does not run a scheduled workflow at its cron time; it
+queues it. Measured over the 24 scheduled runs this repo has of `kb-due.yml`
+and `kb-stranded.yml`:
+
+| | delay behind the cron |
+|---|---|
+| minimum | 35.1 min |
+| median | ~62 min |
+| **maximum** | **232.9 min** |
+
+`kb-stranded.yml` shipped with `cron: "30 6 * * *"`. Its five scheduled runs
+delivered at **07:05, 07:07, 07:30, 07:12, 07:13 UTC**, against routine sessions
+that fire at **07:00** and **~09:00** — this session started at 07:00 and ran
+its branch check at 07:03, and every morning PR since 2026-08-14 was opened
+between 07:15 and 07:30. So **5 of 5 deliveries landed after the session had
+already started**, and the *minimum* observed delay overshoots 07:00 by five
+minutes. The race was never winnable.
+
+**Then it happened live, mid-session, while this was being written.** Run
+`32343101110` started 07:14:35Z and opened **issue #68** at **07:14:42Z** — the
+detector's first true positive in six runs, 44.6 minutes behind its cron. Its
+body matched the local dry-run byte-for-byte: 1 actionable
+(`claude/cool-cerf-ak0w1p`, 1 commit off `main`, quiet 22h, PR #67 open), 2
+acknowledged. The predicate is right and the renderer is right. It was also
+**14 minutes 42 seconds after this session began and 11 minutes after this
+session had already found the same branch by hand** — the measurement above,
+confirmed in production on the one day it had a case to be confirmed on.
+
+**The observation was already in this file and its consequence was missed.**
+Phase 14's own scheduling note recorded "the 06:30 cron fired at 07:05 …
+GitHub's scheduled queue runs 40–110 minutes late here", filed as a courtesy to
+anyone reading run times. Nobody asked what it implied about the *reader*. Same
+shape as Phase 12's `kb-agent-entrypoint-is-agent-md`: correct, present, and
+unread-for-consequence until something re-derived it.
+
+The cost is not the eleven minutes. It is that the issue's **absence** reads as
+"nothing is stranded", and on a strand-day that reading is always wrong. A
+session that trusted the charter's sentence — issue open? no? proceed — would
+have missed this strand exactly as three earlier sessions missed theirs.
+
+**Shipped, and one half is deliberately not a schedule change:**
+
+- `cron: "30 2 * * *"` — clears the observed maximum delay by 37 minutes, so
+  the issue is in place before 07:00. A test parses the cron out of the YAML
+  and fails if it moves back inside the race; verified to fail on `30 6`.
+- `push: branches: [main]` plus a `concurrency` group. Landing the work is what
+  makes the issue wrong, and waiting up to 24h for the next cron to close it
+  leaves a tracking issue claiming work is stranded when it is not — this
+  session would have created exactly that window. The concurrency group is
+  required by the second trigger: `gh issue create` is not idempotent.
+- `AUTONOMY.md` now says plainly that `git ls-remote` is the **primary** check
+  at session start and the issue is a backstop for days no session runs, and
+  that its absence proves nothing.
+
+The transferable form, which is why this is a phase and not a YAML fix: **a
+backstop that runs on a schedule you do not control is evidence only when it
+fires, never when it is silent.** A queued run makes "silent" and "not yet run"
+indistinguishable, so only the positive direction carries information — and any
+instruction that reads the negative direction is wrong however well the detector
+works. 3 new tests (564 total). Write-up:
+[[kb-the-backstop-arrives-after-the-session]];
+[[stranded-branches-need-a-second-channel]] raised to `verified` on the two
+production checks recorded under Phase 14: issue #68 opened at 07:14:42Z and
+closed at 07:17:25Z once PR #67 landed, both correct.
 
 ---
 

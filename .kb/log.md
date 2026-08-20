@@ -177,3 +177,7 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-19 — linked `semantic/kb-context-budget-is-not-a-pack-size.md` — -> kb-a-constant-query-has-a-ceiling
 - 2026-08-19 — linked `semantic/kb-ranked-retrieval.md` — -> kb-a-constant-query-has-a-ceiling
 - 2026-08-19 — verified `semantic/kb-context-budget-is-not-a-pack-size.md` — confidence=verified; checked: Re-checked the 34-commit replay's framing against a new measurement of what the query can reach at all (Phase 19). Every number above still holds; corrected in place because the entry presented the budget as the only bound on a pack, and 47 of 87 needed entries were unreachable at any budget.
+- 2026-08-20 — created `semantic/kb-the-backstop-arrives-after-the-session.md`
+- 2026-08-20 — linked `semantic/stranded-branches-need-a-second-channel.md` — -> kb-the-backstop-arrives-after-the-session
+- 2026-08-20 — updated `semantic/stranded-branches-need-a-second-channel.md` — confidence=verified
+- 2026-08-20 — verified `semantic/stranded-branches-need-a-second-channel.md` — confidence=verified; checked: Both production checks ROADMAP left open on 2026-08-14 fired today against a real stranding (claude/cool-cerf-ak0w1p, PR #67): issue #68 opened 07:14:42Z by scheduled run 32343101110 with the correct body (1 actionable, 2 acknowledged), and closed 07:17:25Z once the PR landed and the branch was deleted on merge. Detector confirmed; separately, it delivered 11 minutes after this session had already found the branch by hand — see kb-the-backstop-arrives-after-the-session.

@@ -973,3 +973,31 @@ Set up 2026-07-27 before you left.
   [jvanheerikhuize/action-rsi#10](https://github.com/jvanheerikhuize/action-rsi/pull/10).
   No PR-triggered CI in that repo (only a weekly audit cron) — subscribed for
   review comments and scheduled a check-in.
+
+- [ ] 2026-08-20 **Landed the 2026-08-19 strand, and measured why the detector
+  built for it could not have caught it (ROADMAP Phase 20).** The session-start
+  `git ls-remote` check found `claude/cool-cerf-ak0w1p` — the previous
+  execution-tier session's `action-rsi` rotation record, pushed with **PR #67**
+  open and never merged, so its DEBRIEF lines and backlog checkbox were
+  invisible on `main`. Seventh stranding; landed. It was also the **first
+  actionable case the Phase 14 detector has ever had**, and both production
+  checks `ROADMAP.md` left open since 2026-08-14 are now closed: issue #68
+  opened correctly at **07:14:42Z** (run `32343101110`, 1 actionable / 2
+  acknowledged, body identical to the local dry run) and closed at **07:17:25Z**
+  once PR #67 landed and the branch was deleted on merge, so
+  `stranded-branches-need-a-second-channel` goes `high` → `verified`.
+  **But the issue is not what found the strand, and could not have been.**
+  GitHub queues scheduled workflows 35–233 minutes late (24 runs measured across
+  this repo's two crons), so the 06:30 cron delivered at 07:05–07:30 on all five
+  prior runs — after the 07:00 routine's own branch check every time — and today
+  it opened #68 at **07:14:42Z, 11 minutes after this session had already found
+  the same branch by hand**. The raw number was already in `ROADMAP.md` as a
+  note to log-readers; nobody had asked what it implied about the reader.
+  Shipped: cron moved to 02:30 (clears the observed maximum by 37 min, with a
+  test that parses the YAML and fails on the old value), a `push: [main]`
+  trigger so landing closes the issue in minutes instead of up to 24h, and a
+  `concurrency` group because `gh issue create` is not idempotent. The charter
+  now says `git ls-remote` is the **primary** check and the issue a backstop,
+  and that **its absence proves nothing** — a backstop on a schedule you do not
+  control is evidence only when it fires. 3 new tests (564 total), lint and
+  triage clean.

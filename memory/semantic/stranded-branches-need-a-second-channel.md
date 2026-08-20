@@ -2,11 +2,11 @@
 name: stranded-branches-need-a-second-channel
 type: semantic
 description: the sixth stranding was a session that believed it had landed and wrote so in DEBRIEF.md — charter prose cannot reach a session that already agrees with it, so the repair has to be a signal from outside the session
-confidence: high
+confidence: verified
 source: PR #55 (opened 2026-08-10T09:20:13Z, merged 2026-08-14 after 4 days open) read against its own DEBRIEF text, the 2026-08-09 charter repair in PR #52, and the workflow-run history for 2026-08-11 through 08-13
 created: 2026-08-14
-last_verified: 2026-08-15
-links: [stranded-branches-track-the-charter-text, kb-prospective-memory-that-fires]
+last_verified: 2026-08-20
+links: [stranded-branches-track-the-charter-text, kb-prospective-memory-that-fires, kb-the-backstop-arrives-after-the-session]
 ---
 
 [[stranded-branches-track-the-charter-text]] measured six months of routine
