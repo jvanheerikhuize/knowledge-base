@@ -1045,6 +1045,41 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   unchanged — one entry, oldest due, *only when behind pace* — and it does not
   fire today (nothing due until 2026-10-25, and the store is ahead of pace).
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (fifth
+  time).** (2026-08-20, second same-day session) Confirmed this repo's own
+  backlog was genuinely still closed first: no new stranded branches beyond
+  the four in the acknowledged table, `triage` clean, standing
+  re-verification action doesn't fire (nothing due until 2026-10-25, store
+  ahead of pace). Re-probed sibling access — worked (`list_repos`, `add_repo`,
+  clone, push all succeeded). Checked open PRs on three candidates before
+  picking one: `undervault` has a draft PR (#11) that is Jerry's own
+  in-progress sprite work, not a routine's to touch, so skipped without
+  looking further; `asdlc` and `just-in-time` both had none. `asdlc` is a
+  generated-docs governance framework with no open leftovers and no
+  actionable CI failures (its 2 failures on record are on a since-closed PR
+  branch), so rotated into **`jvanheerikhuize/just-in-time`** instead — a
+  small vanilla-JS browser RPG, first routine session to touch it, **zero
+  tests in the whole repo**. Reading `InventorySystem.js` (the module with
+  the most numeric/state logic) found a real data-loss bug: `equipItem()`
+  added the previously-equipped item back to inventory *before* removing the
+  newly-equipped item, so its carry-weight check counted both items at once;
+  if that check failed, the code still overwrote `player.equipped[slot]` and
+  removed the new item anyway, so the old item was gone — not in inventory,
+  not equipped. `unequipSlot()` had the identical shape: it cleared the slot
+  unconditionally even when `addItem()` refused the item for lack of room.
+  Fixed both (remove-then-restore order plus an upfront fit check that
+  refuses an impossible swap instead of applying it halfway); confirmed both
+  regression tests fail against the pre-fix code (2 of 11) before confirming
+  all 11 pass against the fix, the same protocol this repo's own tests use.
+  First tests in that repo: Node's built-in `node:test` runner, so no new
+  dependency, per its own `AGENTS.md` "no build tools or npm dependencies"
+  rule — `package.json` needed `"type": "module"` for Node to load the
+  existing ES module source directly, plus a `test` script. No CI in that
+  repo runs on this diff (its three workflows trigger only on spec-file
+  paths this PR doesn't touch), so nothing to watch beyond review comments.
+  PR opened, not merged, per the standing mandate:
+  [jvanheerikhuize/just-in-time#2](https://github.com/jvanheerikhuize/just-in-time/pull/2).
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
