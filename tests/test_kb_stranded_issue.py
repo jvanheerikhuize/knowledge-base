@@ -152,6 +152,62 @@ class TestTheAcknowledgedListCannotGrowQuietly(unittest.TestCase):
             self.assertIn(branch, ksi.DELETE_COMMAND)
 
 
+class TestTheScheduleReachesTheSessionItWarns(unittest.TestCase):
+    """The issue is useless if it arrives after the session that would act.
+
+    `AUTONOMY.md` tells a session that an open tracking issue is the first
+    thing to clear. That instruction is only reachable if the issue exists
+    when the session looks. It did not: the 06:30 cron this workflow shipped
+    with delivered at 07:05-07:30 on all five of its runs — after the 07:00
+    routine had already run its own branch check — so the issue could never
+    be the channel that informed it. Phase 20 measured it and moved the cron;
+    these tests keep it moved.
+    """
+
+    # Observed, not assumed. Routine sessions fire at 07:00 UTC (research
+    # tier) and ~09:00 (execution tier); every morning PR since 2026-08-14 was
+    # opened 07:15-07:30, consistent with a 07:00 start.
+    EARLIEST_ROUTINE_HOUR = 7
+    # GitHub queues scheduled workflows rather than running them on time. Max
+    # observed delay over 24 scheduled runs of this repo's two crons: 232.9
+    # minutes. A schedule must clear that, or it races the session.
+    MAX_OBSERVED_DELAY_MINUTES = 233
+
+    def _workflow(self):
+        return (REPO_ROOT / ".github/workflows/kb-stranded.yml").read_text()
+
+    def _cron_minutes_after_midnight(self):
+        for line in self._workflow().splitlines():
+            line = line.strip()
+            if line.startswith("- cron:"):
+                spec = line.split("cron:", 1)[1].strip().strip('"\'')
+                minute, hour = spec.split()[:2]
+                return int(hour) * 60 + int(minute)
+        self.fail("kb-stranded.yml has no cron line")
+
+    def test_the_cron_clears_the_observed_delay_before_the_routine_starts(self):
+        latest_delivery = self._cron_minutes_after_midnight() + self.MAX_OBSERVED_DELAY_MINUTES
+        self.assertLess(
+            latest_delivery,
+            self.EARLIEST_ROUTINE_HOUR * 60,
+            "even a worst-case delayed run must land before the 07:00 routine; "
+            "moving the cron later re-creates the race Phase 20 measured",
+        )
+
+    def test_landing_the_work_closes_the_issue_without_waiting_for_the_cron(self):
+        # A merge pushes main and deletes the branch, so the run that push
+        # triggers sees count=0 and closes. Without it a landed strand leaves
+        # a tracking issue claiming work is stranded for up to 24h.
+        workflow = self._workflow()
+        self.assertIn("push:", workflow)
+        self.assertIn("branches: [main]", workflow)
+
+    def test_two_triggers_cannot_open_two_issues(self):
+        # `gh issue create` is not idempotent, and the push and schedule
+        # triggers can now overlap.
+        self.assertIn("concurrency:", self._workflow())
+
+
 class TestCli(unittest.TestCase):
     def test_reads_a_path_and_prints_title_body_count(self):
         payload = json.dumps([row("claude/x", pr=7)])

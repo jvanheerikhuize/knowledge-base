@@ -2,8 +2,31 @@ name: Stranded branch reminders
 
 on:
   schedule:
-    - cron: "30 6 * * *"  # daily, 06:30 UTC — after kb-due's 06:00
+    # 02:30 UTC, and the hour is the whole point. The routine sessions this
+    # issue is written for fire at 07:00 and ~09:00 UTC; GitHub does not run a
+    # scheduled workflow at its cron time, it queues it. Measured over the 24
+    # scheduled runs this repo has of `kb-due` and this workflow: delay min
+    # 35.1 min, median 62, **max 232.9**. The old "30 6" therefore could not
+    # reach a 07:00 session even in the best case, and did not: all six of its
+    # runs delivered at 07:05-07:30, every one of them *after* the session that
+    # would act on it had already run its `git ls-remote` check — including the
+    # only one that ever had a real stranding to report, which opened issue #68
+    # at 07:14:42Z, 11 minutes after that session had found the branch by hand.
+    # 02:30 clears the observed maximum by 37 minutes. See ROADMAP.md, Phase 20.
+    - cron: "30 2 * * *"
+  # Landing the work is what makes the issue wrong, so closing it should not
+  # wait for tomorrow's cron. A merge deletes the branch (delete-branch-on-merge
+  # is on) and pushes to main, so this run sees count=0 and closes.
+  push:
+    branches: [main]
   workflow_dispatch:
+
+# A push-triggered run and the scheduled one must not both reach the
+# create/close steps: `gh issue create` is not idempotent, and two concurrent
+# runs finding no existing issue would open two.
+concurrency:
+  group: kb-stranded
+  cancel-in-progress: false
 
 permissions:
   contents: read

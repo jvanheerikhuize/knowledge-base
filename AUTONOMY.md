@@ -51,19 +51,33 @@ consolidation and deletion over addition. Make your own decisions; do not stop.
   2026-07-29 and 2026-07-30 (`claude/cool-cerf-so8mrh`,
   `claude/cool-cerf-sr8tim`), including three bug fixes and a debrief line that
   never reached `main`. Pushing to a branch is a checkpoint, not an ending.
-- **A daily cron now checks this too, and it is the more reliable half.** Since
-  2026-08-14 `.github/workflows/kb-stranded.yml` opens a tracking issue titled
-  "Routine sessions: work stranded off main" for any `claude/*` branch holding
-  commits off `main` and quiet for 12h. It exists because the session-start
-  check below only runs when a session runs, and a stranding is what a session
-  leaves behind when it stops — the 2026-08-10 strand went unseen for three
-  days that left no session trace at all. If that issue is open, clearing it is
-  the first thing to do this session. ([[stranded-branches-need-a-second-channel]])
-- **Before picking a backlog item, check `git ls-remote --heads origin`.** An
-  unmerged `claude/*` branch may already hold the work. **Read the branch — a
-  leftover branch is a symptom, not a prior session's considered decision**
-  ([[stranded-branches-track-the-charter-text]]; deferring to one is exactly how
-  the 2026-08-06 lint fix sat unlanded for three days).
+- **Before picking a backlog item, check `git ls-remote --heads origin`. This is
+  the primary check, and it is yours to run.** An unmerged `claude/*` branch may
+  already hold the work. **Read the branch — a leftover branch is a symptom, not
+  a prior session's considered decision** ([[stranded-branches-track-the-charter-text]];
+  deferring to one is exactly how the 2026-08-06 lint fix sat unlanded for three
+  days). Run it even if the tracking issue below is absent: on 2026-08-20 this
+  check is what found `claude/cool-cerf-ak0w1p` and PR #67, and the issue for it
+  did not yet exist.
+- **A daily cron is the backstop, and it can only tell you something when it
+  fires.** Since 2026-08-14 `.github/workflows/kb-stranded.yml` opens a tracking
+  issue titled "Routine sessions: work stranded off main" for any `claude/*`
+  branch holding commits off `main` and quiet for 12h. It exists because the
+  check above only runs when a session runs, and a stranding is what a session
+  leaves behind when it stops — the 2026-08-10 strand went unseen for three days
+  that left no session trace at all. If that issue is open, clearing it is the
+  first thing to do this session.
+
+  **Its absence proves nothing, and it used to be read as if it did.** GitHub
+  queues a scheduled workflow rather than running it on time — 35 to 233 minutes
+  late over this repo's 24 scheduled runs — so the 06:30 cron delivered at
+  07:05–07:30 on all five of its runs, i.e. *after* the 07:00 routine had
+  already done its own branch check. The cron now runs at 02:30 so the issue is
+  in place before you start, and a push to `main` closes it as soon as the work
+  lands; but the rule stands whatever the schedule says: a silent backstop and a
+  backstop that has not run yet are indistinguishable from here.
+  ([[stranded-branches-need-a-second-channel]],
+  [[kb-the-backstop-arrives-after-the-session]])
 
   **Four exceptions, all already dealt with — ignore them, do not re-merge:**
 
@@ -964,6 +978,38 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   entry, oldest due, *only when behind pace* — and it does not fire today.
   Every remaining reopen row waits on Jerry, a bigger store, a second session
   type, or an upstream release.
+
+- [x] **The backstop arrives after the session (ROADMAP Phase 20).**
+  (2026-08-20) Picked up as the research-tier item. The session-start
+  `git ls-remote` check turned up a seventh stranding —
+  `claude/cool-cerf-ak0w1p`, the 2026-08-19 execution-tier session's `action-rsi`
+  rotation record, with **PR #67** open and unmerged since 09:12 the previous
+  day. Landed it. It was also the **first actionable case the Phase 14 detector
+  has ever had**, which closed both production checks `ROADMAP.md` had left open
+  since 2026-08-14: issue #68 opened at **07:14:42Z** and closed at
+  **07:17:25Z** once PR #67 landed, so
+  `stranded-branches-need-a-second-channel` goes to `verified`. **The research
+  is that the issue is not what found it, and could not have been.**
+  GitHub queues a scheduled workflow 35–233 minutes late (24 runs measured over
+  this repo's two crons), so the 06:30 cron delivered at 07:05–07:30 on all five
+  earlier runs — after the 07:00 routine's own branch check, every time — and
+  today it opened #68 at **07:14:42Z, 11 minutes after this session had already
+  found the branch by hand**. The number was already in `ROADMAP.md`, filed as a
+  note for anyone reading run times; nobody had asked what it implied about the
+  *reader*, which is the Phase 12 shape again. Shipped the cron at 02:30 (clears
+  the observed maximum by 37 minutes, with a test that parses the YAML and was
+  verified to fail on `30 6`), `push: [main]` so landing closes the issue in
+  minutes rather than up to 24h, and a `concurrency` group because
+  `gh issue create` is not idempotent. The git-strategy bullets above are
+  reordered and rewritten: `ls-remote` is the **primary** check, the issue is a
+  backstop, and **its absence proves nothing** — a backstop on a schedule you do
+  not control is evidence only when it fires, never when it is silent. 3 new
+  tests (564 total). Write-up: `kb-the-backstop-arrives-after-the-session`;
+  `stranded-branches-need-a-second-channel` re-verified with a note.
+
+  **The backlog is closed again.** The standing re-verification action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today (nothing due until 2026-10-25, and the store is ahead of pace).
 
 ## Debrief contract
 
