@@ -979,6 +979,40 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   Every remaining reopen row waits on Jerry, a bigger store, a second session
   type, or an upstream release.
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (fourth
+  time).** (2026-08-19, second same-day session) Confirmed this repo's own
+  backlog is genuinely closed first: no new stranded branches (the four in the
+  table above, re-checked via `rev-list --count`, are still the only ones and
+  are all pre-dealt-with), triage clean, standing re-verification action
+  doesn't fire (nothing due until 2026-10-25). Re-probed sibling access —
+  worked this session (`list_repos`, `add_repo`, clone, push all succeeded).
+  Tried `tablet-probe` first (most recently pushed) and found it empty but for
+  Jerry's own `chore: init` commit from the day before — not a routine's to
+  build out, that would be inventing scope rather than maintaining it — so
+  skipped it without touching it. Rotated into **`jvanheerikhuize/action-rsi`**
+  instead (no open PRs, first routine session to touch it): a real, actively
+  developed TypeScript project (an audit-bot GitHub Action that itself files
+  spec files against findings). It had already filed 18 specs against itself
+  from a 2026-04-12 self-audit, still open. Picked **FEAT-0001** (`priority:
+  high`, `security`): both `actions/bootstrap` and `actions/publish-results`
+  pushed via `https://x-access-token:${token}@github.com/...`, putting the
+  token in process argv and in the string `execSync` attaches to a thrown
+  `Error` on failure. Fixed both call sites with a shared `lib/git-push.ts`
+  (new file — the two call sites had duplicated the token-in-URL construction
+  verbatim, so this was also a consolidation, not just a fix) using a
+  short-lived `GIT_ASKPASS` script instead of a URL-embedded token. 5 new unit
+  tests confirm the script prints the token only via environment, is
+  owner-only (`0700`), and that a real push through it never puts the token in
+  the pushed repo's `.git/config`. `npm run lint` (`tsc --noEmit`) and
+  `npx vitest run` both clean; rebuilt both changed `dist/` bundles per this
+  repo's own `.agents/AGENTS.md` convention, which also asks for the resolved
+  spec to be deleted and `.agents/CONTEXT.md` updated — both done. PR opened,
+  not merged, per the standing mandate:
+  [jvanheerikhuize/action-rsi#10](https://github.com/jvanheerikhuize/action-rsi/pull/10).
+  No PR-triggered CI configured in that repo (only a weekly audit cron), so
+  there is nothing to watch there beyond review comments; subscribed anyway
+  and scheduled a check-in.
+
 - [x] **The backstop arrives after the session (ROADMAP Phase 20).**
   (2026-08-20) Picked up as the research-tier item. The session-start
   `git ls-remote` check turned up a seventh stranding —
