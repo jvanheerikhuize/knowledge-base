@@ -1001,3 +1001,26 @@ Set up 2026-07-27 before you left.
   and that **its absence proves nothing** — a backstop on a schedule you do not
   control is evidence only when it fires. 3 new tests (564 total), lint and
   triage clean.
+
+- [ ] 2026-08-20 **Cross-repo: fixed an item-loss bug in `just-in-time`'s
+  inventory system and added the repo's first tests.** This repo's own
+  backlog was closed and nothing new due, so rotated to
+  `jvanheerikhuize/just-in-time` per the standing cross-repo mandate (checked
+  open PRs on three candidates first — `undervault` had Jerry's own
+  in-progress draft PR, left alone; `asdlc` and `just-in-time` had none;
+  picked `just-in-time` for having zero test coverage anywhere in the repo).
+  `InventorySystem.equipItem()` returned the previously-equipped item to
+  inventory *before* removing the newly-equipped item, so its carry-weight
+  check counted both items at once — if the check failed, the code still
+  overwrote the equipped slot and removed the new item regardless, silently
+  destroying the old one. `unequipSlot()` had the same shape: cleared the
+  slot even when there was no room to return the item, deleting it. Fixed
+  both (remove-then-restore ordering, upfront fit check that refuses an
+  impossible swap instead of half-applying it). Added
+  `tests/inventory-system.test.js` (11 tests, Node's built-in `node:test`,
+  zero new dependencies per that repo's own no-build-tools rule); both
+  regression tests confirmed failing against the pre-fix code before the fix
+  landed. PR opened, not merged, per the standing mandate:
+  [jvanheerikhuize/just-in-time#2](https://github.com/jvanheerikhuize/just-in-time/pull/2).
+  No CI runs on this diff in that repo (its workflows trigger only on
+  spec-file paths); subscribed for review comments and scheduled a check-in.
