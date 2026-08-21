@@ -1069,3 +1069,33 @@ Set up 2026-07-27 before you left.
   `ROADMAP.md`. Write-up: `kb-a-hung-deploy-reports-as-cancelled`. Jerry — if
   you would rather not wait for a second stall, that predicate is a ten-line
   workflow in the `kb-due.yml` shape and I can add it on a word.
+
+- [ ] 2026-08-21 **Cross-repo: gave `garmin-vivoactive`'s CLI its first direct
+  test coverage.** This repo's own backlog was closed, no new stranded
+  branches beyond the four acknowledged, `triage`/lint clean, standing
+  re-verification action didn't fire (nothing due until 2026-10-25),
+  `consolidate` queue empty (nothing new since yesterday's pass). Re-probed
+  sibling access — worked. Checked open PRs on the two most recently active
+  candidates first: `routemaker` has Jerry's own in-progress draft PR (#7,
+  "real route editing"), left alone per the `undervault`/`routemaker`
+  precedent; `garmin-vivoactive` had none and was untouched by any prior
+  routine session. It's a hardware-dependent CLI (`gva`) for controlling a
+  Vivoactive 6 over MTP/USB and BLE — no physical watch reachable from this
+  sandbox, so the milestones themselves (custom maps, remote config,
+  sideloading) aren't actionable here, same constraint the site-deploy
+  finding above didn't have. Read through the whole library for bugs first
+  (files/health/device/fit/api/server/ble/probe) — found none; the code is
+  careful about the things that matter for a device you can brick (writable-area
+  guards, path-escape checks, AGPL isolation for the BLE extra). What *was*
+  missing: `cli.py` — the `gva` entry point every real invocation goes
+  through — had zero direct tests, 34% coverage, exercised only incidentally
+  through other modules' suites. Added `tests/test_cli.py`: every `cmd_*`
+  function's connected/disconnected and success/error paths, monkeypatching
+  the device/files/fit/health boundary in the same style `test_api.py`
+  already uses, plus `main()`-level argument-parsing smoke tests
+  (subcommand dispatch, `-m`/`--metrics` append+comma-splitting, required
+  subcommands, `--version`). No behavior changes, no bug found this time —
+  `cli.py` 34% → 97%, whole-repo 76% → 86%, 101 → 141 tests, all green. No
+  CI configured in that repo to watch; subscribed for review comments. PR
+  opened, not merged, per the standing mandate:
+  [jvanheerikhuize/garmin-vivoactive#14](https://github.com/jvanheerikhuize/garmin-vivoactive/pull/14).
