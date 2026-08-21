@@ -6,7 +6,7 @@ confidence: verified
 source: built 2026-07-27 in this repo — scripts/build_site.py and .github/workflows/pages.yml
 created: 2026-07-27
 last_verified: 2026-08-04
-links: [kb-is-file-based, persist-insight-to-knowledge-base, editing-the-kb-without-a-cms, kb-entry-status-model, kb-timeline-and-heatmap-are-frontmatter-only, kb-the-bundle-was-already-shipped]
+links: [kb-is-file-based, persist-insight-to-knowledge-base, editing-the-kb-without-a-cms, kb-entry-status-model, kb-timeline-and-heatmap-are-frontmatter-only, kb-the-bundle-was-already-shipped, kb-a-hung-deploy-reports-as-cancelled]
 ---
 
 The knowledge base has a browsable web overview, generated from `memory/`
@@ -40,6 +40,14 @@ before the build, so a schema-invalid KB fails instead of publishing.
 **Live at** https://jvanheerikhuize.github.io/knowledge-base/ — Pages is enabled
 with `build_type: workflow`, so the workflow above is the only thing that
 publishes; there is no branch-based build to keep in sync.
+
+**"Rebuilt on every push" is what the trigger says, not what the site is.** A
+push starting a run is not a run finishing: one `deploy` job hung queued on
+2026-08-09 and held the `pages` concurrency group for twelve days, during which
+every later run reported `cancelled` and the site never moved
+([[kb-a-hung-deploy-reports-as-cancelled]]). To check the site is current, look
+at the newest `pages.yml` run with conclusion `success` — not at whether the
+push happened.
 
 **Consequences to remember.** `site/` is git-ignored — never commit build
 output. The repository is public, so everything in `memory/` is published to

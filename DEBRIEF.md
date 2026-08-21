@@ -1047,3 +1047,25 @@ Set up 2026-07-27 before you left.
   unchanged ones. First pass filed with reasons; queue now empty. 20 new tests
   (584 total), lint/triage clean. Write-up:
   `kb-a-blocker-must-remember-its-rulings`.
+
+- [ ] 2026-08-21 **The published site had not deployed for twelve days, and
+  every failed run said `cancelled`.** Found while checking CI on the merge
+  above — not by any monitor, because nothing watches the publish path. Last
+  successful Pages deploy was **2026-08-09T07:12:47Z**; run `31301354176`
+  built fine and its `deploy` job then sat `queued` for twelve days (no
+  environment protection involved — `pending_deployments` was empty). Because
+  `pages.yml` uses `concurrency: {group: pages, cancel-in-progress: false}` —
+  which is GitHub's own recommended setting, and not the defect — every later
+  run queued behind the dead one and was superseded, so **twelve consecutive
+  real deploys reported `cancelled`**, a word that reads as somebody's
+  decision rather than as a failure. Everything written for ROADMAP Phases
+  14–21 existed only in the repo. **Fixed:** cancelled the stuck 2026-08-09
+  run; the queue drained and `227f3fa` deployed on the first attempt — the
+  first successful publish in twelve days. Corrected
+  `memory-overview-site` and `kb-the-bundle-was-already-shipped` in place,
+  since both promised a freshness the running system was not delivering.
+  **A detector was deliberately not built** (one occurrence is a bug, not a
+  class); the reopen condition and the exact two-request predicate are in
+  `ROADMAP.md`. Write-up: `kb-a-hung-deploy-reports-as-cancelled`. Jerry — if
+  you would rather not wait for a second stall, that predicate is a ten-line
+  workflow in the `kb-due.yml` shape and I can add it on a word.

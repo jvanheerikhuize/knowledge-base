@@ -184,3 +184,6 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-21 — created `semantic/kb-a-blocker-must-remember-its-rulings.md`
 - 2026-08-21 — linked `semantic/kb-consolidation-is-owed-work.md` — -> kb-a-blocker-must-remember-its-rulings
 - 2026-08-21 — verified `semantic/kb-consolidation-is-owed-work.md` — confidence=verified; checked: re-read against live output while doing the first restatement pass since 2026-07-31: merge queue still empty (0 duplicates), every overlapping pair still linked, and the margin/procedure caveat still holds; added the pointer to the passage-ledger finding
+- 2026-08-21 — created `semantic/kb-a-hung-deploy-reports-as-cancelled.md`
+- 2026-08-21 — linked `semantic/memory-overview-site.md` — -> kb-a-hung-deploy-reports-as-cancelled
+- 2026-08-21 — linked `semantic/kb-the-bundle-was-already-shipped.md` — -> kb-a-hung-deploy-reports-as-cancelled
