@@ -178,6 +178,14 @@
       "excerpt": "The repair this entry recommended landed on 2026-08-09 (PR #52). **A session stranded work on 2026-08-10 anyway** \u2014 `cla"
     },
     {
+      "id": "65caab4eaa2b",
+      "host": "kb-forgetting-model",
+      "target": "kb-archived-is-a-filter-commands-forget",
+      "dismissed": "2026-08-21",
+      "note": "this entry's statement of what archiving means for the queues it owns; it crossed the margin only because today's new entry shifted the corpus statistics",
+      "excerpt": "**One consequence worth remembering.** Archiving is also the statement that an entry no longer needs attention, so archi"
+    },
+    {
       "id": "670770bc920e",
       "host": "kb-the-backstop-arrives-after-the-session",
       "target": "stranded-branches-need-a-second-channel",
@@ -416,6 +424,14 @@
       "dismissed": "2026-08-21",
       "note": "the deliberate pointer left behind when the 2026-07-31 pass cut the restating steps; a reference to the procedure is not a copy of it",
       "excerpt": "1. **Before work.** Run `scripts/kb.py search \"<topic>\"` and `scripts/kb.py list` to pull existing context. Read `memory"
+    },
+    {
+      "id": "d011d3feaad3",
+      "host": "memory-overview-site",
+      "target": "kb-a-hung-deploy-reports-as-cancelled",
+      "dismissed": "2026-08-21",
+      "note": "the correction added today to this entry's own 'rebuilt on every push' claim; a correction belongs where the wrong claim was",
+      "excerpt": "**\"Rebuilt on every push\" is what the trigger says, not what the site is.** A push starting a run is not a run finishing"
     },
     {
       "id": "d5c83d58ff0f",

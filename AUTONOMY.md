@@ -1115,6 +1115,18 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   pass. Rule on those and record them; do not let a second 57-item backlog
   accumulate.
 
+  **A second, unplanned finding, recorded because the next session should not
+  re-find it.** Checking CI on the merge turned up that the **published site
+  had not deployed since 2026-08-09** — a `deploy` job hung `queued` and held
+  the `pages` concurrency group, and the twelve runs that piled up behind it
+  each reported `cancelled`, which reads as intentional. Cleared by cancelling
+  the stuck run; `227f3fa` then deployed first try. Nothing watches the publish
+  path, and no detector was built (one occurrence is a bug, not a class — the
+  reopen condition is in `ROADMAP.md`). **The cheap habit until then: after
+  landing anything that touches `memory/`, check the newest `pages.yml` run
+  actually concluded `success`.** A push starting a run is not a run finishing.
+  Write-up: `kb-a-hung-deploy-reports-as-cancelled`.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

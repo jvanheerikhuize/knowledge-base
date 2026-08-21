@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/build_site.py collect()/build(); tests/test_build_site.py BundleContractTests; measured against the 32-entry store on 2026-08-04
 created: 2026-08-04
 last_verified: 2026-08-14
-links: [kb-forgetting-model, memory-overview-site, kb-corrections-happen-in-place, sibling-repo-access-denied-in-routines, kb-capture-is-a-check-not-an-extractor, kb-roadmap]
+links: [kb-forgetting-model, memory-overview-site, kb-corrections-happen-in-place, sibling-repo-access-denied-in-routines, kb-capture-is-a-check-not-an-extractor, kb-roadmap, kb-a-hung-deploy-reports-as-cancelled]
 ---
 
 ROADMAP Phase 9 asked for "a portable bundle (`data.json` plus `memory/`) that
@@ -20,7 +20,12 @@ something other than what they said.
 resolved `links`, computed `backlinks`, `status`, `review_by`, plus `triage`,
 `stats`, and `status_model` — since the site first shipped, and it is
 published to Pages on every memory-touching push. 145 KB for 32 entries, no
-service and no key behind it. Writing an `export` command would have repeated
+service and no key behind it. (**The last clause is a claim about a workflow,
+not about the file a consumer actually fetches** — between 2026-08-09 and
+2026-08-21 no deploy completed at all, so the published bundle was twelve days
+stale while every push looked normal. A consumer should trust the bundle's own
+`generated` field over any promise about how often it is refreshed; see
+[[kb-a-hung-deploy-reports-as-cancelled]].) Writing an `export` command would have repeated
 the [[kb-capture-is-a-check-not-an-extractor]] mistake: building against a flow
 whose implementation already exists under a different name.
 
