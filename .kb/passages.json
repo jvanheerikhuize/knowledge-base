@@ -1,0 +1,493 @@
+{
+  "version": 1,
+  "dismissed": [
+    {
+      "id": "077b36dc5bd7",
+      "host": "kb-context-budget-is-not-a-pack-size",
+      "target": "kb-ranked-retrieval",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "`kb.py context` is the command [[kb-ranked-retrieval]] calls \"the one an agent should reach for first\", and PURPOSE.md's"
+    },
+    {
+      "id": "0830f4888df4",
+      "host": "kb-a-fitted-golden-set-starts-perfect",
+      "target": "kb-golden-set-lives-in-the-wording",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **The vocabulary guard cannot.** Rewording *away* from an entry's own words while steering *toward* its ranking satisf"
+    },
+    {
+      "id": "0d9b31a0ac8f",
+      "host": "kb-a-fitted-golden-set-starts-perfect",
+      "target": "kb-golden-set-lives-in-the-wording",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **File the query at whatever it scores.** A query that misses is data \u2014 it is the only kind of query that can report a"
+    },
+    {
+      "id": "12bfb393afe7",
+      "host": "kb-duplicate-detection-limits",
+      "target": "kb-duplicate-candidates-by-nearest-neighbour",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "**Why.** Shingling detects copy-paste. The entries here are hand-written prose about a small set of related topics, so t"
+    },
+    {
+      "id": "16a4f43adbd5",
+      "host": "kb-tests-cannot-cover-an-absent-guard",
+      "target": "kb-a-registry-asks-only-what-it-has-words-for",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "Enumeration fixes coverage that cannot see absent code; it does not fix a schema that cannot phrase the question. **A re"
+    },
+    {
+      "id": "1cf625e001da",
+      "host": "kb-capture-is-a-check-not-an-extractor",
+      "target": "kb-corrections-happen-in-place",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "This is the fourth phase running where measuring the store first showed the proposed mechanism to be the wrong shape \u2014 ["
+    },
+    {
+      "id": "2086261b0e3b",
+      "host": "memory-overview-site",
+      "target": "kb-the-bundle-was-already-shipped",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**`data.json` is the extension point, and now also a contract.** It carries every entry in full \u2014 frontmatter, body, res"
+    },
+    {
+      "id": "2482b3968425",
+      "host": "kb-archived-is-a-filter-commands-forget",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "> **Corrected 2026-08-07 \u2014 the explanation below is wrong; see > [[kb-tests-cannot-cover-an-absent-guard]].** This entry"
+    },
+    {
+      "id": "2764f32665df",
+      "host": "kb-golden-set-lives-in-the-wording",
+      "target": "kb-a-fitted-golden-set-starts-perfect",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **Assert floors, never scores.** `tests/test_retrieval_golden.py` sets its thresholds about four queries below current"
+    },
+    {
+      "id": "2cb3cb01f7e7",
+      "host": "kb-a-registry-asks-only-what-it-has-words-for",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "So `CORPUS_POLICY` shipped and the corpus did not change. Discovery is mechanical and separate from the first registry's"
+    },
+    {
+      "id": "2d6c704338a6",
+      "host": "workspace-improvement-phases",
+      "target": "workspace-audit-2026-07-27",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "**P0 \u2014 Critical gaps.** *Done.* storyteller and Runbook-Gallery documented; `.gitignore` added to nature-and-nurture and"
+    },
+    {
+      "id": "2d707eba452c",
+      "host": "asdlc-governed-change-rules",
+      "target": "purge-context-after-each-change",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "**Metrics are derived, never stored.** `spec/tools/metrics.py` computes lead/cycle time. Evidence timestamps must come f"
+    },
+    {
+      "id": "3048b6a7e067",
+      "host": "kb-a-registry-asks-only-what-it-has-words-for",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**The lesson is one level above the module's own.** Enumeration fixes coverage that cannot see absent code. It does not "
+    },
+    {
+      "id": "30b80a293c46",
+      "host": "kb-contradiction-is-a-second-axis",
+      "target": "kb-duplicate-candidates-by-nearest-neighbour",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**The structural difference.** Duplication is a *whole-entry* relation; contradiction is a *sub-claim* relation \u2014 one li"
+    },
+    {
+      "id": "4125946ae72f",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "The rate is not the correction; three post-repair sessions with evidence, one stranded, settles nothing at that size. **"
+    },
+    {
+      "id": "42a3d54fe1d5",
+      "host": "kb-review-load-is-one-cohort",
+      "target": "kb-reverification-has-one-rate",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "Two things in this entry should be read with that in mind. The \"busiest day 6 \u2192 15\" evidence in the correction above is "
+    },
+    {
+      "id": "535677c9e666",
+      "host": "kb-tests-cannot-cover-an-absent-guard",
+      "target": "kb-archived-is-a-filter-commands-forget",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "Archiving takes an entry out of retrieval without deleting it ([[kb-forgetting-model]]), so every function that scans th"
+    },
+    {
+      "id": "58dcbe97b9b3",
+      "host": "kb-consolidation-is-owed-work",
+      "target": "kb-a-blocker-must-remember-its-rulings",
+      "dismissed": "2026-08-21",
+      "note": "the pointer paragraph added today: it says what this entry got right and where it stopped, which only means anything in this entry",
+      "excerpt": "**And that binding is the half this entry got right, on a queue it never applied it to.** The two verdict-derived queues"
+    },
+    {
+      "id": "5b6a0e951032",
+      "host": "kb-duplicate-candidates-by-nearest-neighbour",
+      "target": "kb-duplicate-detection-limits",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "[[kb-duplicate-detection-limits]] concluded that lexical similarity cannot find semantic duplicates in this store. That "
+    },
+    {
+      "id": "5fcd5af4106a",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "> deliberately did **not** merge it to `main` or self-close it, reasoning that > the \"end every session on `main`\"/autom"
+    },
+    {
+      "id": "6405b45ea07c",
+      "host": "kb-context-budget-is-not-a-pack-size",
+      "target": "kb-a-constant-query-has-a-ceiling",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "**Correction, 2026-08-19 \u2014 the budget is not the only thing bounding a pack, and this entry framed it as if it were.** E"
+    },
+    {
+      "id": "64cfe1642f58",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "The repair this entry recommended landed on 2026-08-09 (PR #52). **A session stranded work on 2026-08-10 anyway** \u2014 `cla"
+    },
+    {
+      "id": "670770bc920e",
+      "host": "kb-the-backstop-arrives-after-the-session",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "[[stranded-branches-need-a-second-channel]] built the stranded-branch detector on a sound argument: every earlier repair"
+    },
+    {
+      "id": "7455d8067852",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "A routine session \"strands\" work when it pushes a branch and ends without the work reaching `main`. `AUTONOMY.md` has tr"
+    },
+    {
+      "id": "75d03a49ef61",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "stranded-branches-track-the-charter-text",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**One dependency worth knowing:** the zero-false-positive property rests on delete-branch-on-merge being enabled here. A"
+    },
+    {
+      "id": "7b9462147813",
+      "host": "kb-verification-rides-along-with-authoring",
+      "target": "kb-reverification-has-one-rate",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **Not checkable from here at all.** Five of the nine rest on things a routine sandbox cannot see \u2014 `~/.claude/settings"
+    },
+    {
+      "id": "7cb516397c6f",
+      "host": "kb-verification-rides-along-with-authoring",
+      "target": "kb-agent-entrypoint-is-agent-md",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **Now incomplete.** A *third* entrypoint (`AGENTS.md`, 2026-08-06) had appeared, describing four memory layers instead"
+    },
+    {
+      "id": "7e109dc296c2",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "kb-the-backstop-arrives-after-the-session",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "A session cannot be instructed out of a belief it already holds. Every repair this repo has tried for stranding \u2014 the 20"
+    },
+    {
+      "id": "7f29599d68ec",
+      "host": "kb-a-blocker-must-remember-its-rulings",
+      "target": "kb-consolidation-is-owed-work",
+      "dismissed": "2026-08-21",
+      "note": "the new entry's own measured comparison of the two bindings \u2014 the evidence for its claim, not a copy of the neighbour's",
+      "excerpt": "It suppresses *more*, which is the defect and not the benefit. Entries here are corrected in place constantly, so an ent"
+    },
+    {
+      "id": "80d70e5555a9",
+      "host": "editing-the-kb-without-a-cms",
+      "target": "memory-overview-site",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "2. **`scripts/serve.py` for real editing.** A stdlib `http.server` that serves the built site plus a JSON API writing ba"
+    },
+    {
+      "id": "82d8e060eb7e",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "stranded-branches-track-the-charter-text",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "[[stranded-branches-track-the-charter-text]] measured six months of routine sessions and concluded that stranding tracks"
+    },
+    {
+      "id": "91911bc21349",
+      "host": "kb-tests-cannot-cover-an-absent-guard",
+      "target": "kb-a-registry-asks-only-what-it-has-words-for",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "The sentence above \u2014 \"a new scanner cannot be merged without its author answering the question\" \u2014 is too strong, and the"
+    },
+    {
+      "id": "99dd8c3c728f",
+      "host": "kb-review-load-is-one-cohort",
+      "target": "kb-reverification-has-one-rate",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "**Second correction, 2026-08-15: \"a handful per calendar day\" is still wrong, by an order of magnitude, and it is wrong "
+    },
+    {
+      "id": "9e71b6d567bf",
+      "host": "kb-ranked-retrieval",
+      "target": "kb-context-budget-is-not-a-pack-size",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**How many entries that buys is not fixed, and falls as entries get longer** \u2014 5.14 per pack on 2026-07-27, 2.75 on 2026"
+    },
+    {
+      "id": "a30e6a6b685b",
+      "host": "kb-golden-set-lives-in-the-wording",
+      "target": "kb-ranked-retrieval",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "- **Do not retune on this set.** Raising `k1`, and the principled version of the same fix (BM25F: per-field normalised t"
+    },
+    {
+      "id": "a61717b9e0b4",
+      "host": "kb-archived-is-a-filter-commands-forget",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "The cause is that nothing ever **asked** these three commands the question. A scanner that filters archived entries gets"
+    },
+    {
+      "id": "a7fa8ab3cace",
+      "host": "memory-overview-site",
+      "target": "editing-the-kb-without-a-cms",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**Editing.** The site is read-only when published and editable when served locally by `scripts/serve.py` \u2014 one set of fi"
+    },
+    {
+      "id": "a99646747773",
+      "host": "kb-ranked-retrieval",
+      "target": "kb-golden-set-lives-in-the-wording",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "| Field weighting (name \u00d73, description \u00d72, body/meta \u00d71) | a term in an entry's name says what the entry *is about*; th"
+    },
+    {
+      "id": "ad1a685e7cc9",
+      "host": "workspace-audit-2026-07-27",
+      "target": "asdlc-governed-change-rules",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "**Corroborations.** `digital-twin/docs/SOVEREIGNTY.md` exists. In asdlc, `.asdlc/knowledge/`, `.asdlc/changes/`, and `sp"
+    },
+    {
+      "id": "b241f6738797",
+      "host": "kb-ranked-retrieval",
+      "target": "kb-golden-set-lives-in-the-wording",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "Each of those three is a design argument, not a measured gain, and as of 2026-08-02 it is known to be unmeasurable here:"
+    },
+    {
+      "id": "b35862d14072",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "stranded-branches-track-the-charter-text",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**A session stranded work the next day anyway, and not for the reason the repair addressed.** The prior three strandings"
+    },
+    {
+      "id": "b37633d03022",
+      "host": "kb-a-registry-asks-only-what-it-has-words-for",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "It works, and it still certified a decision nobody had made. `rank` declares `EXCLUDES`. That is true of its **results**"
+    },
+    {
+      "id": "b37a5f50cec2",
+      "host": "kb-golden-set-lives-in-the-wording",
+      "target": "kb-a-fitted-golden-set-starts-perfect",
+      "dismissed": "2026-08-21",
+      "note": "correction notice \u2014 it records what this entry used to say and cites the entry that overturned it; a correction belongs where the wrong claim was, not with the claim that replaced it",
+      "excerpt": "**Corrected 2026-08-17: the wording is not the only axis, and this entry used to say it was.** There is a second natural"
+    },
+    {
+      "id": "b4c91cfe4484",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "kb-prospective-memory-that-fires",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "The workflow has never fired in production. `confidence: high`, not `verified`, for the same reason [[kb-prospective-mem"
+    },
+    {
+      "id": "b893704d7c53",
+      "host": "kb-agent-entrypoint-is-agent-md",
+      "target": "kb-verification-rides-along-with-authoring",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**Why it stood for twelve days is the part worth keeping.** This entry was right from the day it was written, and said p"
+    },
+    {
+      "id": "bebebe0e133f",
+      "host": "kb-verification-rides-along-with-authoring",
+      "target": "kb-agent-entrypoint-is-agent-md",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "- **Still true, and one of them was load-bearing.** [[kb-agent-entrypoint-is-agent-md]] had said since 2026-07-27 that `"
+    },
+    {
+      "id": "c2dc74b4ca3d",
+      "host": "kb-reverification-has-one-rate",
+      "target": "kb-review-load-is-one-cohort",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "**`live_entries / cycle_days`** \u2014 for this store on 2026-08-15, 39/90 = **0.433 entries a day**, one entry every 2.3 day"
+    },
+    {
+      "id": "c69a3a1de9d3",
+      "host": "kb-a-registry-asks-only-what-it-has-words-for",
+      "target": "kb-tests-cannot-cover-an-absent-guard",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**The generalisable form, for the next registry:** when adding one, ask what *kinds* of decision the enumerated thing ma"
+    },
+    {
+      "id": "c6c6abb42281",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "kb-archived-is-a-filter-commands-forget",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "This is not inferred from the rate. Both 2026-08-06 sessions wrote the reason down. `claude/wizardly-dijkstra-0sq8ef` he"
+    },
+    {
+      "id": "cc035e14cee5",
+      "host": "kb-reverification-has-one-rate",
+      "target": "kb-review-load-is-one-cohort",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "Five a day does **nearly twice the work for less than half the spread**. The reason is not subtle once seen: a pace abov"
+    },
+    {
+      "id": "ce9f93f805a2",
+      "host": "kb-reverification-has-one-rate",
+      "target": "kb-verification-rides-along-with-authoring",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "Six live entries rest on things a scheduled sandbox cannot see \u2014 `asdlc` and `digital-twin` (sibling repos), the claude."
+    },
+    {
+      "id": "cedb0583ed58",
+      "host": "persist-insight-to-knowledge-base",
+      "target": "kb-agent-entrypoint-is-agent-md",
+      "dismissed": "2026-08-21",
+      "note": "the deliberate pointer left behind when the 2026-07-31 pass cut the restating steps; a reference to the procedure is not a copy of it",
+      "excerpt": "1. **Before work.** Run `scripts/kb.py search \"<topic>\"` and `scripts/kb.py list` to pull existing context. Read `memory"
+    },
+    {
+      "id": "d5c83d58ff0f",
+      "host": "kb-reverification-has-one-rate",
+      "target": "kb-review-load-is-one-cohort",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "**Convergence takes one full cycle and cannot be bought with effort.** The same simulation, sampled every 15 days, sits "
+    },
+    {
+      "id": "eca89bf1b0bc",
+      "host": "kb-consolidation-is-owed-work",
+      "target": "kb-a-blocker-must-remember-its-rulings",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own record of its first pass; it crossed the margin only because today's new entry shifted the corpus statistics, not because it moved",
+      "excerpt": "**First full pass, 2026-07-31.** Seven missing edges drawn. Of 22 restatement proposals, two were real: [[kb-roadmap]] w"
+    },
+    {
+      "id": "f250100a6e88",
+      "host": "kb-capture-is-a-check-not-an-extractor",
+      "target": "distill-session-into-memory",
+      "dismissed": "2026-08-21",
+      "note": "the deliberate pointer left behind when the 2026-07-31 pass cut the restating steps; a reference to the procedure is not a copy of it",
+      "excerpt": "`--check` reports and writes nothing. `--type` with `--name` files the passage as `confidence: unverified`, its first se"
+    },
+    {
+      "id": "f2c8f5ea4cda",
+      "host": "distill-session-into-memory",
+      "target": "kb-capture-is-a-check-not-an-extractor",
+      "dismissed": "2026-08-21",
+      "note": "a step of this procedure telling its reader what capture prefills; it cites the measurement rather than restating it",
+      "excerpt": "5. Add whichever of the other neighbours belong in `links:`. `capture` prefills only the top one \u2014 an edge the author wo"
+    },
+    {
+      "id": "f31feb44b820",
+      "host": "kb-golden-set-lives-in-the-wording",
+      "target": "kb-a-fitted-golden-set-starts-perfect",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "The set carries its own expiry: `TestTheSetCanStillFail` scores the body-blind ranker every run and fails if it ever cle"
+    },
+    {
+      "id": "f6bcc29f832f",
+      "host": "distill-session-into-memory",
+      "target": "kb-capture-is-a-check-not-an-extractor",
+      "dismissed": "2026-08-21",
+      "note": "the deliberate pointer left behind when the 2026-07-31 pass cut the restating steps; a reference to the procedure is not a copy of it",
+      "excerpt": "2. **Write the claim yourself, in a sentence or two.** Nothing extracts it for you: the claim an entry makes is not pres"
+    },
+    {
+      "id": "fd4677073298",
+      "host": "kb-archived-is-a-filter-commands-forget",
+      "target": "kb-forgetting-model",
+      "dismissed": "2026-08-21",
+      "note": "this entry's own measured result, in vocabulary it necessarily shares with the neighbour; moving it would separate the evidence from the claim it supports",
+      "excerpt": "`triage_report`'s comment states the principle exactly: *\"Archiving is the decision that an entry no longer needs attent"
+    },
+    {
+      "id": "fd9f275267ef",
+      "host": "editing-the-kb-without-a-cms",
+      "target": "kb-over-mcp",
+      "dismissed": "2026-08-21",
+      "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
+      "excerpt": "**The constraint this preserves.** Git stays the only durable write path. The server edits the working tree, so changes "
+    },
+    {
+      "id": "ff2384dfc59a",
+      "host": "kb-agent-entrypoint-is-agent-md",
+      "target": "kb-verification-rides-along-with-authoring",
+      "dismissed": "2026-08-21",
+      "note": "two entries on one subject \u2014 the passage argues the host's point, not the target's; the shared vocabulary is the topic, not a restatement",
+      "excerpt": "**What `.claude/CLAUDE.md` used to say** (2026-07-27 \u2192 2026-08-08). Every path it named was wrong, and it was wrong in t"
+    }
+  ]
+}

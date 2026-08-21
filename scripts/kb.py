@@ -316,6 +316,14 @@ NEIGHBOURS = 3
 MIN_CANDIDATE_TOKENS = 20
 VERDICTS = ("duplicate", "overlap", "distinct")
 VERDICTS_FILE = KB_DIR / "verdicts.json"
+# The same idea one level down, for the passage queue in `restatements()`.
+# Measured 2026-08-21: 1,098 proposal-instances across the store's history,
+# 991 of them (90%) a passage the queue had already put up at an earlier
+# commit, four of them unchanged since the store held ten entries. `judge`
+# was born with a ledger and drops a settled pair forever; `restatements`
+# shipped in the same phase without one, so every session re-reads the whole
+# queue. See [[kb-a-blocker-must-remember-its-rulings]].
+PASSAGES_FILE = KB_DIR / "passages.json"
 
 # --- The second question: do these two entries disagree? --------------------
 # Contradiction is a *separate axis* from duplication, not a fourth value of
@@ -501,6 +509,65 @@ def record_verdict(a_name, a_fm, a_body, b_name, b_fm, b_body, verdict,
         record["agreement"] = agreement
     verdicts[_verdict_key(a_name, b_name)] = record
     save_verdicts(verdicts)
+
+
+def passage_id(host, target, passage):
+    """Identity for one restatement proposal: the pair *and* the passage text.
+
+    Binding to the passage rather than to the two entries' content digests —
+    the `.kb/verdicts.json` convention one level up — was measured, not
+    assumed. Simulated over every commit that has touched `memory/`, an
+    entry-bound key is wrong in both directions: it hides 37 passages nobody
+    ever dismissed (one dismissal silently covers every other passage of the
+    same pair), and it still re-presents 24 byte-identical passages because
+    some unrelated paragraph of the host entry changed. Entries here are
+    corrected in place constantly ([[kb-corrections-happen-in-place]]), so an
+    entry digest is the wrong grain for a claim about one paragraph.
+    """
+    raw = "\0".join((host, target, " ".join(passage.split())))
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def load_dismissals():
+    """Restatement proposals already read and ruled on. Missing file: none."""
+    if not PASSAGES_FILE.is_file():
+        return {}
+    try:
+        data = json.loads(PASSAGES_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"warning: ignoring unreadable {PASSAGES_FILE.name}: {e}",
+              file=sys.stderr)
+        return {}
+    return {d["id"]: d for d in data.get("dismissed", [])
+            if isinstance(d, dict) and d.get("id")}
+
+
+def save_dismissals(dismissals):
+    PASSAGES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"version": 1,
+               "dismissed": [dismissals[k] for k in sorted(dismissals)]}
+    PASSAGES_FILE.write_text(json.dumps(payload, indent=2) + "\n",
+                             encoding="utf-8")
+
+
+def record_dismissal(host, target, passage, note=""):
+    """Write down that this passage was read and is where it belongs.
+
+    Only one ruling is recordable, and that is deliberate: acting on a
+    proposal means cutting the passage, which changes its text and retires
+    the proposal on its own. The queue only needs to remember the ones that
+    were read and left alone.
+    """
+    dismissals = load_dismissals()
+    key = passage_id(host, target, passage)
+    dismissals[key] = {
+        "id": key, "host": host, "target": target,
+        "dismissed": datetime.date.today().isoformat(),
+        "note": note or "",
+        "excerpt": " ".join(passage.split())[:120],
+    }
+    save_dismissals(dismissals)
+    return key
 
 
 def candidate_pairs(neighbours=NEIGHBOURS, include_judged=False):
@@ -690,7 +757,17 @@ def restatements(margin=RESTATEMENT_MARGIN, docs=None):
 
     Like `candidates`, this blocks and refuses to rule — most of what it puts
     up is an entry legitimately discussing its neighbour. Returns proposals,
-    best first.
+    best first, each with the `id` a dismissal is recorded against.
+
+    **`mentions_target` is a display tag and must not become a filter.** A
+    passage that already carries `[[target]]` looks like an entry merely
+    discussing its neighbour, and today that is 22 of 57 proposals — an
+    inviting cut. Both of the store's only two acted-on restatements carry it:
+    `kb-roadmap` retelling the contradiction finding, and step 3 of
+    `persist-insight-to-knowledge-base` deferring to
+    [[distill-session-into-memory]], both cut on 2026-07-31. The convention
+    here is to link what you discuss, so a citation marks *aboutness*, which
+    a restatement and a discussion share. 0 of 2 recall; not a filter.
     """
     if docs is None:
         docs, _ = _candidate_docs()
@@ -700,6 +777,7 @@ def restatements(margin=RESTATEMENT_MARGIN, docs=None):
     score = _bm25_scorer(docs)
     by_name = {d["name"]: d for d in docs}
     verdicts = load_verdicts()
+    dismissals = load_dismissals()
 
     out = []
     for host in docs:
@@ -720,7 +798,11 @@ def restatements(margin=RESTATEMENT_MARGIN, docs=None):
             if best <= host_without or best < margin * max(runner_up, 1e-9):
                 continue
             v = verdicts.get(_verdict_key(host["name"], target))
+            standing = dismissals.get(passage_id(host["name"], target, passage))
             out.append({
+                "id": passage_id(host["name"], target, passage),
+                "dismissed": (standing or {}).get("dismissed", ""),
+                "dismissed_note": (standing or {}).get("note", ""),
                 "host": host["name"], "target": target,
                 "score": round(best, 1), "host_score": round(host_without, 1),
                 "runner_up": round(runner_up, 1),
@@ -778,7 +860,7 @@ def nearest_entries(passage, docs=None, limit=5):
     return out
 
 
-def consolidation_report(margin=RESTATEMENT_MARGIN):
+def consolidation_report(margin=RESTATEMENT_MARGIN, include_dismissed=False):
     """Everything the standing verdicts still owe, in three queues.
 
     A verdict is bound to the text it was passed on, so a pair whose entries
@@ -787,6 +869,13 @@ def consolidation_report(margin=RESTATEMENT_MARGIN):
     judgement about text that no longer exists is worse than acting on none.
     Archived entries are absent for the same reason they leave retrieval —
     retiring an entry is already the decision that it no longer speaks.
+
+    Restated passages already read and dismissed drop out on the same
+    principle, and it is the whole reason the ledger exists: this queue's
+    yield is 2 real restatements in 107 distinct proposals across the store's
+    history, so what makes it affordable is never reading the same passage
+    twice. Edit the passage and it returns — a dismissal is bound to the text
+    it was passed on, exactly like a verdict.
     """
     docs, skipped = _candidate_docs()
     digests = {d["name"]: content_digest(d["fm"], d["body"]) for d in docs}
@@ -812,8 +901,13 @@ def consolidation_report(margin=RESTATEMENT_MARGIN):
                 edges.append(item)
     merges.sort(key=lambda p: (p["a"], p["b"]))
     edges.sort(key=lambda p: (p["a"], p["b"]))
+    restated = restatements(margin=margin, docs=docs)
+    hidden = [p for p in restated if p["dismissed"]]
+    if not include_dismissed:
+        restated = [p for p in restated if not p["dismissed"]]
     return {"merges": merges, "missing_edges": edges,
-            "restatements": restatements(margin=margin, docs=docs),
+            "restatements": restated,
+            "dismissed_restatements": len(hidden),
             "too_short": skipped}
 
 
@@ -2373,7 +2467,8 @@ def cmd_candidates(args):
 
 
 def cmd_consolidate(args):
-    report = consolidation_report(margin=args.margin)
+    report = consolidation_report(margin=args.margin,
+                                  include_dismissed=args.all)
     if args.json:
         print(json.dumps(report, indent=2))
         return
@@ -2418,20 +2513,29 @@ def cmd_consolidate(args):
         if not restated:
             print("  none.")
         for p in restated:
-            tags = []
-            if p["linked"]:
-                tags.append("already linked")
+            # 'already linked' is not printed. It fired on 57 of 57 proposals,
+            # and on every proposal at every commit since 2026-08-05: a tag
+            # that never varies is decoration. Its informative half is the
+            # rare one, so only that is shown.
+            tags = [] if p["linked"] else ["no edge between them"]
             if p["mentions_target"]:
                 tags.append("passage already cites it")
             if p["verdict"]:
                 tags.append(f"judged {p['verdict']}")
+            if p["dismissed"]:
+                tags.append(f"dismissed {p['dismissed']}")
             suffix = f"  ({'; '.join(tags)})" if tags else ""
-            print(f"\n  {p['host']} -> {p['target']}{suffix}")
+            print(f"\n  [{p['id']}] {p['host']} -> {p['target']}{suffix}")
             print(f"      {p['score']} vs {p['host_score']} for its own entry, "
                   f"{p['runner_up']} for the next best")
             for line in textwrap.wrap(p["passage"], 72)[:args.lines]:
                 print(f"      | {line}")
-            print(f"      if it restates that entry, cut it to [[{p['target']}]]")
+            print(f"      if it restates that entry, cut it to [[{p['target']}]]"
+                  f" — if not: kb.py dismiss {p['id']} --note \"<why>\"")
+        if report["dismissed_restatements"] and not args.all:
+            print(f"\n  {report['dismissed_restatements']} passage(s) read and "
+                  "dismissed earlier are hidden (kb.py consolidate --all). "
+                  "Editing one puts it back.")
 
     total = len(merges) + len(edges) + len(restated)
     print(f"\n{total} proposal(s). {CONSOLIDATE_CAVEAT}")
@@ -2439,6 +2543,45 @@ def cmd_consolidate(args):
         print(f"{len(report['too_short'])} entr(ies) too short to compare "
               f"(<{MIN_CANDIDATE_TOKENS} distinct words): "
               f"{', '.join(sorted(report['too_short']))}")
+
+
+def cmd_dismiss(args):
+    """Record that a restatement proposal was read and left where it is.
+
+    The id comes from `kb.py consolidate`, and is resolved against the live
+    queue rather than taken on trust: an id that no longer matches a proposal
+    is a passage that has been edited since, and dismissing it would file a
+    ruling about text nobody read.
+    """
+    proposals = {p["id"]: p for p in restatements(margin=args.margin)}
+    if args.undo:
+        dismissals = load_dismissals()
+        missing = [i for i in args.ids if i not in dismissals]
+        if missing:
+            print(f"not dismissed: {', '.join(missing)}", file=sys.stderr)
+            sys.exit(1)
+        for i in args.ids:
+            del dismissals[i]
+        save_dismissals(dismissals)
+        print(f"reopened {len(args.ids)} proposal(s) — back in kb.py consolidate")
+        return
+
+    unknown = [i for i in args.ids if i not in proposals]
+    if unknown:
+        print(f"no live proposal with id: {', '.join(unknown)}", file=sys.stderr)
+        print("run 'kb.py consolidate' for current ids — a passage edited "
+              "since it was listed gets a new one", file=sys.stderr)
+        sys.exit(1)
+
+    for i in args.ids:
+        p = proposals[i]
+        record_dismissal(p["host"], p["target"], p["passage"], args.note or "")
+        print(f"dismissed [{i}] {p['host']} -> {p['target']}")
+    if not args.note:
+        # Same argument as `verify --note`: the record alone cannot say
+        # whether anyone read the passage or just wanted the queue shorter.
+        print("no --note: this hides the passage without saying why it "
+              "belongs where it is", file=sys.stderr)
 
 
 def cmd_judge(args):
@@ -3404,8 +3547,23 @@ def main():
                              "trades more passages to read for more recall")
     p_cons.add_argument("--lines", type=int, default=3,
                         help="wrapped lines of each passage to show (default 3)")
+    p_cons.add_argument("--all", action="store_true",
+                        help="include passages already read and dismissed")
     p_cons.add_argument("--json", action="store_true", help="machine-readable output")
     p_cons.set_defaults(func=cmd_consolidate)
+
+    p_dis = sub.add_parser(
+        "dismiss",
+        help="record that a restated passage was read and belongs where it is")
+    p_dis.add_argument("ids", nargs="+",
+                       help="proposal id(s) from 'kb.py consolidate'")
+    p_dis.add_argument("--note", help="one line on why it belongs where it is")
+    p_dis.add_argument("--margin", type=float, default=RESTATEMENT_MARGIN,
+                       help="the margin the ids were listed at "
+                            f"(default {RESTATEMENT_MARGIN})")
+    p_dis.add_argument("--undo", action="store_true",
+                       help="put dismissed proposal(s) back in the queue")
+    p_dis.set_defaults(func=cmd_dismiss)
 
     p_judge = sub.add_parser(
         "judge", help="record a judgement about one candidate pair")

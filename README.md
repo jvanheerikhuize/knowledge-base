@@ -209,6 +209,7 @@ python3 scripts/kb.py dupes [--threshold 0.5]   # near-verbatim pairs (not parap
 python3 scripts/kb.py candidates [-n 3]         # pairs that may restate each other — for you to judge
 python3 scripts/kb.py judge <a> <b> distinct --agreement agree   # record both calls at once
 python3 scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe — proposals only
+python3 scripts/kb.py dismiss <id> --note "..."   # a restated passage, read and left where it is
 python3 scripts/kb.py history <name>   # what it used to say — corrections here are made in place
 python3 scripts/kb.py stats            # counts, graph density, age, growth — the store in aggregate
 python3 scripts/kb.py eval [--all] [--budget N]  # score retrieval against the golden query set

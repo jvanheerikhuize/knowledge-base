@@ -5,8 +5,8 @@ description: a curated store accumulates overlap, not duplicates — 87 verdicts
 confidence: verified
 source: measured 2026-07-31 against this store's own .kb/verdicts.json plus 7 planted restatement passages; scripts/kb.py consolidation_report()/restatements(), tests/test_kb.py TestConsolidate
 created: 2026-07-31
-last_verified: 2026-08-14
-links: [kb-duplicate-candidates-by-nearest-neighbour, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-entry-status-model, kb-roadmap, distill-session-into-memory, kb-corrections-happen-in-place]
+last_verified: 2026-08-21
+links: [kb-duplicate-candidates-by-nearest-neighbour, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-entry-status-model, kb-roadmap, distill-session-into-memory, kb-corrections-happen-in-place, kb-a-blocker-must-remember-its-rulings]
 ---
 
 `kb.py consolidate` was scoped as "propose merges", queued off the pairs
@@ -79,3 +79,14 @@ Rewriting those three entries expired 26 verdicts and reopened them for
 re-judgement. That is the design working rather than a cost to route around: a
 verdict is bound to a digest of the text it was passed on, so consolidating an
 entry necessarily reopens every claim made about it.
+
+**And that binding is the half this entry got right, on a queue it never
+applied it to.** The two verdict-derived queues above settle, because a
+judgement is written down. The restatement queue had nowhere to write one, so
+the twenty proposals read and left alone on 2026-07-31 came back on every run
+after it — six of them still standing, byte-identical, twenty-one days later.
+Measured across the store's history the queue re-proposed 90% of what it had
+already put up, and its whole yield is the two positives above.
+[[kb-a-blocker-must-remember-its-rulings]] carries the measurement and the
+repair: `kb.py dismiss`, keyed on the passage rather than on the pair, because
+a pair-shaped key cannot say which of a dozen passages was the one read.

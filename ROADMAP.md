@@ -1731,6 +1731,84 @@ works. 3 new tests (564 total). Write-up:
 production checks recorded under Phase 14: issue #68 opened at 07:14:42Z and
 closed at 07:17:25Z once PR #67 landed, both correct.
 
+### Phase 21 — a blocker with no memory of its rulings (2026-08-21)
+
+Nothing on the reopen table had met its condition, no branch was stranded, and
+the standing re-verification action did not fire (nothing due until 2026-10-25,
+store ahead of pace). So the item was the queue nobody had opened since the day
+it shipped: `consolidate`'s restated-passage queue, last read on **2026-07-31**,
+when it held 22 proposals. It holds 57.
+
+**`candidates` and this queue are the same design and only one got a ledger.**
+Both narrow a large space and then refuse to rule, because deciding is a
+judgement someone makes by reading. `judge` writes its verdict to
+`.kb/verdicts.json` — the MCP tool's own description says it is "so the
+judgement outlives your context and nobody re-reads the pair" — and a settled
+pair leaves `candidates` until its text changes. The passage queue had nowhere
+to write one, so a passage read and left alone came back on every run, forever.
+Replaying `restatements()` over all 48 commits that have touched `memory/`,
+code and ranker frozen at today's version:
+
+| | |
+|---|---|
+| proposal-instances the queue has ever put up | 1,098 |
+| distinct passages behind them | **107** |
+| instances that were a passage already put up earlier | **991 (90%)** |
+| passages present at *every* replayed commit | 4 |
+| of the 18 the 2026-07-31 pass read, still standing byte-identical | 6 |
+
+The queue outgrew the store: entries ×1.9 since 2026-07-31, queue ×3.2, the
+per-entry rate 0.75 → 1.27. The signal never changed — the store writes more
+about itself, and each phase write-up discusses and corrects its predecessors
+([[kb-corrections-happen-in-place]]), which is the exact shape "this passage
+reads like another entry" is built to find.
+
+**The yield did not grow with it.** This session read all 57 and cut **none**:
+correction notices recorded where the wrong claim was, paragraphs citing the
+neighbour they argue against, and pairs of entries on one subject. Whole-history
+yield: **2 real restatements in 107 distinct proposals**, both on 2026-07-31.
+That is not an argument for deleting a recall-tuned blocker; it is an argument
+that the *reading* has to be incremental. With the ledger a session reads what
+appeared since the last pass — 0 to 10 per commit across the replay.
+
+**The obvious filter is refuted by the only ground truth there is.** 22 of the
+57 carry `mentions_target` (the passage already contains `[[target]]`), which
+reads as "an entry merely discussing its neighbour" and would cut the queue by
+39%. Both acted-on restatements, recovered from the commit that cut them
+(`99a1f26b`), carry it: `kb-roadmap` → [[kb-contradiction-is-a-second-axis]] at
+score 61.1, and step 3 of `persist-insight-to-knowledge-base` →
+[[distill-session-into-memory]]. **0 of 2 recall**, because the convention here
+is to link what you discuss, so a citation marks *aboutness* — which a
+restatement and a discussion share. Printed, never filtered; the refutation now
+lives in `restatements()`' docstring so the next reader does not re-derive it.
+The other tag was worse: `linked` fired on **57 of 57**, and on every proposal
+at every commit since 2026-08-05, so only its rare informative half is printed
+now (*no edge between them*).
+
+**The ledger's grain was the real decision, and copying the convention one level
+up is wrong in both directions.** Simulated over the same 48 commits:
+
+| binding | suppresses | fails how |
+|---|---|---|
+| passage text (shipped) | 991 of 1,098 | — |
+| both entries' digests, as `verdicts.json` does | 1,004 of 1,098 | hides **37** passages nobody dismissed, and still re-presents **24** byte-identical ones because an unrelated paragraph of the host changed |
+
+It suppresses *more*, which is the defect rather than the benefit: a pair-shaped
+key cannot say which of a dozen passages was read, and an entry digest turns
+over for reasons that have nothing to do with the paragraph being ruled on.
+Same axis, wrong dimension — the shape
+[[kb-a-registry-asks-only-what-it-has-words-for]] records one level up.
+
+**Shipped:** `kb.py dismiss <id> --note` and MCP `dismiss`, writing
+`.kb/passages.json`; ids on every proposal; `consolidate` hides dismissed ones,
+counts what it hid, and takes `--all`. Dismissal is the only recordable ruling,
+deliberately — *acting* on a proposal cuts the passage, which changes its text
+and retires the proposal on its own. The first pass is filed with reasons, and
+the restatement queue is empty for the first time since the store held ten
+entries. 20 new tests (584 total). Write-up:
+[[kb-a-blocker-must-remember-its-rulings]]; [[kb-consolidation-is-owed-work]]
+extended in place and re-verified with a note.
+
 ---
 
 ## Done

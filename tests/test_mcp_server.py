@@ -185,7 +185,7 @@ class TestToolListing(McpTestCase):
             set(tools),
             {"context", "search", "get", "triage", "due", "status", "dupes",
              "duplicate_candidates", "consolidate", "history", "judge",
-             "propose_update", "capture"},
+             "dismiss", "propose_update", "capture"},
         )
         for tool in tools.values():
             self.assertEqual(tool["inputSchema"]["type"], "object")
@@ -671,6 +671,101 @@ class TestHistoryOverMcp(McpTestCase):
         self.handshake()
         result = self.result_of(self.call("history", {"name": "no-such-entry"}))
         self.assertTrue(result["isError"])
+
+
+class TestDismissOverMcp(McpTestCase):
+    """The other half of `consolidate`: recording that a passage stays put.
+
+    Without it the queue has no memory — 90% of what it put up across this
+    store's history was a passage it had already put up before — so a client
+    reading `consolidate` pays for every earlier reader's work.
+    """
+
+    HOST_SUBJECT = (
+        "Hot water forced through finely ground coffee under pressure makes a "
+        "small concentrated drink, and grind, dose and pour duration are the "
+        "levers a barista adjusts when the result is sour or bitter."
+    )
+    RESTATEMENT = (
+        "A note on why no single map can be trusted for everything at once: "
+        "flattening a sphere onto paper always deforms it, so whoever draws "
+        "one picks what survives — angles, relative sizes, or true spacing "
+        "along a few chosen lines — and accepts that the rest comes out wrong."
+    )
+    TARGET_SUBJECT = (
+        "Any attempt to draw a curved surface onto a flat sheet distorts "
+        "something, so a projection is chosen for what it preserves: angle, "
+        "area, or distance along particular lines, never all three at once."
+    )
+
+    def setUp(self):
+        super().setUp()
+        self.write_body("first-fact", f"{self.HOST_SUBJECT}\n\n{self.RESTATEMENT}")
+        self.write_body("second-fact", self.TARGET_SUBJECT)
+
+    def write_body(self, slug, prose):
+        path = self.root / "memory" / "semantic" / f"{slug}.md"
+        head = path.read_text().partition("---\n")[2].partition("\n---\n")[0]
+        path.write_text(f"---\n{head}\n---\n\n{prose}\n")
+
+    def restated(self, args=None):
+        result = self.result_of(self.call("consolidate", args or {}))
+        self.assertFalse(result["isError"], result)
+        return result["structuredContent"]["restatements"], result
+
+    def test_a_dismissal_is_staged_and_takes_the_passage_out_of_the_queue(self):
+        self.handshake()
+        proposals, _ = self.restated()
+        self.assertTrue(proposals, "fixture produced no restatement proposal")
+        result = self.result_of(self.call(
+            "dismiss", {"ids": [proposals[0]["id"]],
+                        "note": "it is an aside, not a restatement"}))
+        self.assertFalse(result["isError"], result)
+        self.assertFalse(result["structuredContent"]["committed"])
+        self.assertIn("passages.json", result["structuredContent"]["file"])
+
+        left, whole = self.restated()
+        self.assertEqual(left, [])
+        self.assertIn("dismissed earlier are hidden", whole["content"][0]["text"])
+
+    def test_include_dismissed_shows_it_again(self):
+        self.handshake()
+        proposals, _ = self.restated()
+        self.call("dismiss", {"ids": [proposals[0]["id"]], "note": "read it"})
+        again, _ = self.restated({"include_dismissed": True})
+        self.assertEqual([p["id"] for p in again],
+                         [p["id"] for p in proposals])
+        self.assertTrue(again[0]["dismissed"])
+
+    def test_an_id_matching_no_live_proposal_is_a_tool_error(self):
+        self.handshake()
+        result = self.result_of(self.call("dismiss", {"ids": ["0123456789ab"]}))
+        self.assertTrue(result["isError"])
+        self.assertIn("no live proposal", result["content"][0]["text"])
+        self.assertFalse((self.root / ".kb" / "passages.json").exists())
+
+    def test_ids_are_required(self):
+        self.handshake()
+        result = self.result_of(self.call("dismiss", {"note": "no ids"}))
+        self.assertTrue(result["isError"])
+        self.assertIn("ids is required", result["content"][0]["text"])
+
+    def test_a_dismissal_without_a_note_says_what_is_missing(self):
+        self.handshake()
+        proposals, _ = self.restated()
+        result = self.result_of(self.call("dismiss", {"ids": [proposals[0]["id"]]}))
+        self.assertFalse(result["isError"])
+        self.assertIn("No note recorded", result["content"][0]["text"])
+
+
+class TestDismissIsAWriteTool(McpTestCase):
+    read_only = True
+
+    def test_dismissing_is_gone_in_read_only_mode_but_consolidate_remains(self):
+        self.handshake()
+        names = {t["name"] for t in self.result_of(self.send("tools/list"))["tools"]}
+        self.assertNotIn("dismiss", names)
+        self.assertIn("consolidate", names)
 
 
 class TestJudgeIsAWriteTool(McpTestCase):

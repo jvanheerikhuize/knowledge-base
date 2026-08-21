@@ -1908,6 +1908,149 @@ class TestConsolidate(TestCandidates):
         self.assertIn("MERGE", out)
         self.assertNotIn("RESTATED", out)
 
+    def test_the_tag_that_never_varies_is_not_printed(self):
+        # 'already linked' fired on 57 of 57 proposals in the real store, and
+        # on every proposal at every commit since 2026-08-05. Only its rare,
+        # informative half is shown.
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+
+        def tags_for_the_pair():
+            for line in self.run_kb("consolidate").stdout.splitlines():
+                if "espresso -> cartography" in line:
+                    return line
+            return ""
+
+        self.assertIn("no edge between them", tags_for_the_pair())
+        self.run_kb("link", "espresso", "cartography")
+        self.assertNotIn("no edge between them", tags_for_the_pair())
+        self.assertNotIn("already linked", tags_for_the_pair())
+
+
+    # --- the queue has to remember the rulings it is given ------------
+    #
+    # `judge` was born with a ledger, so a settled pair drops out forever.
+    # `restatements` shipped in the same phase without one: measured over
+    # every commit that has touched memory/, 991 of 1,098 proposal-
+    # instances (90%) were a passage the queue had already put up, four of
+    # them unchanged since the store held ten entries. What these pin is
+    # the ledger and, above all, its *grain* — bound to the passage, not
+    # to the two entries.
+
+    def plant(self):
+        """The restating passage, and the proposal it produces."""
+        self.append_to("espresso", self.RESTATING_PASSAGE)
+        return self.proposal()
+
+    def proposal(self, host="espresso", target="cartography", *args):
+        for p in self.consolidate(*args)["restatements"]:
+            if (p["host"], p["target"]) == (host, target):
+                return p
+        return None
+
+    def dismiss(self, *args):
+        return self.run_kb("dismiss", *args)
+
+    @staticmethod
+    def passage_id(host, target, passage):
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+        import kb
+        return kb.passage_id(host, target, passage)
+
+    # --- the queue stops handing back what was already read ----------------
+
+    def test_a_dismissed_passage_leaves_the_queue(self):
+        self.dismiss(self.plant()["id"], "--note", "it is where it belongs")
+        self.assertIsNone(self.proposal())
+
+    def test_what_is_hidden_is_counted_rather_than_silently_dropped(self):
+        self.dismiss(self.plant()["id"], "--note", "read it")
+        out = self.run_kb("consolidate").stdout
+        self.assertIn("1 passage(s) read and dismissed earlier are hidden", out)
+
+    def test_all_shows_the_dismissal_with_its_date(self):
+        self.dismiss(self.plant()["id"], "--note", "read it")
+        p = self.proposal("espresso", "cartography", "--all")
+        self.assertEqual(p["dismissed"], datetime.date.today().isoformat())
+        self.assertEqual(p["dismissed_note"], "read it")
+        self.assertIn("dismissed", self.run_kb("consolidate", "--all").stdout)
+
+    def test_undo_puts_it_back(self):
+        pid = self.plant()["id"]
+        self.dismiss(pid, "--note", "read it")
+        self.dismiss(pid, "--undo")
+        self.assertIsNotNone(self.proposal())
+
+    # --- the grain of the binding, which was the measured decision ---------
+
+    def test_editing_the_passage_reopens_it(self):
+        # The same argument as a verdict expiring when an entry is rewritten:
+        # a ruling speaks only for the text it was passed on.
+        self.dismiss(self.plant()["id"], "--note", "read it")
+        path = self.entry_path("semantic", "espresso")
+        path.write_text(path.read_text().replace(
+            "no single map", "no one single map"))
+        self.assertIsNotNone(self.proposal())
+
+    def test_editing_the_host_elsewhere_keeps_the_dismissal(self):
+        # An entry-digest binding — the convention `.kb/verdicts.json` uses one
+        # level up — fails here: entries in this store are corrected in place
+        # constantly, and simulated over the store's history that re-presented
+        # 24 byte-identical passages nobody had touched.
+        self.dismiss(self.plant()["id"], "--note", "read it")
+        self.append_to("espresso", self.FILLER["cricket"])
+        self.assertIsNone(self.proposal())
+
+    def test_two_passages_of_one_pair_are_ruled_on_separately(self):
+        # The other direction of the same error: an entry-bound key collapses
+        # every passage of a pair into one ruling, which hid 37 passages
+        # nobody had read.
+        other = self.RESTATING_PASSAGE.replace("no single map", "no one chart")
+        self.assertNotEqual(
+            self.passage_id("espresso", "cartography", self.RESTATING_PASSAGE),
+            self.passage_id("espresso", "cartography", other))
+
+    def test_the_id_ignores_whitespace_but_not_wording(self):
+        # A proposal is re-listed after every reflow of the same paragraph, so
+        # the key must not turn over on one.
+        rewrapped = self.RESTATING_PASSAGE.replace(" ", "\n  ", 3)
+        self.assertEqual(
+            self.passage_id("espresso", "cartography", self.RESTATING_PASSAGE),
+            self.passage_id("espresso", "cartography", rewrapped))
+
+    def test_the_id_does_not_depend_on_the_margin_it_was_listed_at(self):
+        self.assertEqual(self.plant()["id"],
+                         self.proposal("espresso", "cartography",
+                                       "--margin", "1.0")["id"])
+
+    # --- a ruling nobody can check is not a ruling -------------------------
+
+    def test_an_id_that_matches_no_live_proposal_is_refused(self):
+        self.plant()
+        result = self.dismiss("0123456789ab")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no live proposal", result.stderr)
+        self.assertFalse((self.root / ".kb" / "passages.json").exists())
+
+    def test_a_dismissal_without_a_note_says_what_is_missing(self):
+        result = self.dismiss(self.plant()["id"])
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("no --note", result.stderr)
+
+    def test_the_note_is_kept_with_the_ruling(self):
+        self.dismiss(self.plant()["id"], "--note", "a projection aside")
+        ledger = json.loads(
+            (self.root / ".kb" / "passages.json").read_text())
+        self.assertEqual(ledger["dismissed"][0]["note"], "a projection aside")
+        self.assertEqual(ledger["dismissed"][0]["host"], "espresso")
+        self.assertIn("no single map", ledger["dismissed"][0]["excerpt"])
+
+    def test_dismissing_rewrites_no_entry(self):
+        pid = self.plant()["id"]
+        before = {p: p.read_text() for p in (self.root / "memory").rglob("*.md")}
+        self.dismiss(pid, "--note", "read it")
+        self.assertEqual(before, {p: p.read_text() for p in
+                                  (self.root / "memory").rglob("*.md")})
+
 
 class TestConfidenceDecay(KbTestCase):
     """Age demotes confidence at read time; the file on disk is never rewritten."""
