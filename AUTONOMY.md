@@ -1115,6 +1115,37 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   pass. Rule on those and record them; do not let a second 57-item backlog
   accumulate.
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (sixth
+  time).** (2026-08-21) Confirmed this repo's own backlog was genuinely still
+  closed first: no new stranded branches beyond the four acknowledged,
+  `triage`/lint clean, standing re-verification action doesn't fire (nothing
+  due until 2026-10-25), `consolidate` queue empty (nothing new since
+  yesterday's pass — the queue this file asked the next session to keep
+  clearing had nothing in it yet). Re-probed sibling access — worked
+  (`list_repos`, `add_repo`, clone, push, PR all succeeded). Checked open PRs
+  on the two most recently pushed candidates before picking one:
+  `routemaker` has Jerry's own in-progress draft PR (#7, "real route
+  editing") — left alone without looking further, same call as
+  `undervault`'s draft PR on 2026-08-19. Rotated into
+  **`jvanheerikhuize/garmin-vivoactive`** instead (no open PRs, first routine
+  session to touch it): a hardware-dependent CLI (`gva`) for a Vivoactive 6
+  watch over MTP/BLE. No physical watch is reachable from a routine sandbox,
+  so its own open milestones (custom maps, remote config, CIQ sideloading)
+  aren't this session's to pick up — read the whole library
+  (files/health/device/fit/api/server/ble/probe) looking for the kind of bug
+  prior rotations found, and found none; the writable-area guards, path-escape
+  checks, and AGPL isolation for the BLE extra are all handled carefully. The
+  real gap was `cli.py` — the `gva` entry point every invocation goes
+  through — at 34% coverage with zero direct tests, exercised only
+  incidentally through other modules' suites. Added `tests/test_cli.py`
+  (every `cmd_*` function's connected/disconnected and success/error paths,
+  monkeypatched the same way `test_api.py` already does, plus `main()`-level
+  argument-parsing smoke tests). No behavior change and no bug found this
+  time; `cli.py` 34% → 97%, whole-repo 76% → 86%, 101 → 141 tests green. No
+  CI in that repo to watch; subscribed for review comments. PR opened, not
+  merged, per the standing mandate:
+  [jvanheerikhuize/garmin-vivoactive#14](https://github.com/jvanheerikhuize/garmin-vivoactive/pull/14).
+
   **A second, unplanned finding, recorded because the next session should not
   re-find it.** Checking CI on the merge turned up that the **published site
   had not deployed since 2026-08-09** — a `deploy` job hung `queued` and held
