@@ -116,6 +116,14 @@ are an entry legitimately discussing its neighbour, so read before cutting,
 and use `--margin 1.0` when hunting for a restated *procedure* (see the
 `kb-consolidation-is-owed-work` entry for why the default misses those).
 
+**Record the passages you leave, or the next reader gets them all again.**
+`kb.py dismiss <id> --note "<why it belongs here>"` writes the ruling to
+`.kb/passages.json`, and the passage stays out of `consolidate` until its text
+changes. Without it the queue has no memory: 90% of everything it has ever put
+up was a passage it had already put up at an earlier commit
+(`kb-a-blocker-must-remember-its-rulings`). A verdict from `judge` does not
+cover this — it settles a *pair*, and a pair here can hold a dozen passages.
+
 Re-run `scripts/kb.py lint` periodically (or via CI, see
 `.github/workflows/kb-lint.yml`) — it flags entries whose `last_verified`
 is stale, `confidence: unverified` entries older than 30 days, dangling
@@ -189,7 +197,8 @@ scripts/kb.py archive <name> [--undo]    # retire from retrieval; the file and i
 scripts/kb.py dupes [--threshold 0.5]    # pairs whose text overlaps near-verbatim
 scripts/kb.py candidates [-n 3] [--all]  # pairs that may restate each other — read them, then judge
 scripts/kb.py judge <a> <b> duplicate|overlap|distinct --agreement agree|contradict [--note "..."]   # record both calls
-scripts/kb.py consolidate [--margin 1.5]  # what those verdicts still owe: merges, missing links, restated passages
+scripts/kb.py consolidate [--margin 1.5] [--all]   # what those verdicts still owe: merges, missing links, restated passages
+scripts/kb.py dismiss <id> [--note "..."] [--undo]  # this passage was read and belongs where it is
 scripts/kb.py set <name> <field> <value> # edit one frontmatter field
 scripts/kb.py link <name> <target> [--remove]      # manage links: safely
 scripts/kb.py edit <name>                # open the file in $EDITOR
@@ -223,6 +232,7 @@ python3 scripts/mcp_server.py [--read-only]
 | `status` | where every entry stands and what moves it |
 | `duplicate_candidates` | pairs to read for restatement *and* for disagreement |
 | `consolidate` | what judged pairs still owe — merges, missing links, restated passages |
+| `dismiss` | record that a restated passage was read and stays put |
 | `judge` | record both answers about a pair — staged, never committed |
 | `propose_update` | stage an edit — **it does not commit** |
 

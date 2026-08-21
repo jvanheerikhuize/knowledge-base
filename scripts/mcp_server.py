@@ -372,7 +372,8 @@ def tool_consolidate(args):
         raise ToolError(f"margin must be a number, got {args.get('margin')!r}")
     if margin < 1:
         raise ToolError("margin must be at least 1")
-    report = kb.consolidation_report(margin=margin)
+    report = kb.consolidation_report(
+        margin=margin, include_dismissed=bool(args.get("include_dismissed")))
     merges, edges = report["merges"], report["missing_edges"]
     restated = report["restatements"]
 
@@ -386,23 +387,28 @@ def tool_consolidate(args):
                      + (f"  note: {p['note']}" if p["note"] else ""))
     lines.append(f"\nRESTATED — passages that read as another entry's ({len(restated)})")
     for p in restated:
-        tags = []
-        if p["linked"]:
-            tags.append("already linked")
+        # Only the informative half of `linked` is shown; see cmd_consolidate.
+        tags = [] if p["linked"] else ["no edge between them"]
         if p["mentions_target"]:
             tags.append("passage already cites it")
         if p["verdict"]:
             tags.append(f"judged {p['verdict']}")
+        if p["dismissed"]:
+            tags.append(f"dismissed {p['dismissed']}")
         suffix = f"  ({'; '.join(tags)})" if tags else ""
-        lines.append(f"  {p['host']} -> {p['target']}{suffix}")
+        lines.append(f"  [{p['id']}] {p['host']} -> {p['target']}{suffix}")
         lines.append(f"      | {p['passage'][:200]}")
+    if report["dismissed_restatements"] and not args.get("include_dismissed"):
+        lines.append(f"\n  {report['dismissed_restatements']} passage(s) read "
+                     "and dismissed earlier are hidden. Editing one puts it "
+                     "back; pass include_dismissed to see them.")
     lines.append(
         "\nProposals, not decisions. Each one is a judgement you make by "
         "reading the entries: a missing link is an edge somebody decided was "
         "not worth drawing, and most restated passages are an entry "
         "legitimately discussing its neighbour. Apply the ones that are real "
-        "with `propose_update` (link) or by rewriting the passage; leave the "
-        "rest."
+        "with `propose_update` (link) or by rewriting the passage; record the "
+        "rest with `dismiss` so the next reader is not handed them again."
     )
     return "\n".join(lines), report
 
@@ -450,6 +456,43 @@ def tool_judge(args):
     return text, {"a": a_resolved, "b": b_resolved, "verdict": verdict,
                   "agreement": agreement,
                   "file": str(kb.VERDICTS_FILE.relative_to(kb.ROOT)),
+                  "committed": False}
+
+
+def tool_dismiss(args):
+    """Stage a ruling that a restated passage belongs where it is.
+
+    Resolved against the live queue, like the CLI: an id that matches nothing
+    is a passage edited since it was listed, and a ruling filed against text
+    nobody read is worse than no ruling.
+    """
+    ids = args.get("ids")
+    if isinstance(ids, str):
+        ids = [ids]
+    ids = [str(i).strip() for i in (ids or []) if str(i).strip()]
+    if not ids:
+        raise ToolError("ids is required — one or more proposal ids from "
+                        "`consolidate`")
+    proposals = {p["id"]: p for p in kb.restatements()}
+    unknown = [i for i in ids if i not in proposals]
+    if unknown:
+        raise ToolError(
+            f"no live proposal with id: {', '.join(unknown)}. Run "
+            "`consolidate` for current ids — a passage edited since it was "
+            "listed gets a new one")
+    note = str(args.get("note") or "").strip()
+    for i in ids:
+        p = proposals[i]
+        kb.record_dismissal(p["host"], p["target"], p["passage"], note)
+    done = "\n".join(f"  [{i}] {proposals[i]['host']} -> "
+                     f"{proposals[i]['target']}" for i in ids)
+    text = (f"dismissed (staged, not committed):\n{done}\n"
+            "These stay out of `consolidate` until their text changes.")
+    if not note:
+        text += ("\nNo note recorded: nothing now says why the passage belongs "
+                 "where it is, only that somebody wanted the queue shorter.")
+    return text, {"ids": ids,
+                  "file": str(kb.PASSAGES_FILE.relative_to(kb.ROOT)),
                   "committed": False}
 
 
@@ -798,7 +841,9 @@ READ_TOOLS = [
             "another entry is found (shingle overlap does not find it — "
             "measured, 1 of 7 against 7 of 7). Proposals only, it changes "
             "nothing. Most restated passages are an entry legitimately "
-            "discussing its neighbour, so read before acting."
+            "discussing its neighbour, so read before acting — and record the "
+            "ones you leave with `dismiss`, or the next reader gets them all "
+            "again."
         ),
         "annotations": {"readOnlyHint": True, "openWorldHint": False},
         "inputSchema": {
@@ -809,6 +854,10 @@ READ_TOOLS = [
                                           f"beat the runner-up (default "
                                           f"{kb.RESTATEMENT_MARGIN}); lower trades "
                                           f"more passages to read for more recall"},
+                "include_dismissed": {
+                    "type": "boolean",
+                    "description": "also return passages already read and "
+                                   "dismissed"},
             },
         },
         "handler": tool_consolidate,
@@ -878,6 +927,34 @@ WRITE_TOOLS = [
             "required": ["a", "b", "verdict"],
         },
         "handler": tool_judge,
+    },
+    {
+        "name": "dismiss",
+        "title": "Record that a restated passage belongs where it is (staged)",
+        "description": (
+            "The other half of `consolidate`: say that you read a proposed "
+            "passage and it stays put. Without it the queue has no memory — "
+            "measured over this store's history, 90% of what it puts up is a "
+            "passage it had already put up before, some unchanged since the "
+            "store held ten entries — so every reader pays for every earlier "
+            "reader's work. Pass the id(s) `consolidate` printed. The ruling "
+            "is bound to the passage text: edit the passage and it returns, "
+            "which is why acting on a proposal needs no separate verdict."
+        ),
+        "annotations": {"readOnlyHint": False, "destructiveHint": False,
+                        "idempotentHint": True, "openWorldHint": False},
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "ids": {"type": "array", "items": {"type": "string"},
+                        "description": "proposal id(s) from `consolidate`"},
+                "note": {"type": "string",
+                         "description": "one line on why it belongs where it "
+                                        "is, kept with the ruling"},
+            },
+            "required": ["ids"],
+        },
+        "handler": tool_dismiss,
     },
     {
         "name": "propose_update",

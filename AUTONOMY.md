@@ -1080,6 +1080,41 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   PR opened, not merged, per the standing mandate:
   [jvanheerikhuize/just-in-time#2](https://github.com/jvanheerikhuize/just-in-time/pull/2).
 
+- [x] **A blocker with no memory of its rulings (ROADMAP Phase 21).**
+  (2026-08-21) Picked up as the research-tier item. Backlog closed, no stranded
+  branches beyond the four acknowledged above, `triage` clean, standing
+  re-verification action does not fire (nothing due until 2026-10-25, store
+  ahead of pace), and nothing on ROADMAP's reopen table had met its condition.
+  So the item was the one queue nobody had opened since the day it shipped:
+  `consolidate`'s restated passages, last read 2026-07-31 at 22 proposals,
+  today 57. **`candidates` and that queue are the same design and only one got
+  a ledger** — `judge` writes a verdict and a settled pair drops out forever;
+  the passage queue had nowhere to write one. Replaying `restatements()` over
+  all 48 commits that have touched `memory/`: **991 of 1,098 proposal-instances
+  (90%) were a passage already put up at an earlier commit**, 4 unchanged since
+  the store held ten entries, 6 of the 18 read on 2026-07-31 still standing
+  byte-identical. Read all 57 and cut **none**; whole-history yield is 2 real
+  restatements in 107 distinct proposals. The inviting filter — 22 of 57
+  passages already cite their target — was **refuted by the store's only ground
+  truth**: both acted-on restatements carry it (0 of 2 recall), because the
+  convention here is to link what you discuss, so a citation marks aboutness.
+  `linked` was worse, firing on 57 of 57 and on every proposal since
+  2026-08-05, so only its informative half is printed now. The design decision
+  was the ledger's **grain**: copying `verdicts.json`'s entry-digest key hides
+  37 passages nobody dismissed and still re-presents 24 byte-identical ones, so
+  the key is the passage text. Shipped `kb.py dismiss` (CLI + MCP), ids on every
+  proposal, `--all`, and the first pass filed with reasons — the queue is empty
+  for the first time since the store had ten entries. 20 new tests (584 total).
+  Write-up: `kb-a-blocker-must-remember-its-rulings`;
+  `kb-consolidation-is-owed-work` extended in place and re-verified with a note.
+
+  **The backlog is closed again.** The standing re-verification action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today. **For the next session:** `consolidate` is now cheap to run and
+  worth running, because what it shows is only what has appeared since the last
+  pass. Rule on those and record them; do not let a second 57-item backlog
+  accumulate.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

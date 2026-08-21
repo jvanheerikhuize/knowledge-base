@@ -1024,3 +1024,26 @@ Set up 2026-07-27 before you left.
   [jvanheerikhuize/just-in-time#2](https://github.com/jvanheerikhuize/just-in-time/pull/2).
   No CI runs on this diff in that repo (its workflows trigger only on
   spec-file paths); subscribed for review comments and scheduled a check-in.
+
+- [ ] 2026-08-21 **The restatement queue had no memory, so every session
+  re-read all of it.** Research-tier item; backlog closed, no stranded
+  branches, standing re-verification action did not fire. `consolidate`'s
+  restated-passage queue had not been read since the day it shipped
+  (2026-07-31, 22 proposals); it held 57. Replaying `restatements()` over all
+  48 commits that have touched `memory/`: **991 of 1,098 proposal-instances
+  (90%) were a passage the queue had already put up at an earlier commit**,
+  four of them unchanged since the store held ten entries, and six of the 18
+  the 2026-07-31 session read were still standing byte-identical three weeks
+  later. `judge` was born with a ledger and drops a settled pair forever; the
+  passage queue shipped in the same phase without one. Read all 57 and cut
+  **none** — whole-history yield is 2 real restatements in 107 distinct
+  proposals — which is what a recall-tuned blocker looks like, and why the
+  reading has to be incremental rather than repeated. The obvious filter
+  (22 of 57 passages already cite their target) was **refuted**: both
+  acted-on restatements in the store's history carry that flag, 0 of 2
+  recall. Shipped `kb.py dismiss` + MCP `dismiss` writing `.kb/passages.json`,
+  keyed on the **passage** rather than on the two entries — measured, since an
+  entry-digest key hides 37 passages nobody read and still re-presents 24
+  unchanged ones. First pass filed with reasons; queue now empty. 20 new tests
+  (584 total), lint/triage clean. Write-up:
+  `kb-a-blocker-must-remember-its-rulings`.
