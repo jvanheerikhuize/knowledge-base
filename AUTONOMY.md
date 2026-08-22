@@ -803,6 +803,25 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   behind its `sustainable pace` — not a handful, not a batch, not "the
   reachable queue". `kb.py verify` will now tell you when you have passed it.
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (seventh
+  time).** (2026-08-22, second same-day session) Confirmed this repo's own
+  backlog was genuinely closed first: no new stranded branches beyond the
+  four acknowledged, `lint --strict`/`triage` clean, judgement queue 0/106,
+  standing re-verification action doesn't fire (nothing due until
+  2026-10-25). Re-probed sibling access — worked. Rotated into
+  **`jvanheerikhuize/centauri-control`** (a 3D-printer LAN-control project,
+  first routine session to touch it) and found one open PR: Jerry's own
+  draft `#5`, a completed repository audit with a numbered findings table
+  and recommended order of work — not in-progress feature code like the
+  `routemaker`/`undervault` drafts left alone on 2026-08-19/20, so
+  implementing its findings as a separate PR didn't conflict with it. Fixed
+  the audit's top two concrete bugs (a missing Origin/Host check on the
+  dashboard's POST routes; an unlocked request-id counter with a real
+  wrong-answer race, confirmed by deterministic reproduction rather than a
+  timing-dependent stress test) and added the repo's first test suite (70
+  cases) plus CI, per the audit's finding 3. PR opened, not merged, per the
+  standing mandate: [jvanheerikhuize/centauri-control#6](https://github.com/jvanheerikhuize/centauri-control/pull/6).
+
 - [x] **Nothing predicts the next correction (ROADMAP Phase 16).** (2026-08-16)
   Picked up as the research-tier item. Sibling access unavailable again this
   session (no `add_repo`/`list_repos` in this run's toolset, unauthenticated
