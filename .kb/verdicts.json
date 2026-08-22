@@ -45,20 +45,30 @@
       "a": "asdlc-governed-change-rules",
       "b": "workspace-repo-inventory-drift",
       "verdict": "distinct",
-      "judged": "2026-07-30",
+      "judged": "2026-08-22",
       "a_digest": "9b229e2d054d",
-      "b_digest": "7886fb25075b",
-      "note": "rules for two repos vs a miscount of all of them",
+      "b_digest": "d55fd9871c64",
+      "note": "rules for two repos vs a miscount of all of them [re-confirmed 2026-08-22, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "audit-test-corpora-for-artificial-uniformity",
+      "b": "kb-a-registry-asks-only-what-it-has-words-for",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "cdbade3328bf",
+      "b_digest": "878cc5351a2e",
+      "note": "a declaration schema vs a corpus-uniformity audit rule",
       "agreement": "agree"
     },
     {
       "a": "audit-test-corpora-for-artificial-uniformity",
       "b": "kb-archived-is-a-filter-commands-forget",
       "verdict": "overlap",
-      "judged": "2026-08-06",
-      "a_digest": "97945a761f80",
-      "b_digest": "19deb225467d",
-      "note": "the archived-filter bug class is that procedure's rule 2 with archived as the uniform axis; third instance it would have predicted",
+      "judged": "2026-08-22",
+      "a_digest": "cdbade3328bf",
+      "b_digest": "6333483e16dc",
+      "note": "the archived-filter bug class is that procedure's rule 2 with archived as the uniform axis; third instance it would have predicted [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -115,20 +125,20 @@
       "a": "audit-test-corpora-for-artificial-uniformity",
       "b": "kb-test-audit-2026-07-29",
       "verdict": "overlap",
-      "judged": "2026-08-01",
-      "a_digest": "97945a761f80",
+      "judged": "2026-08-22",
+      "a_digest": "cdbade3328bf",
       "b_digest": "08489a6daa37",
-      "note": "the procedure was distilled from that audit",
+      "note": "the procedure was distilled from that audit [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "audit-test-corpora-for-artificial-uniformity",
       "b": "kb-tests-cannot-cover-an-absent-guard",
       "verdict": "overlap",
-      "judged": "2026-08-07",
+      "judged": "2026-08-22",
       "a_digest": "cdbade3328bf",
-      "b_digest": "5140e2101e06",
-      "note": "bounds the procedure rather than contradicting it: rule 2 finds wrong code, not missing code; the procedure now records that limit as step 5",
+      "b_digest": "ebbe1d152e67",
+      "note": "bounds the procedure rather than contradicting it: rule 2 finds wrong code, not missing code; the procedure now records that limit as step 5 [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -185,10 +195,10 @@
       "a": "distill-session-into-memory",
       "b": "kb-is-file-based",
       "verdict": "distinct",
-      "judged": "2026-07-31",
-      "a_digest": "3b50a84dca1d",
+      "judged": "2026-08-22",
+      "a_digest": "ea4a540d05bb",
       "b_digest": "6eec28cb29d9",
-      "note": "what the store is vs how to add to it",
+      "note": "what the store is vs how to add to it [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -229,6 +239,16 @@
       "a_digest": "ea4a540d05bb",
       "b_digest": "1bddaf75731b",
       "note": "re-judged after the procedure was rewritten around capture; persist-insight still restates its later steps",
+      "agreement": "agree"
+    },
+    {
+      "a": "editing-the-kb-without-a-cms",
+      "b": "kb-agent-entrypoint-is-agent-md",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "7d0ba0e594b9",
+      "b_digest": "f0325c10297f",
+      "note": "how a human edits the store vs which file an agent must read first",
       "agreement": "agree"
     },
     {
@@ -315,10 +335,10 @@
       "a": "editing-the-kb-without-a-cms",
       "b": "memory-overview-site",
       "verdict": "overlap",
-      "judged": "2026-07-30",
+      "judged": "2026-08-22",
       "a_digest": "7d0ba0e594b9",
-      "b_digest": "58b226771525",
-      "note": "the same site, seen from publishing and from editing",
+      "b_digest": "74b0405f3320",
+      "note": "the same site, seen from publishing and from editing [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -392,6 +412,216 @@
       "agreement": "agree"
     },
     {
+      "a": "kb-a-blocker-must-remember-its-rulings",
+      "b": "kb-a-verdict-expires-faster-than-it-is-written",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "4308c597194a",
+      "b_digest": "4c1da9e98458",
+      "note": "the passage queue had no ledger; the pair queue has one and it expires \u2014 the two failure modes of the same blocker design, and neither is the other",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-blocker-must-remember-its-rulings",
+      "b": "kb-consolidation-is-owed-work",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "4308c597194a",
+      "b_digest": "f61f064dacb2",
+      "note": "the queue consolidate shipped, and what having no ledger cost it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-blocker-must-remember-its-rulings",
+      "b": "kb-duplicate-candidates-by-nearest-neighbour",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "4308c597194a",
+      "b_digest": "a37be1bfb423",
+      "note": "the same blocker design one level down, and the ledger only the pair queue had",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-blocker-must-remember-its-rulings",
+      "b": "kb-roadmap",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "4308c597194a",
+      "b_digest": "34a03dbcca83",
+      "note": "a queue's ledger vs the roadmap's phase list",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-blocker-must-remember-its-rulings",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "4308c597194a",
+      "b_digest": "a20e186f09d6",
+      "note": "a queue's ledger vs an entry's verification record",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-constant-query-has-a-ceiling",
+      "b": "kb-a-registry-asks-only-what-it-has-words-for",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "0bf06e1c1607",
+      "b_digest": "878cc5351a2e",
+      "note": "a query's reach vs a registry's vocabulary",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-constant-query-has-a-ceiling",
+      "b": "kb-context-budget-is-not-a-pack-size",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "0bf06e1c1607",
+      "b_digest": "19833be62399",
+      "note": "the budget clamp is why the constant query's ceiling was invisible",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-constant-query-has-a-ceiling",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "0bf06e1c1607",
+      "b_digest": "b078e6748d8a",
+      "note": "the ranker, and what a constant query can reach through it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-fitted-golden-set-starts-perfect",
+      "b": "kb-context-budget-is-not-a-pack-size",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5aef71e410d6",
+      "b_digest": "19833be62399",
+      "note": "two blind spots in the same eval suite",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-fitted-golden-set-starts-perfect",
+      "b": "kb-golden-set-lives-in-the-wording",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5aef71e410d6",
+      "b_digest": "c7a0b67a190e",
+      "note": "wording is half of it; selection on the measured outcome is the other half, carried into the first entry in place",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-fitted-golden-set-starts-perfect",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5aef71e410d6",
+      "b_digest": "b078e6748d8a",
+      "note": "the fixture and the ranker it scores",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-hung-deploy-reports-as-cancelled",
+      "b": "kb-the-backstop-arrives-after-the-session",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5ad1c738f0ad",
+      "b_digest": "33659e57d223",
+      "note": "two CI signals whose silence reads as health",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-hung-deploy-reports-as-cancelled",
+      "b": "kb-the-bundle-was-already-shipped",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5ad1c738f0ad",
+      "b_digest": "786f51bb818c",
+      "note": "the bundle is published by the deploy that stalled",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-hung-deploy-reports-as-cancelled",
+      "b": "memory-overview-site",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "5ad1c738f0ad",
+      "b_digest": "74b0405f3320",
+      "note": "the site this entry describes, and the twelve days it silently stopped publishing",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-hung-deploy-reports-as-cancelled",
+      "b": "stranded-branches-need-a-second-channel",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "5ad1c738f0ad",
+      "b_digest": "ad258f476900",
+      "note": "a misleading run conclusion vs the need for an out-of-session signal [re-confirmed 2026-08-22 after this entry's own edit, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-registry-asks-only-what-it-has-words-for",
+      "b": "kb-archived-is-a-filter-commands-forget",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "878cc5351a2e",
+      "b_digest": "6333483e16dc",
+      "note": "the archived axis, and the registry that certified only half of rank's handling of it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-registry-asks-only-what-it-has-words-for",
+      "b": "kb-context-budget-is-not-a-pack-size",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "878cc5351a2e",
+      "b_digest": "19833be62399",
+      "note": "a registry's missing dimension vs a caller-facing default's silent drift",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-registry-asks-only-what-it-has-words-for",
+      "b": "kb-tests-cannot-cover-an-absent-guard",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "878cc5351a2e",
+      "b_digest": "ebbe1d152e67",
+      "note": "the second built the enumeration; the first found its schema could not phrase the corpus question \u2014 a bound carried in place, not a correction",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-verdict-expires-faster-than-it-is-written",
+      "b": "kb-consolidation-is-owed-work",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "4c1da9e98458",
+      "b_digest": "f61f064dacb2",
+      "note": "both are pair-level owed work that lint cannot see because it reads one entry at a time",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-a-verdict-expires-faster-than-it-is-written",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "4c1da9e98458",
+      "b_digest": "a20e186f09d6",
+      "note": "a verdict's expiry is driven by edits to either entry; last_verified moves only with an edit to the one entry \u2014 related shape, different mechanism and different queue",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "kb-corrections-happen-in-place",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "37b14d39ec72",
+      "note": "which file is authoritative vs how obsolete claims get repaired",
+      "agreement": "agree"
+    },
+    {
       "a": "kb-agent-entrypoint-is-agent-md",
       "b": "kb-is-file-based",
       "verdict": "overlap",
@@ -423,22 +653,62 @@
     },
     {
       "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "a20e186f09d6",
+      "note": "the correct-but-unread entry is that finding's central case",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
       "b": "memory-overview-site",
       "verdict": "distinct",
-      "judged": "2026-07-30",
-      "a_digest": "93c2654408d2",
-      "b_digest": "58b226771525",
-      "note": "the layout contract vs the published site",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "74b0405f3320",
+      "note": "the layout contract vs the published site [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "kb-agent-entrypoint-is-agent-md",
       "b": "persist-insight-to-knowledge-base",
       "verdict": "distinct",
-      "judged": "2026-07-31",
-      "a_digest": "93c2654408d2",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
       "b_digest": "1bddaf75731b",
-      "note": "both name AGENT.md as the authoritative contract",
+      "note": "both name AGENT.md as the authoritative contract [re-confirmed 2026-08-22, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "b0c0f57d80a3",
+      "note": "which contract file is authoritative vs which repos a routine can reach",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "twin-sovereignty-constraint",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "64b47c7c6194",
+      "note": "this repo's entrypoint vs another repo's design constraint",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-agent-entrypoint-is-agent-md",
+      "b": "workspace-audit-2026-07-27",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "cb63a8a06f2d",
+      "note": "this repo's contract file vs a dated workspace-wide sweep",
       "agreement": "agree"
     },
     {
@@ -455,10 +725,10 @@
       "a": "kb-agent-entrypoint-is-agent-md",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-07-30",
-      "a_digest": "93c2654408d2",
-      "b_digest": "7886fb25075b",
-      "note": "the same stale .claude/CLAUDE.md is the source of both problems",
+      "judged": "2026-08-22",
+      "a_digest": "f0325c10297f",
+      "b_digest": "d55fd9871c64",
+      "note": "the same stale .claude/CLAUDE.md is the source of both problems [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -475,20 +745,20 @@
       "a": "kb-archived-is-a-filter-commands-forget",
       "b": "kb-forgetting-model",
       "verdict": "overlap",
-      "judged": "2026-08-06",
-      "a_digest": "19deb225467d",
+      "judged": "2026-08-22",
+      "a_digest": "6333483e16dc",
       "b_digest": "1a1d76b3f41d",
-      "note": "forgetting-model defines what archiving means; this entry is about commands failing to honour it",
+      "note": "forgetting-model defines what archiving means; this entry is about commands failing to honour it [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "kb-archived-is-a-filter-commands-forget",
       "b": "kb-prospective-memory-that-fires",
       "verdict": "overlap",
-      "judged": "2026-08-06",
-      "a_digest": "19deb225467d",
+      "judged": "2026-08-22",
+      "a_digest": "6333483e16dc",
       "b_digest": "daf178895d46",
-      "note": "the archived entry that triggered the bug is a spent prospective entry; that entry owns the due-date lifecycle, this one the lint's handling of its end",
+      "note": "the archived entry that triggered the bug is a spent prospective entry; that entry owns the due-date lifecycle, this one the lint's handling of its end [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -515,20 +785,20 @@
       "a": "kb-archived-is-a-filter-commands-forget",
       "b": "kb-tests-cannot-cover-an-absent-guard",
       "verdict": "overlap",
-      "judged": "2026-08-07",
+      "judged": "2026-08-22",
       "a_digest": "6333483e16dc",
-      "b_digest": "5140e2101e06",
-      "note": "the second corrects the first's cause; the first now carries that correction in place, so they agree as they stand",
+      "b_digest": "ebbe1d152e67",
+      "note": "the second corrects the first's cause; the first now carries that correction in place, so they agree as they stand [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "kb-capture-is-a-check-not-an-extractor",
       "b": "kb-consolidation-is-owed-work",
       "verdict": "overlap",
-      "judged": "2026-08-03",
+      "judged": "2026-08-22",
       "a_digest": "d2a780baea0f",
-      "b_digest": "d8d25189dc67",
-      "note": "capture reuses the restatement scorer consolidate shipped; consolidate cleans restatement after the fact, capture refuses it at the door",
+      "b_digest": "f61f064dacb2",
+      "note": "capture reuses the restatement scorer consolidate shipped; consolidate cleans restatement after the fact, capture refuses it at the door [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -565,10 +835,10 @@
       "a": "kb-consolidation-is-owed-work",
       "b": "kb-contradiction-is-a-second-axis",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "d8d25189dc67",
+      "judged": "2026-08-22",
+      "a_digest": "f61f064dacb2",
       "b_digest": "cd9911f20682",
-      "note": "both record a proposed detector that measurement replaced with something else",
+      "note": "both record a proposed detector that measurement replaced with something else [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -585,20 +855,20 @@
       "a": "kb-consolidation-is-owed-work",
       "b": "kb-duplicate-candidates-by-nearest-neighbour",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "d8d25189dc67",
+      "judged": "2026-08-22",
+      "a_digest": "f61f064dacb2",
       "b_digest": "a37be1bfb423",
-      "note": "this entry applies that one's nearest-neighbour framing one level down, to passages",
+      "note": "this entry applies that one's nearest-neighbour framing one level down, to passages [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "kb-consolidation-is-owed-work",
       "b": "kb-duplicate-detection-limits",
       "verdict": "overlap",
-      "judged": "2026-07-31",
-      "a_digest": "d8d25189dc67",
+      "judged": "2026-08-22",
+      "a_digest": "f61f064dacb2",
       "b_digest": "4dc736de7ec2",
-      "note": "containment fails on restatements at passage scale for the reason that entry established at entry scale",
+      "note": "containment fails on restatements at passage scale for the reason that entry established at entry scale [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -649,6 +919,36 @@
       "a_digest": "d8d25189dc67",
       "b_digest": "08489a6daa37",
       "note": "pair-level link debt vs a test-suite audit",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-context-budget-is-not-a-pack-size",
+      "b": "kb-golden-set-lives-in-the-wording",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "19833be62399",
+      "b_digest": "c7a0b67a190e",
+      "note": "the golden set has no budget term, which is why the pack shrank unseen",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-context-budget-is-not-a-pack-size",
+      "b": "kb-ranked-retrieval",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "19833be62399",
+      "b_digest": "b078e6748d8a",
+      "note": "the ranker, and the packing step downstream of it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-context-budget-is-not-a-pack-size",
+      "b": "kb-reverification-has-one-rate",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "19833be62399",
+      "b_digest": "016e388ab73f",
+      "note": "a token budget vs a verification pace",
       "agreement": "agree"
     },
     {
@@ -713,6 +1013,16 @@
     },
     {
       "a": "kb-contradiction-is-a-second-axis",
+      "b": "kb-instruction-content-lint",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "cd9911f20682",
+      "b_digest": "5a26c6c6d719",
+      "note": "a verdict axis vs a regex lint for injected instructions",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-contradiction-is-a-second-axis",
       "b": "kb-ranked-retrieval",
       "verdict": "distinct",
       "judged": "2026-07-30",
@@ -749,6 +1059,16 @@
       "a_digest": "cd9911f20682",
       "b_digest": "5140e2101e06",
       "note": "both add a check the store lacked, but one is about judging entry pairs and the other about enumerating code paths",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-contradiction-is-a-second-axis",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "cd9911f20682",
+      "b_digest": "d55fd9871c64",
+      "note": "the axis itself vs a workspace finding that never used it",
       "agreement": "agree"
     },
     {
@@ -793,6 +1113,16 @@
     },
     {
       "a": "kb-corrections-happen-in-place",
+      "b": "kb-nothing-predicts-the-next-correction",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "863cfdbc6865",
+      "note": "corrections happen in place, and nothing here predicts which entry is next",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
       "b": "kb-over-mcp",
       "verdict": "distinct",
       "judged": "2026-08-01",
@@ -829,6 +1159,26 @@
       "a_digest": "37b14d39ec72",
       "b_digest": "ccb477698798",
       "note": "supplies the 2-of-33 claim-rewrite count the no-prioritiser argument rests on",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-the-bundle-was-already-shipped",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "786f51bb818c",
+      "note": "correction-in-place vs which confidence number the export publishes \u2014 adjacent through frontmatter, different claims",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-corrections-happen-in-place",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "37b14d39ec72",
+      "b_digest": "a20e186f09d6",
+      "note": "edits and dates move together; these describe that from opposite ends",
       "agreement": "agree"
     },
     {
@@ -965,10 +1315,10 @@
       "a": "kb-entry-status-model",
       "b": "kb-prospective-memory-that-fires",
       "verdict": "distinct",
-      "judged": "2026-08-01",
+      "judged": "2026-08-22",
       "a_digest": "c5709f5ca1d4",
-      "b_digest": "d21a380a0ecb",
-      "note": "status/triage are per-entry across all types; due is a filtered view scoped to prospective's due field",
+      "b_digest": "daf178895d46",
+      "note": "status/triage are per-entry across all types; due is a filtered view scoped to prospective's due field [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1009,6 +1359,16 @@
       "a_digest": "c5709f5ca1d4",
       "b_digest": "08489a6daa37",
       "note": "unrelated subjects",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-entry-status-model",
+      "b": "kb-the-bundle-was-already-shipped",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "c5709f5ca1d4",
+      "b_digest": "786f51bb818c",
+      "note": "the export publishes this status model, and published the wrong confidence beside it",
       "agreement": "agree"
     },
     {
@@ -1115,20 +1475,30 @@
       "a": "kb-golden-set-lives-in-the-wording",
       "b": "kb-ranked-retrieval",
       "verdict": "overlap",
-      "judged": "2026-08-02",
-      "a_digest": "a7eae5814a82",
-      "b_digest": "98bb598eab5d",
-      "note": "the golden set measures the ranker this entry describes; ranked-retrieval now records that its three memory signals are unmeasurable at this store size",
+      "judged": "2026-08-22",
+      "a_digest": "c7a0b67a190e",
+      "b_digest": "b078e6748d8a",
+      "note": "the golden set measures the ranker this entry describes; ranked-retrieval now records that its three memory signals are unmeasurable at this store size [re-confirmed 2026-08-22, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-instruction-content-lint",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "5a26c6c6d719",
+      "b_digest": "a20e186f09d6",
+      "note": "untrusted-content lint vs what a verification date means",
       "agreement": "agree"
     },
     {
       "a": "kb-is-file-based",
       "b": "memory-overview-site",
       "verdict": "overlap",
-      "judged": "2026-07-30",
+      "judged": "2026-08-22",
       "a_digest": "6eec28cb29d9",
-      "b_digest": "58b226771525",
-      "note": "the static site is a consequence of the no-infrastructure premise",
+      "b_digest": "74b0405f3320",
+      "note": "the static site is a consequence of the no-infrastructure premise [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1149,6 +1519,26 @@
       "a_digest": "6eec28cb29d9",
       "b_digest": "7886fb25075b",
       "note": "",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-nothing-predicts-the-next-correction",
+      "b": "kb-review-load-is-one-cohort",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "863cfdbc6865",
+      "b_digest": "2f3a319d5505",
+      "note": "what to re-verify next, and why the queue is flat enough that it barely matters",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-nothing-predicts-the-next-correction",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "863cfdbc6865",
+      "b_digest": "a20e186f09d6",
+      "note": "the prioritiser question, and the field any prioritiser would key on",
       "agreement": "agree"
     },
     {
@@ -1193,6 +1583,16 @@
     },
     {
       "a": "kb-prospective-memory-that-fires",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "daf178895d46",
+      "b_digest": "a20e186f09d6",
+      "note": "a due date that fires vs a verification date that mostly does not move",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-prospective-memory-that-fires",
       "b": "memory-overview-site",
       "verdict": "distinct",
       "judged": "2026-08-01",
@@ -1212,13 +1612,23 @@
       "agreement": "agree"
     },
     {
+      "a": "kb-prospective-memory-that-fires",
+      "b": "stranded-branches-need-a-second-channel",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "daf178895d46",
+      "b_digest": "f2dfd8e2016e",
+      "note": "the same workflow shape, reused \u2014 issue opened, updated and closed by a cron",
+      "agreement": "agree"
+    },
+    {
       "a": "kb-ranked-retrieval",
       "b": "kb-review-load-is-one-cohort",
       "verdict": "overlap",
-      "judged": "2026-08-05",
-      "a_digest": "98bb598eab5d",
-      "b_digest": "ccb477698798",
-      "note": "narrows what the confidence signal in rank() is worth here: nothing, measured",
+      "judged": "2026-08-22",
+      "a_digest": "b078e6748d8a",
+      "b_digest": "2f3a319d5505",
+      "note": "narrows what the confidence signal in rank() is worth here: nothing, measured [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1242,13 +1652,33 @@
       "agreement": "agree"
     },
     {
+      "a": "kb-reverification-has-one-rate",
+      "b": "kb-review-load-is-one-cohort",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "016e388ab73f",
+      "b_digest": "2f3a319d5505",
+      "note": "the cohort fact, and the only rate that spreads it",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-reverification-has-one-rate",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "016e388ab73f",
+      "b_digest": "a20e186f09d6",
+      "note": "what last_verified records, and the rate at which it can honestly be moved",
+      "agreement": "agree"
+    },
+    {
       "a": "kb-review-load-is-one-cohort",
       "b": "kb-the-bundle-was-already-shipped",
       "verdict": "overlap",
-      "judged": "2026-08-05",
-      "a_digest": "ccb477698798",
-      "b_digest": "a96e13f48a77",
-      "note": "both rest on the same cohort fact \u2014 0 of 32 diverging today, all of them on one date",
+      "judged": "2026-08-22",
+      "a_digest": "2f3a319d5505",
+      "b_digest": "786f51bb818c",
+      "note": "both rest on the same cohort fact \u2014 0 of 32 diverging today, all of them on one date [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1259,6 +1689,26 @@
       "a_digest": "ccb477698798",
       "b_digest": "843007233d99",
       "note": "both read frontmatter dates; one renders history, one forecasts",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-review-load-is-one-cohort",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "2f3a319d5505",
+      "b_digest": "a20e186f09d6",
+      "note": "one cohort because verification rode along with authoring inside one sprint",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-roadmap",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "34a03dbcca83",
+      "b_digest": "a20e186f09d6",
+      "note": "a measurement about dates vs the roadmap's phase list",
       "agreement": "agree"
     },
     {
@@ -1289,6 +1739,86 @@
       "a_digest": "34a03dbcca83",
       "b_digest": "706b96ed2b57",
       "note": "workspace-level phases vs this repo's own roadmap",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-the-backstop-arrives-after-the-session",
+      "b": "stranded-branches-need-a-second-channel",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "33659e57d223",
+      "b_digest": "ad258f476900",
+      "note": "the detector, and the bound on reading its silence; reconciled 2026-08-22 \u2014 the first entry's body still claimed the workflow had never fired in production while this one documented that fire [re-confirmed 2026-08-22 after this entry's own edit, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-the-backstop-arrives-after-the-session",
+      "b": "stranded-branches-track-the-charter-text",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "33659e57d223",
+      "b_digest": "6cbcc5fa71cd",
+      "note": "why the charter's session-start ls-remote is the primary check and the cron only a backstop",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-the-bundle-was-already-shipped",
+      "b": "kb-timeline-and-heatmap-are-frontmatter-only",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "786f51bb818c",
+      "b_digest": "843007233d99",
+      "note": "two site surfaces, both reading frontmatter only and both constrained by the depth-1 checkout",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-the-bundle-was-already-shipped",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "786f51bb818c",
+      "b_digest": "a20e186f09d6",
+      "note": "the export's confidence field vs what last_verified records",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-timeline-and-heatmap-are-frontmatter-only",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "843007233d99",
+      "b_digest": "a20e186f09d6",
+      "note": "the timeline renders re-verification events from a field that mostly records authoring",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-timeline-and-heatmap-are-frontmatter-only",
+      "b": "memory-overview-site",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "843007233d99",
+      "b_digest": "74b0405f3320",
+      "note": "the site, and what its two dated views may read",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-verification-rides-along-with-authoring",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "a20e186f09d6",
+      "b_digest": "b0c0f57d80a3",
+      "note": "five of nine unreachable entries in that sweep are unreachable for exactly this reason",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-verification-rides-along-with-authoring",
+      "b": "stranded-branches-track-the-charter-text",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "a20e186f09d6",
+      "b_digest": "6cbcc5fa71cd",
+      "note": "what a date records vs what a charter authorizes",
       "agreement": "agree"
     },
     {
@@ -1335,10 +1865,10 @@
       "a": "persist-insight-to-knowledge-base",
       "b": "sibling-repo-access-denied-in-routines",
       "verdict": "distinct",
-      "judged": "2026-07-30",
-      "a_digest": "183ee61cba77",
-      "b_digest": "154f350dd07c",
-      "note": "where knowledge lands vs what a routine can reach; the convention writes here either way",
+      "judged": "2026-08-22",
+      "a_digest": "1bddaf75731b",
+      "b_digest": "b0c0f57d80a3",
+      "note": "where knowledge lands vs what a routine can reach; the convention writes here either way [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1383,6 +1913,16 @@
     },
     {
       "a": "purge-context-after-each-change",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "77a48a37efe1",
+      "b_digest": "b0c0f57d80a3",
+      "note": "repo reach vs a context-hygiene preference",
+      "agreement": "agree"
+    },
+    {
+      "a": "purge-context-after-each-change",
       "b": "twin-sovereignty-constraint",
       "verdict": "distinct",
       "judged": "2026-07-30",
@@ -1413,12 +1953,32 @@
     },
     {
       "a": "routines-ui-not-api-for-prompts",
+      "b": "stranded-branches-need-a-second-channel",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "c5cef6af1776",
+      "b_digest": "f2dfd8e2016e",
+      "note": "what can configure a routine vs what a routine leaves unlanded",
+      "agreement": "agree"
+    },
+    {
+      "a": "routines-ui-not-api-for-prompts",
       "b": "twin-sovereignty-constraint",
       "verdict": "distinct",
       "judged": "2026-07-30",
       "a_digest": "c5cef6af1776",
       "b_digest": "64b47c7c6194",
       "note": "picking a model for a routine says nothing about digital-twin's no-model floor",
+      "agreement": "agree"
+    },
+    {
+      "a": "sibling-repo-access-denied-in-routines",
+      "b": "stranded-branches-need-a-second-channel",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "b0c0f57d80a3",
+      "b_digest": "ad258f476900",
+      "note": "what a routine can reach vs what it leaves behind [re-confirmed 2026-08-22 after this entry's own edit, ruling unchanged]",
       "agreement": "agree"
     },
     {
@@ -1435,10 +1995,30 @@
       "a": "sibling-repo-access-denied-in-routines",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-07-30",
-      "a_digest": "154f350dd07c",
-      "b_digest": "7886fb25075b",
-      "note": "fixing the drift is blocked by exactly that access limit",
+      "judged": "2026-08-22",
+      "a_digest": "b0c0f57d80a3",
+      "b_digest": "d55fd9871c64",
+      "note": "fixing the drift is blocked by exactly that access limit [re-confirmed 2026-08-22, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "stranded-branches-need-a-second-channel",
+      "b": "stranded-branches-track-the-charter-text",
+      "verdict": "overlap",
+      "judged": "2026-08-22",
+      "a_digest": "ad258f476900",
+      "b_digest": "6cbcc5fa71cd",
+      "note": "the charter-text rate, then the stranding no charter reading could have prevented \u2014 supersedes the diagnosis, not the measurement [re-confirmed 2026-08-22 after this entry's own edit, ruling unchanged]",
+      "agreement": "agree"
+    },
+    {
+      "a": "stranded-branches-track-the-charter-text",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "distinct",
+      "judged": "2026-08-22",
+      "a_digest": "6cbcc5fa71cd",
+      "b_digest": "d55fd9871c64",
+      "note": "unlanded branches here vs unmerged PRs in a sibling repo",
       "agreement": "agree"
     },
     {
@@ -1465,20 +2045,20 @@
       "a": "workspace-audit-2026-07-27",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-07-30",
+      "judged": "2026-08-22",
       "a_digest": "cb63a8a06f2d",
-      "b_digest": "7886fb25075b",
-      "note": "both give 22 on disk against 20 documented",
+      "b_digest": "d55fd9871c64",
+      "note": "the dated sweep and the drift it found; the second has since been rewritten for the submodule workspace and keeps the 20-vs-22 count as a historical record, so they still agree [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     },
     {
       "a": "workspace-improvement-phases",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-07-30",
+      "judged": "2026-08-22",
       "a_digest": "706b96ed2b57",
-      "b_digest": "7886fb25075b",
-      "note": "the phase plan carries the drift as an open item",
+      "b_digest": "d55fd9871c64",
+      "note": "the phase plan carries the drift as an open item [re-confirmed 2026-08-22, ruling unchanged]",
       "agreement": "agree"
     }
   ]

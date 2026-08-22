@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/build_site.py build_timeline(), 2026-08-03
 created: 2026-08-03
 last_verified: 2026-08-14
-links: [kb-corrections-happen-in-place, memory-overview-site, kb-instruction-content-lint]
+links: [kb-corrections-happen-in-place, memory-overview-site, kb-instruction-content-lint, kb-verification-rides-along-with-authoring]
 ---
 
 ROADMAP Phase 8 was marked `someday` and scoped as execution, not research:

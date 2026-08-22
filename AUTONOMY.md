@@ -1158,6 +1158,52 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   actually concluded `success`.** A push starting a run is not a run finishing.
   Write-up: `kb-a-hung-deploy-reports-as-cancelled`.
 
+- [x] **A verdict expires faster than it is written (ROADMAP Phase 22).**
+  (2026-08-22) Picked up as the research-tier item. Backlog closed, no stranded
+  branches beyond the four acknowledged, `lint --strict`/`triage` clean,
+  standing re-verification action does not fire (nothing due until 2026-10-25,
+  store ahead of pace), and nothing on ROADMAP's reopen table had met its
+  condition. Phase 21 asked the next session to keep the *passage* queue clear.
+  It was clear. **The pair queue — the half that already had a ledger — held 78
+  pairs with no ruling recorded since 2026-08-07.** Replaying all 30 commits
+  touching `memory/` and all 8 touching `.kb/verdicts.json`: of the 148
+  verdicts ever recorded, **51 (34.5%) still applied and 91 (61.5%) had
+  expired**, median observed lifetime **5 days**, half gone by day 10 — against
+  a **90-day** review cycle for the entries themselves. The unjudged queue ran
+  **0 pairs on 2026-08-01 → 78 on 2026-08-22**, monotonically, while settled
+  pairs fell 58 → 26. **Narrowing the expiry rule was measured three ways and
+  does not work**: keying on the pair's shared token set (78 of 136) or on only
+  the lines containing shared vocabulary (80) lands within two verdicts of the
+  shipped rule (80), because **0 of the 21 locatable invalidations added zero
+  tokens shared with the other entry** — every phase write-up here discusses its
+  predecessors, so the relationship genuinely moves each time, by a median 0.008
+  Jaccard. Nothing changed, per Phase 13's `DEFAULT_CONTEXT_BUDGET` reasoning.
+  **The live defect was the silence:** `triage` said "nothing needs attention"
+  while 78 pairs stood unjudged, because it reads one entry at a time. Reading
+  the queue then found what no surface could see —
+  `stranded-branches-need-a-second-channel` carried `confidence: verified` in
+  frontmatter and a body section headed "Not yet verified" claiming its workflow
+  had never fired, while `kb-the-backstop-arrives-after-the-session` documented
+  that fire; **an entry contradicting itself is invisible to `lint`, which reads
+  one entry, and to `judge`, which compares two.** Corrected in place and
+  re-verified with a note. Shipped `judgement_load()` in `kb.py status`/`stats`,
+  `data.json` (`schema_version: 5`) and the MCP `triage` tool, plus a
+  `candidates` footer splitting never-judged from reopened. Reported, never
+  gated. Also cleared the queue: 55 pairs ruled, 25 re-confirmed (**0 changed
+  ruling**, taking the all-time count to 0 of 34), 5 missing edges linked, 5
+  passage proposals dismissed with reasons. 25 new tests (609 total). Write-up:
+  `kb-a-verdict-expires-faster-than-it-is-written`.
+
+  **The backlog is closed again.** The standing re-verification action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today. **For the next session:** both consolidation queues are empty and
+  every pair is judged, so `candidates` and `consolidate` are cheap to run and
+  worth running — but expect the pair queue to have refilled, because that is
+  now the measured behaviour rather than neglect. `kb.py status` prints the
+  count; a handful of reopened pairs is normal, and a queue back in the dozens
+  with no ruling for a fortnight is the state this phase existed to make
+  visible.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

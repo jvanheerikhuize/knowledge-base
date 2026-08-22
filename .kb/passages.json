@@ -42,6 +42,30 @@
       "excerpt": "Enumeration fixes coverage that cannot see absent code; it does not fix a schema that cannot phrase the question. **A re"
     },
     {
+      "id": "172aef7ff5e4",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "kb-the-backstop-arrives-after-the-session",
+      "dismissed": "2026-08-22",
+      "note": "deliberately a summary plus a pointer: the detail (fire times, lateness, what silence means) is left to the target entry and explicitly said to be, which is the opposite of restating it",
+      "excerpt": "Both production paths have now run. The negative case fired first (2026-08-15, 0 actionable / 2 acknowledged, opening no"
+    },
+    {
+      "id": "17ddbacd5134",
+      "host": "stranded-branches-need-a-second-channel",
+      "target": "kb-a-verdict-expires-faster-than-it-is-written",
+      "dismissed": "2026-08-22",
+      "note": "that entry's own account of being repaired, written where the repair happened; the finding about why nothing caught it lives here",
+      "excerpt": "This section said \"not yet verified\" until 2026-08-22, and by then it was wrong twice over \u2014 the frontmatter had already"
+    },
+    {
+      "id": "1af64084fa49",
+      "host": "stranded-branches-track-the-charter-text",
+      "target": "kb-the-backstop-arrives-after-the-session",
+      "dismissed": "2026-08-22",
+      "note": "this entry's own tier-confound measurement (p=0.13), not the backstop entry's claim; surfaced only because the two were linked today",
+      "excerpt": "**The obvious confound is not it.** The 09:xx execution routine stranded 4 of 11 and the 07:xx research routine 1 of 12 "
+    },
+    {
       "id": "1cf625e001da",
       "host": "kb-capture-is-a-check-not-an-extractor",
       "target": "kb-corrections-happen-in-place",
@@ -258,6 +282,14 @@
       "excerpt": "[[stranded-branches-track-the-charter-text]] measured six months of routine sessions and concluded that stranding tracks"
     },
     {
+      "id": "8742eb488382",
+      "host": "kb-a-verdict-expires-faster-than-it-is-written",
+      "target": "stranded-branches-need-a-second-channel",
+      "dismissed": "2026-08-22",
+      "note": "names the entry as the defect this finding turned up, and cites it \u2014 evidence for the claim, not a restatement of that entry's own claim about the detector",
+      "excerpt": "That mattered. Reading the queue turned up a live defect nothing else could see: `stranded-branches-need-a-second-channe"
+    },
+    {
       "id": "91911bc21349",
       "host": "kb-tests-cannot-cover-an-absent-guard",
       "target": "kb-a-registry-asks-only-what-it-has-words-for",
@@ -360,6 +392,14 @@
       "dismissed": "2026-08-21",
       "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
       "excerpt": "The workflow has never fired in production. `confidence: high`, not `verified`, for the same reason [[kb-prospective-mem"
+    },
+    {
+      "id": "b61c8fa680a8",
+      "host": "kb-a-verdict-expires-faster-than-it-is-written",
+      "target": "kb-a-blocker-must-remember-its-rulings",
+      "dismissed": "2026-08-22",
+      "note": "a methodology sentence (replay all commits, hold the ranker fixed) that every measurement entry in this store shares; the numbers it introduces are this entry's own",
+      "excerpt": "Replaying all 30 commits that touch `memory/` and all 8 that touch `.kb/verdicts.json`, with the ranker and the blocking"
     },
     {
       "id": "b893704d7c53",

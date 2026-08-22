@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/kb.py (review_forecast, effective_confidence), measured against the real store 2026-08-05, ROADMAP Phase 11
 created: 2026-08-05
 last_verified: 2026-08-14
-links: [kb-forgetting-model, kb-entry-status-model, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-corrections-happen-in-place, memory-overview-site, kb-the-bundle-was-already-shipped, kb-reverification-has-one-rate]
+links: [kb-forgetting-model, kb-entry-status-model, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-corrections-happen-in-place, memory-overview-site, kb-the-bundle-was-already-shipped, kb-reverification-has-one-rate, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 This store was written in nine days. Every one of its 32 live entries carries a

@@ -2001,7 +2001,107 @@ def stats_report():
         "body_words": {"median": median(words), "total": sum(words)},
         "created_by_month": [[m, by_month[m]] for m in sorted(by_month)],
         "review_forecast": review_forecast(today),
+        "judgement_load": judgement_load(today),
     }
+
+
+def judgement_load(today=None):
+    """What the pair ledger owes, and how much of it has already expired.
+
+    `review_forecast` above answers this for entries. Nothing answered it for
+    *pairs*, and pairs decay far faster: a verdict is bound to the claim text
+    of both entries, so any edit to either one expires every verdict that
+    entry appears in. Measured over this store's own history, 61.5% of the 148
+    verdicts ever recorded had expired within three weeks, with a median
+    observed lifetime of 5 days and half of them gone by day 10 — against a
+    90-day review cycle for the entries themselves.
+
+    The rule is not the defect; three narrower ones were measured and none
+    helped (see [[kb-a-verdict-expires-faster-than-it-is-written]]). The defect
+    was that nothing reported the load, so `triage`, `status` and `lint` all
+    read clean while 78 pairs stood unjudged and the last ruling was 15 days
+    old. Silence about an unexamined pair must not read as "checked, they
+    agree" — the same principle `judge`'s own agreement axis is built on.
+
+    Counts pairs in the blocked space, not all pairs: those are the ones
+    `candidates` will ever put in front of a reader.
+    """
+    today = today or datetime.date.today()
+    pairs, _ = candidate_pairs(include_judged=True)
+    verdicts = load_verdicts()
+
+    settled = never = expired = unexamined_axis = duplicate = contradicted = 0
+    for p in pairs:
+        if p["verdict"] is None:
+            never += 1
+        elif p["verdict_stale"]:
+            expired += 1
+        elif p["verdict"] == "duplicate":
+            duplicate += 1
+        elif p["agreement"] == "contradict":
+            contradicted += 1
+        elif p["agreement"] is None:
+            unexamined_axis += 1
+        else:
+            settled += 1
+
+    dates = [v.get("judged") for v in verdicts.values() if v.get("judged")]
+    last = max(dates) if dates else None
+    days_since = None
+    if last:
+        try:
+            days_since = (today - datetime.date.fromisoformat(last)).days
+        except ValueError:
+            last = None
+
+    # How much of the ledger still applies to the store as it stands. A
+    # verdict about text that no longer exists is not a verdict, but it is
+    # also not nothing — it is the reason the same pair is back in the queue.
+    docs, _ = _candidate_docs()
+    digests = {d["name"]: content_digest(d["fm"], d["body"]) for d in docs}
+    in_force = sum(
+        1 for v in verdicts.values()
+        if v.get("a") in digests and v.get("b") in digests
+        and v.get("a_digest") == digests[v["a"]]
+        and v.get("b_digest") == digests[v["b"]])
+
+    return {
+        "pairs": len(pairs),
+        "settled": settled,
+        "never_judged": never,
+        "expired": expired,
+        "duplicate_unmerged": duplicate,
+        "contradicted": contradicted,
+        "agreement_unexamined": unexamined_axis,
+        "owed": never + expired + duplicate + contradicted + unexamined_axis,
+        "recorded": len(verdicts),
+        "in_force": in_force,
+        "last_ruling": last,
+        "days_since_last_ruling": days_since,
+    }
+
+
+def format_judgement_load(j):
+    """The pair ledger as the one or two lines a board can end with."""
+    if not j["pairs"]:
+        return []
+    lines = [
+        f"Judgement load: {j['owed']} of {j['pairs']} blocked pair(s) "
+        f"await a ruling ({j['never_judged']} never judged, "
+        f"{j['expired']} reopened by an edit since)."
+    ]
+    if j["duplicate_unmerged"] or j["contradicted"]:
+        lines.append(f"  {j['duplicate_unmerged']} duplicate(s) unmerged, "
+                     f"{j['contradicted']} contradiction(s) unreconciled.")
+    if j["recorded"]:
+        lines.append(f"  {j['in_force']} of {j['recorded']} verdicts ever "
+                     "recorded still apply; the rest expired when an entry's "
+                     "claim text changed.")
+    if j["days_since_last_ruling"] is not None:
+        lines.append(f"  Last ruling {j['last_ruling']} "
+                     f"({j['days_since_last_ruling']}d ago). "
+                     "A pair nobody has judged is unexamined, not agreed.")
+    return lines
 
 
 def review_forecast(today=None):
@@ -2195,6 +2295,11 @@ def cmd_status(args):
     if not (args.type or args.status):
         for line in format_review_forecast(review_forecast()):
             print(line)
+        # Entries are only half the store's state. A pair's verdict expires on
+        # any edit to either entry, so this queue refills far faster than the
+        # review queue above and had no surface at all until 2026-08-22.
+        for line in format_judgement_load(judgement_load()):
+            print(line)
     print("Run 'kb.py status --legend' for what each status means.")
 
 
@@ -2258,6 +2363,18 @@ def cmd_stats(args):
         if f["is_cohort"]:
             row("shape", "one cohort — the whole store comes due together")
 
+    j = s["judgement_load"]
+    if j["pairs"]:
+        print("\nJUDGEMENT LOAD")
+        row("blocked pairs", j["pairs"])
+        row("awaiting a ruling", j["owed"])
+        row("never judged", j["never_judged"])
+        row("reopened by an edit", j["expired"])
+        row("verdicts in force", f"{j['in_force']} of {j['recorded']} recorded")
+        if j["last_ruling"]:
+            row("last ruling",
+                f"{j['last_ruling']} ({j['days_since_last_ruling']}d ago)")
+
     if s["created_by_month"]:
         print("\nCREATED")
         widest = max(n for _, n in s["created_by_month"])
@@ -2277,7 +2394,14 @@ def cmd_triage(args):
         print(json.dumps(report, indent=2))
         return
     if not report:
-        print("triage clean — nothing needs attention")
+        # `triage_report` reads one entry at a time, so "clean" is a statement
+        # about entries and never about pairs. It said so for 15 days while 78
+        # pairs stood unjudged, one of which held a live self-contradiction.
+        print("triage clean — no entry needs attention")
+        owed = judgement_load()["owed"]
+        if owed:
+            print(f"  but {owed} pair(s) await a ruling — kb.py candidates. "
+                  "A pair is not an entry, and this queue cannot see one.")
         return
     for r in report:
         codes = ", ".join(x["code"] for x in r["reasons"])
@@ -2456,7 +2580,14 @@ def cmd_candidates(args):
         if p["note"]:
             print(f"      note: {p['note']}")
     if pairs:
-        print(f"\n{len(pairs)} pair(s) to judge. {CANDIDATES_CAVEAT}\n"
+        # Splitting the count matters: a never-judged pair is an open question,
+        # a reopened one is a prior ruling to confirm. They read as one flat
+        # number otherwise, and across this store's whole history no reopened
+        # pair has ever come back with a different ruling (0 of 32).
+        fresh = sum(1 for p in pairs if p["verdict"] is None)
+        again = sum(1 for p in pairs if p["verdict_stale"])
+        split = f" — {fresh} never judged, {again} reopened by an edit"
+        print(f"\n{len(pairs)} pair(s) to judge{split}. {CANDIDATES_CAVEAT}\n"
               f"  kb.py judge <a> <b> {'|'.join(VERDICTS)} "
               f"--agreement {'|'.join(AGREEMENTS)} [--note ...]\n"
               "Two questions per pair, not one: how much they overlap, and "

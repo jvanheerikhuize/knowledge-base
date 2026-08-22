@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-07-31 against this store's own .kb/verdicts.json plus 7 planted restatement passages; scripts/kb.py consolidation_report()/restatements(), tests/test_kb.py TestConsolidate
 created: 2026-07-31
 last_verified: 2026-08-21
-links: [kb-duplicate-candidates-by-nearest-neighbour, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-entry-status-model, kb-roadmap, distill-session-into-memory, kb-corrections-happen-in-place, kb-a-blocker-must-remember-its-rulings]
+links: [kb-duplicate-candidates-by-nearest-neighbour, kb-duplicate-detection-limits, kb-contradiction-is-a-second-axis, kb-entry-status-model, kb-roadmap, distill-session-into-memory, kb-corrections-happen-in-place, kb-a-blocker-must-remember-its-rulings, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 `kb.py consolidate` was scoped as "propose merges", queued off the pairs

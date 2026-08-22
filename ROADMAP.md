@@ -1109,6 +1109,7 @@ before its condition holds.
 | ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
 | ~~Archived entries in the ranker's corpus statistics~~ | **Closed 2026-08-18, not deferred** — see "Phase 18" below. The condition this row was waiting on ("more as the archive grows") is measured never to arrive: the effect saturates by the tenth archived entry at ~10% of top hits and a third of a rank position, and has no direction at any size. Its premise was also backwards — archiving is score-neutral under the shipped corpus (0 of 42 orderings move); the *alternative* is what would reweight the store. The corpus is unchanged; what shipped is the declaration it never had | [[kb-a-registry-asks-only-what-it-has-words-for]] |
 | A publish-path staleness check | a **second** Pages deploy stalls. One occurrence in 43 runs is a bug, not a class, and this store's own rule is to wait for the third; the predicate is already known and needs no design work — the newest `pages.yml` run concluding `success` older than the newest commit touching `memory/`, two requests, would have fired on day one of the twelve-day stall | [[kb-a-hung-deploy-reports-as-cancelled]] |
+| A narrower verdict-expiry rule | a re-judged pair comes back with a **different ruling** — 0 of 34 so far. That is the only evidence that could distinguish "the expiry is churn" from "the expiry is an unfalsified guard", and no amount of further replay produces it. Three candidate keys are already measured and all three expire within two verdicts of the shipped rule, so the design work is done and only the ground truth is missing | [[kb-a-verdict-expires-faster-than-it-is-written]] |
 | Clearing the six-entry floor under the review queue | **Only Jerry can.** All six rest on a sibling repo, the Routines UI, or his own machine, all six were stamped on opening day, and all six therefore come due together on 2026-10-25 — after which `already_due` never falls below 6 and `busiest` never below 6, at any pace a routine keeps. Named in the standing action above. Not an engineering item and not a reason to sweep harder | Phase 15 |
 
 **The stranded-branch detector, measured and deliberately not built
@@ -1809,6 +1810,73 @@ the restatement queue is empty for the first time since the store held ten
 entries. 20 new tests (584 total). Write-up:
 [[kb-a-blocker-must-remember-its-rulings]]; [[kb-consolidation-is-owed-work]]
 extended in place and re-verified with a note.
+
+### Phase 22 — a verdict expires faster than it is written (2026-08-22)
+
+Nothing on the reopen table had met its condition, no branch was stranded
+beyond the four acknowledged, `lint`/`triage` were clean and the standing
+re-verification action did not fire (nothing due until 2026-10-25, store ahead
+of pace). Phase 21 closed the *passage* queue and told the next session to keep
+it clear. It was clear. **The pair queue, the half that already had a ledger,
+was not: 78 pairs standing, and no ruling recorded since 2026-08-07.**
+
+**The ledger decays, and nobody had measured how fast.** A verdict is bound to
+a digest of both entries' claim text, so any edit to either expires every
+verdict that entry appears in. Replaying all 30 commits touching `memory/` and
+all 8 touching `.kb/verdicts.json`:
+
+| | |
+|---|---|
+| verdicts ever recorded | 148 |
+| still in force 2026-08-22 | **51 (34.5%)** |
+| expired — claim text edited | **91 (61.5%)** |
+| median observed lifetime | **5 days** |
+| still in force at t+10d | **50.7%** |
+| entry review cycle, for comparison | **90 days** |
+
+All 148 were recorded in one seven-day burst. The unjudged queue ran **0 pairs
+on 2026-08-01 → 78 on 2026-08-22**, monotonically, while settled pairs fell
+58 → 26.
+
+**Narrowing the expiry rule was measured three ways and does not work.**
+Keying on the pair's shared token set, or on only the lines containing shared
+vocabulary, expires 78 and 80 of 136 against the shipped rule's 80 — two
+verdicts of difference. The mechanism: of the 21 invalidations locatable in
+git, **0 added zero tokens shared with the other entry.** Every edit touches
+the neighbour's material, because every phase write-up here discusses its
+predecessors. The relationship does move each time — by a median **0.008
+Jaccard, max 0.049**. The rule is not too coarse; the store is too
+self-referential for a pair judgement to stay settled. Nothing was changed,
+for the reason `DEFAULT_CONTEXT_BUDGET` was not changed in Phase 13.
+
+**What the expiry has bought: nothing observable, and that is not a case for
+removing it.** 9 pairs were re-judged after being reopened across the whole
+history and 0 changed ruling; this session re-confirmed 25 more, again 0. But
+expiry is maximally sensitive and cannot miss a genuine convergence, so the
+failure it prevents has never been observed — unfalsified, not useless.
+
+**The live defect was the silence.** `triage` said "nothing needs attention"
+while 78 pairs stood unjudged, because `triage_report` reads one entry at a
+time and a pair is structurally invisible to it — the same blindness `lint`
+has to a missing edge. Reading the queue then turned up something no other
+surface could see: `stranded-branches-need-a-second-channel` carried
+`confidence: verified` in frontmatter and a body section headed "Not yet
+verified" claiming its workflow had never fired in production, while
+[[kb-the-backstop-arrives-after-the-session]] documented that fire in detail.
+**An entry contradicting itself is invisible to `lint`, which reads one entry,
+and to `judge`, which compares two.** Corrected in place and re-verified with
+a note.
+
+Shipped `judgement_load()` — `kb.py status`, `kb.py stats`, `data.json`
+(`schema_version: 5`) and the MCP `triage` tool — plus a `candidates` footer
+that splits the queue into never-judged and reopened, which is different work
+that one flat number hid. Reported, never gated. Also cleared the queue: all
+55 never-judged pairs ruled and 25 reopened ones re-confirmed, 5 missing edges
+linked, 5 passage proposals dismissed with reasons. 25 new tests (609 total).
+Write-up: [[kb-a-verdict-expires-faster-than-it-is-written]];
+[[stranded-branches-need-a-second-channel]] corrected in place.
+
+**Reopen row added below** for the one thing this could not settle.
 
 ---
 

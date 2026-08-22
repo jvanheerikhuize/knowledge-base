@@ -6,7 +6,7 @@ confidence: verified
 source: replaying restatements() over all 48 commits that have touched memory/ (1,098 proposal-instances, 107 distinct passages), the two acted-on restatements recovered from commit 99a1f26b, and a full read of all 57 proposals standing on 2026-08-21
 created: 2026-08-21
 last_verified: 2026-08-21
-links: [kb-consolidation-is-owed-work, kb-duplicate-candidates-by-nearest-neighbour, kb-corrections-happen-in-place]
+links: [kb-consolidation-is-owed-work, kb-duplicate-candidates-by-nearest-neighbour, kb-corrections-happen-in-place, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 `kb.py candidates` and the passage half of `kb.py consolidate` are the same

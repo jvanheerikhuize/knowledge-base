@@ -1099,3 +1099,39 @@ Set up 2026-07-27 before you left.
   CI configured in that repo to watch; subscribed for review comments. PR
   opened, not merged, per the standing mandate:
   [jvanheerikhuize/garmin-vivoactive#14](https://github.com/jvanheerikhuize/garmin-vivoactive/pull/14).
+
+- [ ] 2026-08-22 **The pair-verdict ledger expires faster than anyone can write
+  it, and nothing said so — ROADMAP Phase 22.** Phase 21 asked the next session
+  to keep `consolidate`'s passage queue clear; it was clear. The *other*
+  consolidation queue, the one that already had a ledger, held **78 unjudged
+  pairs with no ruling recorded since 2026-08-07**, and `lint`, `triage` and
+  `status` all read clean. A `judge` verdict is bound to both entries' claim
+  text, so any edit to either expires every verdict that entry appears in.
+  Replayed against all 30 commits touching `memory/`: of the **148** verdicts
+  this store had ever recorded, **51 (34.5%) still applied and 91 (61.5%) had
+  expired** — median observed lifetime **5 days**, half gone by day 10, against
+  a **90-day** review cycle for the entries themselves. The queue went from
+  **0 pairs on 2026-08-01 to 78 on 2026-08-22**, monotonically. Tried to narrow
+  the expiry rule three ways and **none works**: keying on the pair's shared
+  vocabulary lands within two verdicts of the shipped rule, because **0 of the
+  21 locatable invalidations added zero tokens shared with the other entry** —
+  every write-up here discusses its predecessors, so the relationship really
+  does shift each time (by a median 0.008 Jaccard). Left the rule alone and
+  fixed the reporting instead: `judgement_load()` in `kb.py status`/`stats`,
+  `data.json` (`schema_version: 5`), the MCP `triage` tool, and a `candidates`
+  footer that splits never-judged pairs from reopened ones. Reported, never
+  gated. **Then cleared the queue** — 55 pairs ruled, 25 re-confirmed (0 changed
+  ruling, 0 of 34 all-time), 5 missing links added, 5 passage proposals
+  dismissed with reasons. 25 new tests (609 total), lint/triage clean.
+  Write-up: `kb-a-verdict-expires-faster-than-it-is-written`.
+
+- [ ] 2026-08-22 **Found by reading that queue: an entry that contradicted
+  itself for two days.** `stranded-branches-need-a-second-channel` had
+  `confidence: verified` in its frontmatter (raised 2026-08-20 after the
+  workflow's first real fire) and a body section still headed "Not yet
+  verified", stating the workflow had never fired in production — while its
+  neighbour `kb-the-backstop-arrives-after-the-session` documented that exact
+  fire. **This is invisible to every check the store has**: `lint` reads one
+  entry, and `judge` compares two. Corrected in place, re-verified with a note
+  recording what was re-checked, and the duplicated fire-timing detail cut down
+  to a citation of the entry that owns it.

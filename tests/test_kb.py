@@ -1593,6 +1593,103 @@ class TestCandidates(KbTestCase):
         self.assertIn("kb.py candidates", self.run_kb("dupes").stdout)
 
 
+class TestJudgementLoad(TestCandidates):
+    """What the pair ledger owes, and how fast it stops owning its own answers.
+
+    `review_forecast` answers this for entries. Nothing answered it for pairs
+    until 2026-08-22, and pairs decay far faster: a verdict is bound to both
+    entries' claim text, so any edit to either expires every verdict that entry
+    appears in. Measured over this store's own history, 61.5% of the 148
+    verdicts ever recorded had expired within three weeks — median observed
+    lifetime 5 days, half gone by day 10, against a 90-day cycle for entries.
+
+    The consequence is what these tests pin: three commands that describe "what
+    needs attention" said nothing at all while the queue ran from 0 pairs on
+    2026-08-01 to 78 on 2026-08-22 with no ruling recorded after 2026-08-07.
+    """
+
+    def load(self):
+        return json.loads(self.run_kb("stats", "--json").stdout)["judgement_load"]
+
+    def judge_the_pair(self, verdict="distinct"):
+        result = self.run_kb("judge", "stated-plainly", "stated-again",
+                             verdict, "--agreement", "agree")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_an_unjudged_pair_counts_as_owed_and_not_as_agreed(self):
+        # The whole point of the agreement axis is that absent means
+        # unexamined. The queue itself had no such reporting: silence read as
+        # a clean store rather than as a store nobody had asked.
+        load = self.load()
+        self.assertGreater(load["never_judged"], 0)
+        self.assertEqual(load["settled"], 0)
+        self.assertEqual(load["owed"] + load["settled"], load["pairs"])
+
+    def test_judging_a_pair_moves_it_from_owed_to_settled(self):
+        before = self.load()
+        self.judge_the_pair()
+        after = self.load()
+        self.assertEqual(after["never_judged"], before["never_judged"] - 1)
+        self.assertEqual(after["settled"], before["settled"] + 1)
+        self.assertEqual(after["in_force"], 1)
+
+    def test_editing_one_entry_expires_the_verdict_and_it_shows_as_reopened(self):
+        # The finding, in one test: a settled pair is one edit away from being
+        # owed again, and the edit need not concern the other entry at all.
+        self.judge_the_pair()
+        self.assertEqual(self.load()["expired"], 0)
+        self.write_body("stated-plainly", self.CLAIM + " One more sentence "
+                        "about something else entirely, added later.")
+        after = self.load()
+        self.assertEqual(after["expired"], 1)
+        self.assertEqual(after["settled"], 0)
+        self.assertEqual(after["in_force"], 0)
+        self.assertEqual(after["recorded"], 1,
+                         "the verdict is still on file — it just no longer applies")
+
+    def test_bookkeeping_does_not_expire_a_verdict(self):
+        # `verify` and `link` touch an entry far more often than an author
+        # does. Expiring a judgement about what an entry *claims* every time
+        # somebody re-dated it would make the ledger unkeepable outright.
+        self.judge_the_pair()
+        self.run_kb("verify", "stated-plainly", "--note", "re-read it")
+        self.assertEqual(self.load()["in_force"], 1)
+
+    def test_a_reopened_pair_is_reported_apart_from_a_never_judged_one(self):
+        # They are different work: one is an open question, the other a prior
+        # ruling to confirm. Across this store's whole history no reopened pair
+        # has ever come back with a different ruling (0 of 32).
+        self.judge_the_pair()
+        self.write_body("stated-plainly", self.CLAIM + " Appended later.")
+        out = self.run_kb("candidates").stdout
+        self.assertIn("never judged", out)
+        self.assertIn("reopened by an edit", out)
+
+    def link_everything(self):
+        """Clear the only entry-level reason this fixture has for triage."""
+        slugs = ["stated-plainly", "stated-again"] + sorted(self.FILLER)
+        for other in slugs[1:]:
+            self.run_kb("link", slugs[0], other)
+            self.run_kb("link", other, slugs[0])
+
+    def test_triage_says_clean_of_entries_and_names_the_pair_queue(self):
+        # It said "nothing needs attention" for 15 days while 78 pairs stood
+        # unjudged, one of which held a live self-contradiction. `triage_report`
+        # reads one entry at a time, so it can never see a pair — the fix is to
+        # stop claiming more than it checked.
+        self.link_everything()
+        out = self.run_kb("triage").stdout
+        self.assertIn("no entry needs attention", out)
+        self.assertIn("await a ruling", out)
+        self.assertNotIn("nothing needs attention", out)
+
+    def test_the_status_board_ends_with_the_pair_queue_too(self):
+        self.judge_the_pair()
+        out = self.run_kb("status").stdout
+        self.assertIn("Judgement load:", out)
+        self.assertIn("unexamined, not agreed", out)
+
+
 class TestContradictions(TestCandidates):
     """The second axis: do these two entries disagree?
 

@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-07-30 against the live 22-entry store plus 8 planted contradictions and 1 recovered from this repo's git history; scripts/kb.py AGREEMENTS/standing_contradictions, tests/test_kb.py TestContradictions
 created: 2026-07-30
 last_verified: 2026-08-14
-links: [kb-duplicate-candidates-by-nearest-neighbour, kb-entry-status-model, kb-forgetting-model, kb-duplicate-detection-limits, kb-over-mcp, kb-corrections-happen-in-place]
+links: [kb-duplicate-candidates-by-nearest-neighbour, kb-entry-status-model, kb-forgetting-model, kb-duplicate-detection-limits, kb-over-mcp, kb-corrections-happen-in-place, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 `memory/AGENT.md` said for months that lint "does not detect content-level

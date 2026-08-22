@@ -6,7 +6,7 @@ confidence: verified
 source: the 24 scheduled runs of kb-due.yml and kb-stranded.yml (2026-08-02 through 2026-08-20) measured against the 40 pull requests this repo has opened, plus this session's own 07:00 start and 07:03 branch check against the 2026-08-19 strand
 created: 2026-08-20
 last_verified: 2026-08-20
-links: [stranded-branches-need-a-second-channel, kb-prospective-memory-that-fires]
+links: [stranded-branches-need-a-second-channel, kb-prospective-memory-that-fires, stranded-branches-track-the-charter-text, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 [[stranded-branches-need-a-second-channel]] built the stranded-branch detector
