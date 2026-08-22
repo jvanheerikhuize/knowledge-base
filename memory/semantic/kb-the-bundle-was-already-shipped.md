@@ -6,7 +6,7 @@ confidence: verified
 source: scripts/build_site.py collect()/build(); tests/test_build_site.py BundleContractTests; measured against the 32-entry store on 2026-08-04
 created: 2026-08-04
 last_verified: 2026-08-14
-links: [kb-forgetting-model, memory-overview-site, kb-corrections-happen-in-place, sibling-repo-access-denied-in-routines, kb-capture-is-a-check-not-an-extractor, kb-roadmap, kb-a-hung-deploy-reports-as-cancelled]
+links: [kb-forgetting-model, memory-overview-site, kb-corrections-happen-in-place, sibling-repo-access-denied-in-routines, kb-capture-is-a-check-not-an-extractor, kb-roadmap, kb-a-hung-deploy-reports-as-cancelled, kb-timeline-and-heatmap-are-frontmatter-only]
 ---
 
 ROADMAP Phase 9 asked for "a portable bundle (`data.json` plus `memory/`) that

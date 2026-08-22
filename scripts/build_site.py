@@ -53,7 +53,11 @@ from kb import (  # noqa: E402
 #     who has to know the inverse Simpson index to see the concentration is
 #     reading `by_date` the way the store's own sessions read `busiest`: as if
 #     the tallest bar were the whole shape.
-BUNDLE_SCHEMA_VERSION = 4
+# 5 (2026-08-22): stats gained `judgement_load` — the pair ledger's counterpart
+#     to `review_forecast`. A consumer reading the bundle can already see every
+#     entry's confidence and review date; it could not see that a pair-level
+#     judgement about those entries had expired, which 61.5% of them had.
+BUNDLE_SCHEMA_VERSION = 5
 
 DEFAULT_OUT = ROOT / "site"
 

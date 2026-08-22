@@ -187,3 +187,25 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-21 — created `semantic/kb-a-hung-deploy-reports-as-cancelled.md`
 - 2026-08-21 — linked `semantic/memory-overview-site.md` — -> kb-a-hung-deploy-reports-as-cancelled
 - 2026-08-21 — linked `semantic/kb-the-bundle-was-already-shipped.md` — -> kb-a-hung-deploy-reports-as-cancelled
+- 2026-08-22 — linked `semantic/kb-entry-status-model.md` — -> kb-the-bundle-was-already-shipped
+- 2026-08-22 — linked `semantic/kb-the-backstop-arrives-after-the-session.md` — -> stranded-branches-track-the-charter-text
+- 2026-08-22 — linked `semantic/kb-the-bundle-was-already-shipped.md` — -> kb-timeline-and-heatmap-are-frontmatter-only
+- 2026-08-22 — linked `semantic/kb-timeline-and-heatmap-are-frontmatter-only.md` — -> kb-verification-rides-along-with-authoring
+- 2026-08-22 — linked `semantic/kb-verification-rides-along-with-authoring.md` — -> sibling-repo-access-denied-in-routines
+- 2026-08-22 — created `semantic/kb-a-verdict-expires-faster-than-it-is-written.md`
+- 2026-08-22 — linked `semantic/kb-a-blocker-must-remember-its-rulings.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-duplicate-candidates-by-nearest-neighbour.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-contradiction-is-a-second-axis.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-reverification-has-one-rate.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-corrections-happen-in-place.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-consolidation-is-owed-work.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-the-backstop-arrives-after-the-session.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-a-constant-query-has-a-ceiling.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> kb-consolidation-is-owed-work
+- 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> kb-the-backstop-arrives-after-the-session
+- 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> kb-a-constant-query-has-a-ceiling
+- 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> kb-review-load-is-one-cohort
+- 2026-08-22 — linked `semantic/kb-review-load-is-one-cohort.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> stranded-branches-need-a-second-channel
+- 2026-08-22 — linked `semantic/stranded-branches-need-a-second-channel.md` — -> kb-a-verdict-expires-faster-than-it-is-written
+- 2026-08-22 — verified `semantic/stranded-branches-need-a-second-channel.md` — confidence=verified; checked: corrected in place: the body still carried a 'Not yet verified' section claiming the workflow had never fired in production, contradicting both its own frontmatter (raised to verified 2026-08-20) and kb-the-backstop-arrives-after-the-session, which documents that fire. Re-checked both production runs against the workflow history and rewrote the section; the detail that belongs to the neighbour is now cited rather than repeated.

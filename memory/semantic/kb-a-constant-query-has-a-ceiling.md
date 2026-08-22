@@ -6,7 +6,7 @@ confidence: high
 source: measured 2026-08-19 by replaying all 31 commits that modified a pre-existing entry, ranker and budget frozen at each session's own date; scripts/kb.py context_pack(); ROADMAP Phase 19
 created: 2026-08-19
 last_verified: 2026-08-19
-links: [kb-context-budget-is-not-a-pack-size, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, stranded-branches-need-a-second-channel]
+links: [kb-context-budget-is-not-a-pack-size, kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, stranded-branches-need-a-second-channel, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 `AUTONOMY.md` step 1 told every routine session to open with the same string:

@@ -273,6 +273,22 @@ class TestReadTools(McpTestCase):
         cli = json.loads(self.kb("triage", "--json").stdout)
         self.assertEqual(result["structuredContent"]["triage"], cli)
 
+    def test_a_clean_triage_still_names_the_pair_queue_it_cannot_see(self):
+        # This tool's empty answer is what an agent reads to decide the store
+        # is fine. `triage_report` reads one entry at a time, so it says
+        # nothing about pairs — and for 15 days it said "nothing needs
+        # attention" while 78 pairs stood unjudged, one holding a live
+        # self-contradiction. Silence must not read as "checked, they agree".
+        for row in json.loads(self.kb("triage", "--json").stdout):
+            self.kb("rm", row["name"], "--force")
+        self.handshake()
+        result = self.result_of(self.call("triage"))
+        self.assertEqual(result["structuredContent"]["triage"], [])
+        self.assertIn("judgement_load", result["structuredContent"])
+        text = result["content"][0]["text"]
+        self.assertIn("no entry needs attention", text)
+        self.assertNotIn("nothing needs attention", text)
+
     def test_triage_can_be_filtered_by_reason(self):
         self.handshake()
         result = self.result_of(self.call("triage", {"reason": "orphan"}))

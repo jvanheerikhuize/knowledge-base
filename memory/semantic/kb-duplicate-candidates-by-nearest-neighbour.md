@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-07-29 against the live 21-entry store plus 7 hand-written paraphrases; scripts/kb.py neighbour_pairs/candidate_pairs, tests/test_kb.py TestCandidates
 created: 2026-07-29
 last_verified: 2026-08-14
-links: [kb-duplicate-detection-limits, kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, twin-sovereignty-constraint, kb-contradiction-is-a-second-axis, kb-roadmap, kb-consolidation-is-owed-work]
+links: [kb-duplicate-detection-limits, kb-forgetting-model, kb-ranked-retrieval, kb-is-file-based, twin-sovereignty-constraint, kb-contradiction-is-a-second-axis, kb-roadmap, kb-consolidation-is-owed-work, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 [[kb-duplicate-detection-limits]] concluded that lexical similarity cannot find

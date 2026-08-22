@@ -111,6 +111,12 @@ SCANNER_POLICY = {
         EXCLUDES, "archiving is how a spent prospective entry ends"),
     ("kb.py", "review_forecast"): (
         EXCLUDES, "a retired entry is never coming up for review"),
+    ("kb.py", "judgement_load"): (
+        EXCLUDES, "inherits candidate_pairs for the queue and _candidate_docs "
+                  "for the digests, so a retired entry contributes no pair; a "
+                  "verdict naming one is therefore not counted in force "
+                  "either — archiving is already the decision that the entry "
+                  "no longer speaks, which settles the pair with it"),
     ("kb.py", "verify_pace_warning"): (
         EXCLUDES, "inherits review_forecast — the sustainable rate is the live "
                   "store over the cycle, and counting retired entries would "
@@ -486,6 +492,17 @@ class TestArchivedPolicyHolds(ArchivedAxisTestCase):
         self.run_kb("archive", "kept")
         after = self.json_kb("stats")["review_forecast"]["sustainable_per_day"]
         self.assertLess(after, before)
+
+    def test_the_judgement_load_drops_pairs_naming_an_archived_entry(self):
+        # A verdict about a retired entry is neither owed nor in force:
+        # archiving is already the decision that the entry no longer speaks,
+        # so the pair is settled by that and not by a reader.
+        self.run_kb("new", "also-kept", "--type", "semantic")
+        before = self.json_kb("stats")["judgement_load"]
+        self.run_kb("archive", "kept")
+        after = self.json_kb("stats")["judgement_load"]
+        self.assertLessEqual(after["pairs"], before["pairs"])
+        self.assertLessEqual(after["in_force"], before["in_force"])
 
     # --- CLASSIFIES -------------------------------------------------------
 

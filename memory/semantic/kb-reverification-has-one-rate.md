@@ -6,7 +6,7 @@ confidence: high
 source: simulation over this store's real last_verified dates (scripts/kb.py review_forecast, STALE_DAYS=90), 2026-08-15; ROADMAP Phase 15
 created: 2026-08-15
 last_verified: 2026-08-15
-links: [kb-review-load-is-one-cohort, kb-verification-rides-along-with-authoring, kb-entry-status-model, stranded-branches-need-a-second-channel, kb-forgetting-model, kb-nothing-predicts-the-next-correction]
+links: [kb-review-load-is-one-cohort, kb-verification-rides-along-with-authoring, kb-entry-status-model, stranded-branches-need-a-second-channel, kb-forgetting-model, kb-nothing-predicts-the-next-correction, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 A review date is `last_verified + STALE_DAYS`, so re-verifying an entry does

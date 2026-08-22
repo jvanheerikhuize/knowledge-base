@@ -5,8 +5,8 @@ description: the sixth stranding was a session that believed it had landed and w
 confidence: verified
 source: PR #55 (opened 2026-08-10T09:20:13Z, merged 2026-08-14 after 4 days open) read against its own DEBRIEF text, the 2026-08-09 charter repair in PR #52, and the workflow-run history for 2026-08-11 through 08-13
 created: 2026-08-14
-last_verified: 2026-08-20
-links: [stranded-branches-track-the-charter-text, kb-prospective-memory-that-fires, kb-the-backstop-arrives-after-the-session]
+last_verified: 2026-08-22
+links: [stranded-branches-track-the-charter-text, kb-prospective-memory-that-fires, kb-the-backstop-arrives-after-the-session, kb-a-verdict-expires-faster-than-it-is-written]
 ---
 
 [[stranded-branches-track-the-charter-text]] measured six months of routine
@@ -93,10 +93,23 @@ commits off `main`, so a squash-merged branch that survived would read as
 stranded forever. All 19 PR-merged branches were deleted on the spot, so it has
 never happened — but turning that setting off would make this detector lie.
 
-## Not yet verified
+## Verified in production (2026-08-20)
 
-The workflow has never fired in production. `confidence: high`, not `verified`,
-for the same reason [[kb-prospective-memory-that-fires]] was: the create path,
-the update path and the close path are unit tested, but nothing in this
-environment can run a scheduled Action. Its first real fire should raise this
-entry, and its first *false* fire should lower it.
+This section said "not yet verified" until 2026-08-22, and by then it was
+wrong twice over — the frontmatter had already been raised to `verified` on
+2026-08-20 while the prose below it still read `confidence: high`, so the entry
+disagreed with itself and with [[kb-the-backstop-arrives-after-the-session]],
+which documents the same fire in detail. Found by reading the pair queue, not
+by lint: an entry contradicting *itself* is invisible to a checker that reads
+one entry at a time, and invisible to `judge`, which compares two.
+
+Both production paths have now run. The negative case fired first
+(2026-08-15, 0 actionable / 2 acknowledged, opening nothing); the first
+actionable case was `claude/cool-cerf-ak0w1p` on 2026-08-20, and its issue #68
+was closed by the push that landed the work, so create, update and close have
+all been exercised against real branches. The timing of that fire, and what it
+means for reading the issue's *absence*, belong to
+[[kb-the-backstop-arrives-after-the-session]] and are not repeated here.
+
+So the reason [[kb-prospective-memory-that-fires]] stayed at `high` no longer
+applies, and `verified` is correct. A first *false* fire should still lower it.

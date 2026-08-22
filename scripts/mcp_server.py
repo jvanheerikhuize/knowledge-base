@@ -234,7 +234,16 @@ def tool_triage(args):
     if reason:
         report = [r for r in report if any(x["code"] == reason for x in r["reasons"])]
     if not report:
-        return "triage clean — nothing needs attention", {"triage": []}
+        # This is what an agent reads to decide the store is fine. It said
+        # "nothing needs attention" while 78 pairs stood unjudged, because
+        # `triage_report` reads one entry at a time and a pair is not an entry.
+        load = kb.judgement_load()
+        text = "triage clean — no entry needs attention"
+        if load["owed"]:
+            text += (f"\n{load['owed']} pair(s) await a ruling "
+                     "(kb.py candidates / duplicate_candidates). A pair "
+                     "nobody has judged is unexamined, not agreed.")
+        return text, {"triage": [], "judgement_load": load}
     lines = []
     for r in report:
         lines.append(f"[{r['type']}] {r['name']} — {', '.join(x['code'] for x in r['reasons'])}")

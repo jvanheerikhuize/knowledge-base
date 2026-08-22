@@ -479,12 +479,17 @@ class BundleContractTests(unittest.TestCase):
     STATS_KEYS = {
         "entries", "archived", "by_type", "by_confidence",
         "by_effective_confidence", "decayed", "links", "age_days",
-        "body_words", "created_by_month", "review_forecast",
+        "body_words", "created_by_month", "review_forecast", "judgement_load",
     }
     FORECAST_KEYS = {
         "today", "cycle_days", "dated", "undated", "first", "last",
         "span_days", "busiest", "already_due", "is_cohort", "never_reverified",
         "sustainable_per_day", "effective_days", "by_date",
+    }
+    JUDGEMENT_KEYS = {
+        "pairs", "settled", "never_judged", "expired", "duplicate_unmerged",
+        "contradicted", "agreement_unexamined", "owed", "recorded",
+        "in_force", "last_ruling", "days_since_last_ruling",
     }
 
     def setUp(self):
@@ -513,6 +518,20 @@ class BundleContractTests(unittest.TestCase):
         forecast = self.data["stats"]["review_forecast"]
         self.assertEqual(set(forecast), self.FORECAST_KEYS)
         self.assertEqual(forecast["cycle_days"], kb.STALE_DAYS)
+
+    def test_judgement_load_ships_so_a_consumer_can_see_the_expired_ledger(self):
+        # A consumer reading the bundle can see every entry's confidence and
+        # review date. It could not see that a *pair-level* judgement about
+        # those entries had expired — and 61.5% of the verdicts this store had
+        # ever recorded were expired when this was measured.
+        load = self.data["stats"]["judgement_load"]
+        self.assertEqual(set(load), self.JUDGEMENT_KEYS)
+        self.assertLessEqual(load["in_force"], load["recorded"])
+        self.assertEqual(
+            load["owed"],
+            load["never_judged"] + load["expired"] + load["duplicate_unmerged"]
+            + load["contradicted"] + load["agreement_unexamined"])
+        self.assertEqual(load["owed"] + load["settled"], load["pairs"])
 
     def test_the_bundle_carries_the_pace_a_consumer_would_otherwise_derive(self):
         # Phase 9's contract is that the bundle is readable without importing
