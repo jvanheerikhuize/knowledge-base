@@ -1135,3 +1135,39 @@ Set up 2026-07-27 before you left.
   entry, and `judge` compares two. Corrected in place, re-verified with a note
   recording what was re-checked, and the duplicated fire-timing detail cut down
   to a citation of the entry that owns it.
+
+- [ ] 2026-08-22 **Cross-repo: acted on Jerry's own open audit PR in
+  `centauri-control` instead of picking a fresh repo.** This repo's own
+  backlog was closed first (lint/triage clean, judgement queue 0/106, nothing
+  due until 2026-10-25, no reopen-table condition met). Re-probed sibling
+  access — worked. `centauri-control` (an Elegoo Centauri Carbon 2 3D-printer
+  LAN client, first routine session to touch it) had one open PR: Jerry's own
+  draft `#5`, "docs: add repository audit" — a completed, line-anchored
+  read-through with a numbered findings table and a "recommended order of
+  work," not in-progress feature code, so — unlike the `routemaker`/
+  `undervault` draft PRs left alone on 2026-08-19/20 — implementing its
+  findings didn't step on anything; the audit PR itself was left untouched.
+  Verified the repo was still at the audit's base commit, then fixed its top
+  two concrete bugs in that recommended order: **finding 1 (High)** — the
+  dashboard's `do_POST` had no Origin/Host check, so a same-browser
+  cross-site POST (no CORS preflight triggered) could reach state-changing
+  routes once `control_methods` gets populated, and DNS rebinding could read
+  replies back; added a Host+Origin gate, unrestricted only under a wildcard
+  `--host` bind where no single legitimate hostname exists to check against.
+  **Finding 2 (Medium)** — `client.py`'s request-id counter was read and
+  incremented outside any lock, and `request()` independently predicted the
+  id `send_command()` would use; confirmed the actual defect mechanism
+  deterministically (forced the exact interleaving by hand — ids came out 1
+  then 2, diverging) rather than relying on a stress test, since 128,000
+  concurrent allocations against the unfixed code produced zero duplicates
+  under plain GIL contention. Consolidated both reads through one locked
+  `_alloc_id()`. **Finding 3 (Medium)** — zero tests in ~3,400 lines with a
+  large pure layer; added `tests/` (70 cases, stdlib `unittest` rather than
+  the audit's `pytest` suggestion, to keep the change dependency-free) plus a
+  GitHub Actions workflow on 3.11/3.12. All 70 pass against the fix; the
+  request-id and Origin-gate regression tests confirmed to fail against the
+  pre-fix code (`git stash`, reran, restored). Findings 4–10 (Low/Info) left
+  for a follow-up, per the audit's own ordering. PR opened, not merged, per
+  the standing mandate: [jvanheerikhuize/centauri-control#6](https://github.com/jvanheerikhuize/centauri-control/pull/6).
+  No CI existed in that repo before this PR (the new workflow watches its own
+  PR); subscribed for review comments and CI.
