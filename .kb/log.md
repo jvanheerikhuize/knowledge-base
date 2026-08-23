@@ -209,3 +209,19 @@ Chronological record of entries added to the knowledge base.
 - 2026-08-22 — linked `semantic/kb-a-verdict-expires-faster-than-it-is-written.md` — -> stranded-branches-need-a-second-channel
 - 2026-08-22 — linked `semantic/stranded-branches-need-a-second-channel.md` — -> kb-a-verdict-expires-faster-than-it-is-written
 - 2026-08-22 — verified `semantic/stranded-branches-need-a-second-channel.md` — confidence=verified; checked: corrected in place: the body still carried a 'Not yet verified' section claiming the workflow had never fired in production, contradicting both its own frontmatter (raised to verified 2026-08-20) and kb-the-backstop-arrives-after-the-session, which documents that fire. Re-checked both production runs against the workflow history and rewrote the section; the detail that belongs to the neighbour is now cited rather than repeated.
+- 2026-08-23 — created `semantic/kb-access-tracks-the-routine-not-the-day.md`
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> sibling-repo-access-denied-in-routines
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-reverification-has-one-rate
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-verification-rides-along-with-authoring
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-a-registry-asks-only-what-it-has-words-for
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-corrections-happen-in-place
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-the-bundle-was-already-shipped
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-a-hung-deploy-reports-as-cancelled
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-ranked-retrieval
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-tests-cannot-cover-an-absent-guard
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> workspace-repo-inventory-drift
+- 2026-08-23 — linked `semantic/sibling-repo-access-denied-in-routines.md` — -> kb-access-tracks-the-routine-not-the-day
+- 2026-08-23 — linked `semantic/kb-reverification-has-one-rate.md` — -> kb-access-tracks-the-routine-not-the-day
+- 2026-08-23 — linked `semantic/kb-access-tracks-the-routine-not-the-day.md` — -> kb-review-load-is-one-cohort
+- 2026-08-23 — verified `semantic/sibling-repo-access-denied-in-routines.md` — confidence=verified; checked: Re-probed this session: no add_repo/list_repos in this run's toolset, GitHub MCP scoped to knowledge-base, unauthenticated clone of digital-twin fails — denied, consistent with the research tier's 0-of-7. Then read all 15 recorded probes in AUTONOMY.md/DEBRIEF.md and split them by routine; corrected the entry's model of the variation in place.
+- 2026-08-23 — verified `semantic/kb-reverification-has-one-rate.md` — confidence=high; checked: Checked the floor section against the six entries' own source fields: three are grounded in sibling repos the execution tier clones (asdlc, digital-twin, jvanheerikhuize/repos), three on the Routines UI or Jerry's machine. Floor corrected 6 -> 3 in place. The rate/spread measurements above were not re-run and are unchanged.

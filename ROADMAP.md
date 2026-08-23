@@ -1104,13 +1104,14 @@ before its condition holds.
 | A cross-repo link checker | links gain a namespace, or another repo starts citing entries here — and a session exists that can see both repos | Phase 9 |
 | ~~A re-verification prioritiser~~ | **Condition met 2026-08-16 (6 claim rewrites across 41 entries, up from 2 across 33), measured, and the answer is no** — see "Phase 16" below. Nothing available in this repo beats picking the oldest, and the two refined candidates are worse. Reopens only on a *different* kind of evidence: a correction whose cause was visible here, in this tree, on a day before the fix | [[kb-nothing-predicts-the-next-correction]] |
 | A second declared-policy registry (episodic-vs-durable, `authority`, confidence decay) | a *fourth* instance of one defect class appears on an axis other than `archived`. The `archived` registry (2026-08-07) was built after three; one instance is a bug, three is a class, and building the registry earlier would have been scaffolding for a problem that had not shown itself | [[kb-tests-cannot-cover-an-absent-guard]] |
-| A "checkable from here" split on the review queue | a second session type with *stably* different access exists, so the two populations are a property of the store rather than of who is asking. Today the same entry is checkable or not depending on which sandbox reads it — 2026-08-06's connector grant flipped a whole class overnight | Phase 12 |
+| ~~A "checkable from here" split on the review queue~~ | **Condition met 2026-08-18, measured 2026-08-23, and the split is not mechanically derivable** — see "Phase 23" below. The second session type is real and stable (research tier 0 of 7 access probes granted, execution tier 8 of 8, p = 0.00016), but deriving each entry's grounding from the `source` field scores 5 of 9 on the class that matters against an 0.816 base rate, because `source` names the act rather than the artifact and grounding is a set, not a value. Closed with process instead of code: the rotation re-verifies what it is standing in. Reopens only if the grounded-outside population grows past what one session can read by hand — 9 of 49 today | [[kb-access-tracks-the-routine-not-the-day]] |
+| An entry per repo a routine works in | a rotation revisits a repo an earlier rotation already characterized, and re-derives what that session found. Eight rotations have happened and only `jvanheerikhuize/repos` has been visited twice — it is the one sibling repo with an entry, and both later visits used it. One repeat is not yet a class, and 24 speculative repo entries would be the Phase 4 empty-domain mistake at workspace scale. **What the wait costs is measured**: five consecutive rotations left zero entries, and their findings sit in `AUTONOMY.md` prose that no retrieval can reach | Phase 23 |
 | Raising `DEFAULT_CONTEXT_BUDGET` (4,500 restores the original 5.1 entries/pack) | Jerry decides the pack should be bigger. It is a caller-facing default and every consumer pays for it in their own context, so it is not a routine's call — and raising it only re-sets a number that will drift again. **Measured, not changed** | Phase 13 |
 | ~~A stranded-branch detector~~ | **Condition met 2026-08-10, built 2026-08-14** — see "Phase 14" below. The row stays for the record of what the condition was | [[stranded-branches-need-a-second-channel]] |
 | ~~Archived entries in the ranker's corpus statistics~~ | **Closed 2026-08-18, not deferred** — see "Phase 18" below. The condition this row was waiting on ("more as the archive grows") is measured never to arrive: the effect saturates by the tenth archived entry at ~10% of top hits and a third of a rank position, and has no direction at any size. Its premise was also backwards — archiving is score-neutral under the shipped corpus (0 of 42 orderings move); the *alternative* is what would reweight the store. The corpus is unchanged; what shipped is the declaration it never had | [[kb-a-registry-asks-only-what-it-has-words-for]] |
 | A publish-path staleness check | a **second** Pages deploy stalls. One occurrence in 43 runs is a bug, not a class, and this store's own rule is to wait for the third; the predicate is already known and needs no design work — the newest `pages.yml` run concluding `success` older than the newest commit touching `memory/`, two requests, would have fired on day one of the twelve-day stall | [[kb-a-hung-deploy-reports-as-cancelled]] |
 | A narrower verdict-expiry rule | a re-judged pair comes back with a **different ruling** — 0 of 34 so far. That is the only evidence that could distinguish "the expiry is churn" from "the expiry is an unfalsified guard", and no amount of further replay produces it. Three candidate keys are already measured and all three expire within two verdicts of the shipped rule, so the design work is done and only the ground truth is missing | [[kb-a-verdict-expires-faster-than-it-is-written]] |
-| Clearing the six-entry floor under the review queue | **Only Jerry can.** All six rest on a sibling repo, the Routines UI, or his own machine, all six were stamped on opening day, and all six therefore come due together on 2026-10-25 — after which `already_due` never falls below 6 and `busiest` never below 6, at any pace a routine keeps. Named in the standing action above. Not an engineering item and not a reason to sweep harder | Phase 15 |
+| Clearing the ~~six~~ **three**-entry floor under the review queue | **Corrected 2026-08-23 — half of it was never Jerry's.** All six were stamped on opening day and come due together on 2026-10-25, but only `routines-ui-not-api-for-prompts`, `purge-context-after-each-change` and `workspace-audit-2026-07-27` rest on the Routines UI or his machine. The other three — `asdlc-governed-change-rules`, `twin-sovereignty-constraint`, `workspace-improvement-phases` — are grounded in sibling repos the execution tier already clones, and `AUTONOMY.md` now asks the rotation to re-verify them in passing. So `already_due` and `busiest` floor at **3**, not 6 | Phase 15, corrected by [[kb-access-tracks-the-routine-not-the-day]] |
 
 **The stranded-branch detector, measured and deliberately not built
 (2026-08-09).** The domain was real — 5 stranded branches in 12 days, one
@@ -1877,6 +1878,87 @@ Write-up: [[kb-a-verdict-expires-faster-than-it-is-written]];
 [[stranded-branches-need-a-second-channel]] corrected in place.
 
 **Reopen row added below** for the one thing this could not settle.
+
+### Phase 23 — the tier with the access is the tier that writes nothing (2026-08-23)
+
+Backlog closed, no stranded branch beyond the four acknowledged, `lint --strict`
+and `triage` clean, both consolidation queues empty and every pair judged
+(0 of 106), standing re-verification action not firing. Phase 22 asked the next
+session to expect the pair queue to have refilled; it had not, so the starting
+point was the one reopen row whose condition might have changed on its own —
+**"a checkable-from-here split on the review queue," waiting since 2026-08-08
+for a second session type with *stably* different access.**
+
+**The condition has been met since 2026-08-18, and nothing noticed.** Every
+session runs the mandate's step-1 access probe and records the outcome; fifteen
+are on the record. The store reads that variation as chance —
+[[sibling-repo-access-denied-in-routines]] has said "which session container you
+land in also matters" since 2026-08-08. Split by routine instead:
+
+| | granted | denied |
+|---|---|---|
+| research tier | 0 | **7** |
+| execution tier | **8** | 0 |
+
+Perfect separation, Fisher exact two-sided **p = 0.00016**, 2026-08-07 through
+2026-08-23. Three days carry both outcomes — 08-07, 08-08, 08-19 — same account,
+same day, different container, and the research-tier session is the refused one
+every time. That is not a per-session lottery; it is a stable property of which
+routine is running, which is exactly what the reopen row required.
+
+**What it already cost.** Phase 15 recorded a "floor no routine can lift": six
+opening-day entries, never re-verified, all due 2026-10-25, filed in the table
+below as **Jerry's, not a routine's**, with "not a reason to sweep harder". The
+count is right and the ownership is not. Three of the six are grounded in
+sibling repos — `asdlc`, `digital-twin`, the workspace repo — that the execution
+tier clones routinely; only three rest on the Routines UI or Jerry's machine.
+A session was *inside* `digital-twin` on 2026-08-18 writing its first tests,
+with `docs/SOVEREIGNTY.md` — [[twin-sovereignty-constraint]]'s own source — in
+the checkout, and re-verified nothing. **The floor is 3.** Phase 15 derived it
+from the access model of Phase 12 and froze it as prose; the inputs moved and
+nothing recomputed it.
+
+**Why the two tiers pulled apart, which is the general finding.** Replaying
+`git log --diff-filter=A` over `memory/`: every entry created since 2026-08-07
+is a research-tier phase write-up, one exception aside
+([[kb-a-hung-deploy-reports-as-cancelled]], and its subject is this repo). The
+last **five** rotations — `digital-twin`, `action-rsi`, `just-in-time`,
+`garmin-vivoactive`, `centauri-control` — read a repo each, fixed real bugs in
+three, and left **zero** entries about any of them. The knowledge is not lost;
+it is in `AUTONOMY.md`'s backlog at 1,400–3,000 characters per rotation. The
+three governing documents crossed `memory/` in size on **2026-08-01** and are
+now **1.67×** it (356,604 bytes to 213,752); `AUTONOMY.md` alone is **21,290
+tokens**, 10.6× `DEFAULT_CONTEXT_BUDGET`, and none of it is ranked, decayed,
+deduplicated or reachable by `kb.py context`. Ask the store a task-shaped
+question about a repo a routine works in and it answers from the only subject it
+has: `context "what should I know before working in the action-rsi repository"`
+leads with [[kb-ranked-retrieval]].
+
+**Deriving the split from `source` was measured and refuted.** Hand labels for
+all 49 entries were written and frozen first, then a classifier over the
+`source` field every entry already carries: **0.898 accuracy against an
+always-`here` baseline of 0.816**, and **5 of 9** on the only class the split
+exists to name — it would mislabel three of the six-entry cohort. The two
+failure modes are not regex bugs. `source` **names the act, not the artifact**
+("re-checked against the repo"; "direct inspection") on precisely the entries
+that matter, and grounding is **a set, not a value** —
+`twin-sovereignty-constraint` cites Jerry *and* a file in `digital-twin`, either
+sufficient, so a one-slot answer discards a ground and understates what a
+routine can do. That is Phase 18's finding one level up, so the row is closed
+with a measurement rather than re-armed, and no inference shipped.
+
+**What shipped is process, not code, and it is free**: `AUTONOMY.md` now asks a
+rotation session to re-verify the entries grounded in the repo it is already
+standing in, and tells the research tier that a denied probe is the expected
+result rather than a bad draw. Three of the six clear at no cost. Nothing was
+added to `kb.py` — nine entries out of forty-nine is a set a person reads in one
+sitting, and the measured alternative is a coin flip. Write-up:
+[[kb-access-tracks-the-routine-not-the-day]];
+[[kb-reverification-has-one-rate]] and
+[[sibling-repo-access-denied-in-routines]] corrected in place.
+
+**One reopen row added below**, for the half this deliberately did not act on:
+the store holding no entry about any repo a routine works in.
 
 ---
 

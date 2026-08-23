@@ -207,14 +207,24 @@ GitHub MCP equivalent).
 
 **Session protocol addition (routine runs):**
 
-1. **Re-probe sibling access first, every session, until one succeeds.** The
-   2026-07-28 probe failed (`sibling-repo-access-denied-in-routines`), most
-   likely because the GitHub connector was only granted this repo — that is a
-   connector setting, so a later grant by Jerry changes the answer without any
-   change here. Probe cheaply: `gh repo list jvanheerikhuize` and one
-   `gh repo clone jvanheerikhuize/<repo>` (or plain `git clone`) into a
-   sibling directory. Two failures → record the still-denied result in
-   `DEBRIEF.md` and fall back to in-repo work as before.
+1. **Probe sibling access first — once, cheaply — and know which answer to
+   expect.** Probe with `list_repos`/`add_repo` if this run has them, else
+   `git clone` a sibling. **Measured over all 15 recorded probes
+   (2026-08-07 → 2026-08-23), the outcome is decided by which routine is
+   running, not by the day or the container:** research tier **0 granted / 7
+   denied**, execution tier **8 granted / 0 denied**, Fisher exact
+   p = 0.00016, with three days carrying both outcomes at once
+   ([[kb-access-tracks-the-routine-not-the-day]]). So:
+
+   - **Research tier: a denial is the expected result.** Probe once, record it
+     in one clause, fall back to in-repo work. Do not re-probe hoping for a
+     different container, and do not write it up as news — this file already
+     carries six near-identical paragraphs saying the same thing.
+   - **Execution tier: you have it.** Spend it, per step 2 and step 2a.
+
+   This supersedes "every session, until one succeeds", which was written when
+   the variation looked like chance. Jerry's grant is still what sets the
+   ceiling and is still non-retryable from inside a session.
 2. **If access works:** update `sibling-repo-access-denied-in-routines` (it is
    now wrong), then pick **one repo, one focused item** per session. Read that
    repo's own README/ROADMAP/CLAUDE.md before touching it. Rotate — do not
@@ -228,6 +238,30 @@ GitHub MCP equivalent).
    `jvanheerikhuize/repos#1` (2026-08-06) and `#2` (2026-08-07) independently
    fixed the identical `.gitmodules`/`AGENTS.md` drift, unreconciled and both
    still open three days later ([[workspace-repo-inventory-drift]]).
+2a. **While you are in that repo, re-verify the entries grounded in it.** This
+   costs one file read against a checkout you already have, and it is the only
+   channel those entries have. Three live entries sit permanently at the front
+   of the review queue because the tier that can open their sources is not the
+   tier that re-verifies things:
+
+   | entry | check against |
+   |---|---|
+   | `asdlc-governed-change-rules` | `asdlc` — the protected-main rules, generated-doc paths, CR-id format |
+   | `twin-sovereignty-constraint` | `digital-twin/docs/SOVEREIGNTY.md` |
+   | `workspace-improvement-phases` | `jvanheerikhuize/repos` — which P0–P6 phases are actually done |
+
+   Use `kb.py verify <name> --note "<what you opened and what it said>"`; a
+   verify without a note is a schedule change, not a review. If the claim has
+   drifted, correct it in place instead — that is the whole point of being
+   there. Rotations on 2026-08-18 through 2026-08-22 each stood in one of these
+   repos and re-verified nothing, because `ROADMAP.md` had recorded the queue's
+   floor as Jerry's to clear when half of it was theirs
+   ([[kb-access-tracks-the-routine-not-the-day]]).
+
+   **Do not file a new entry per repo you visit.** Measured and deliberately
+   deferred — the reopen condition is in `ROADMAP.md`. Record the rotation in
+   `DEBRIEF.md` as before.
+
 3. **Git strategy in other repos:** feature branch, conventional commits,
    push, **open a PR — do not merge it.** The automerge pre-authorization
    above was scoped to this repo during the holiday mandate and does not
@@ -1222,6 +1256,45 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   count; a handful of reopened pairs is normal, and a queue back in the dozens
   with no ruling for a fortnight is the state this phase existed to make
   visible.
+
+- [x] **The tier with the access is the tier that writes nothing (ROADMAP Phase
+  23).** (2026-08-23) Picked up as the research-tier item. Backlog closed, no
+  stranded branch beyond the four acknowledged, `lint --strict`/`triage` clean,
+  both consolidation queues empty and every pair judged (0 of 106 — Phase 22
+  said to expect a refill and there was none), standing re-verification action
+  not firing. Sibling access denied again, which this time **was** the finding.
+  Every session probes and records the result; fifteen probes are on the record
+  and the store reads the variation as chance. Split by routine it is perfectly
+  separated — **research tier 0 granted / 7 denied, execution tier 8 / 0**,
+  Fisher exact **p = 0.00016**, with 08-07, 08-08 and 08-19 each carrying both
+  outcomes on the same day. That is the *stably different second session type*
+  the "checkable from here" reopen row has waited for since 2026-08-08, met
+  since 08-18 and unnoticed. **It had already cost something:** Phase 15's
+  "floor no routine can lift" filed six entries as Jerry's, and three of them —
+  `asdlc-governed-change-rules`, `twin-sovereignty-constraint`,
+  `workspace-improvement-phases` — are grounded in sibling repos the execution
+  tier clones weekly; a session was inside `digital-twin` on 08-18 with
+  `docs/SOVEREIGNTY.md` in the checkout and re-verified nothing. **The floor is
+  3.** The general mechanism: replaying `git log --diff-filter=A` over
+  `memory/`, every entry since 2026-08-07 is a research-tier write-up bar one,
+  and the last **five** rotations left **zero** entries about the repos they
+  fixed bugs in — that knowledge is in `AUTONOMY.md` prose, which crossed
+  `memory/` in size on 2026-08-01 and is now **1.67×** it, 21,290 tokens against
+  a 2,000-token context budget, reachable by no retrieval. **Deriving the split
+  from `source` was measured and refuted** (0.898 accuracy against an 0.816
+  base rate, but **5 of 9** on the class that matters, mislabelling three of the
+  six): `source` names the act not the artifact, and grounding is a set, not a
+  value — Phase 18's finding one level up. **No code shipped, deliberately.**
+  What shipped is process: step 1 above now tells each tier which answer to
+  expect, new step 2a asks the rotation to re-verify what it is standing in, and
+  two reopen rows are closed/corrected with evidence. Write-up:
+  `kb-access-tracks-the-routine-not-the-day`; `kb-reverification-has-one-rate`
+  and `sibling-repo-access-denied-in-routines` corrected in place.
+
+  **The backlog is closed again.** The standing re-verification action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today. **For the next execution-tier session:** step 2a is the cheapest
+  real work available to you, and only you can do it.
 
 ## Debrief contract
 

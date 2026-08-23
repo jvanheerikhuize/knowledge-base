@@ -612,6 +612,66 @@
       "agreement": "agree"
     },
     {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "kb-reverification-has-one-rate",
+      "verdict": "overlap",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "8696b0b09771",
+      "note": "the new entry corrects the older one's floor (6 -> 3, and not Jerry's); corrected in place the same day, so they agree as they now stand",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "kb-review-load-is-one-cohort",
+      "verdict": "overlap",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "2f3a319d5505",
+      "note": "both bear on the 2026-10-25 queue; the cohort entry describes its shape, this one who can clear its front",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "kb-verification-rides-along-with-authoring",
+      "verdict": "overlap",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "a20e186f09d6",
+      "note": "same mechanism one level up: a conclusion nobody re-reads stays wrong \u2014 there about a claim, here about who can check claims",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "sibling-repo-access-denied-in-routines",
+      "verdict": "overlap",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "960f887f8cc0",
+      "note": "the new entry supplies the mechanism behind the older one's 'which container you land in' paragraph; older corrected in place",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "stranded-branches-track-the-charter-text",
+      "verdict": "distinct",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "6cbcc5fa71cd",
+      "note": "near-collision worth naming: that entry says stranding does NOT track which routine is running, this one says access DOES. Different dependent variables (what a session leaves behind vs what it can reach), both measured, no conflict",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-access-tracks-the-routine-not-the-day",
+      "b": "workspace-repo-inventory-drift",
+      "verdict": "overlap",
+      "judged": "2026-08-23",
+      "a_digest": "e851e8b091a2",
+      "b_digest": "d55fd9871c64",
+      "note": "the drift entry is the one sibling-repo entry that exists, and its 11-day staleness is this entry's evidence that the rotation is the repair channel",
+      "agreement": "agree"
+    },
+    {
       "a": "kb-agent-entrypoint-is-agent-md",
       "b": "kb-corrections-happen-in-place",
       "verdict": "distinct",
@@ -1655,20 +1715,20 @@
       "a": "kb-reverification-has-one-rate",
       "b": "kb-review-load-is-one-cohort",
       "verdict": "overlap",
-      "judged": "2026-08-22",
-      "a_digest": "016e388ab73f",
+      "judged": "2026-08-23",
+      "a_digest": "8696b0b09771",
       "b_digest": "2f3a319d5505",
-      "note": "the cohort fact, and the only rate that spreads it",
+      "note": "re-confirmed 2026-08-23 after correcting the floor claim in the first; both still describe one cohort and the rate that spreads it",
       "agreement": "agree"
     },
     {
       "a": "kb-reverification-has-one-rate",
       "b": "kb-verification-rides-along-with-authoring",
       "verdict": "overlap",
-      "judged": "2026-08-22",
-      "a_digest": "016e388ab73f",
+      "judged": "2026-08-23",
+      "a_digest": "8696b0b09771",
       "b_digest": "a20e186f09d6",
-      "note": "what last_verified records, and the rate at which it can honestly be moved",
+      "note": "re-confirmed 2026-08-23; what last_verified records vs the honest rate for moving it",
       "agreement": "agree"
     },
     {
@@ -1743,6 +1803,16 @@
     },
     {
       "a": "kb-the-backstop-arrives-after-the-session",
+      "b": "purge-context-after-each-change",
+      "verdict": "distinct",
+      "judged": "2026-08-23",
+      "a_digest": "33659e57d223",
+      "b_digest": "77a48a37efe1",
+      "note": "unrelated subjects; shared vocabulary is 'after each/every' plus session nouns",
+      "agreement": "agree"
+    },
+    {
+      "a": "kb-the-backstop-arrives-after-the-session",
       "b": "stranded-branches-need-a-second-channel",
       "verdict": "overlap",
       "judged": "2026-08-22",
@@ -1805,10 +1875,10 @@
       "a": "kb-verification-rides-along-with-authoring",
       "b": "sibling-repo-access-denied-in-routines",
       "verdict": "overlap",
-      "judged": "2026-08-22",
+      "judged": "2026-08-23",
       "a_digest": "a20e186f09d6",
-      "b_digest": "b0c0f57d80a3",
-      "note": "five of nine unreachable entries in that sweep are unreachable for exactly this reason",
+      "b_digest": "960f887f8cc0",
+      "note": "re-confirmed 2026-08-23, ruling unchanged; the unreachable-entry count in that sweep is now known to be tier-dependent",
       "agreement": "agree"
     },
     {
@@ -1975,10 +2045,10 @@
       "a": "sibling-repo-access-denied-in-routines",
       "b": "stranded-branches-need-a-second-channel",
       "verdict": "distinct",
-      "judged": "2026-08-22",
-      "a_digest": "b0c0f57d80a3",
+      "judged": "2026-08-23",
+      "a_digest": "960f887f8cc0",
       "b_digest": "ad258f476900",
-      "note": "what a routine can reach vs what it leaves behind [re-confirmed 2026-08-22 after this entry's own edit, ruling unchanged]",
+      "note": "re-confirmed 2026-08-23 after an edit to the first; ruling unchanged",
       "agreement": "agree"
     },
     {
@@ -1995,10 +2065,10 @@
       "a": "sibling-repo-access-denied-in-routines",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-08-22",
-      "a_digest": "b0c0f57d80a3",
+      "judged": "2026-08-23",
+      "a_digest": "960f887f8cc0",
       "b_digest": "d55fd9871c64",
-      "note": "fixing the drift is blocked by exactly that access limit [re-confirmed 2026-08-22, ruling unchanged]",
+      "note": "re-confirmed 2026-08-23 after an edit to the first; ruling unchanged",
       "agreement": "agree"
     },
     {

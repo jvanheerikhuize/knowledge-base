@@ -1171,3 +1171,44 @@ Set up 2026-07-27 before you left.
   the standing mandate: [jvanheerikhuize/centauri-control#6](https://github.com/jvanheerikhuize/centauri-control/pull/6).
   No CI existed in that repo before this PR (the new workflow watches its own
   PR); subscribed for review comments and CI.
+
+- [ ] 2026-08-23 **The two routines do not have the same access, and that
+  explains why the store knows nothing about your other repos.** Every session
+  runs the mandate's step-1 access probe and writes down the result; the store
+  has read that variation as chance since 2026-08-08. Split by which routine
+  fired, all fifteen recorded probes separate perfectly — **research tier 0
+  granted / 7 denied, execution tier 8 granted / 0 denied**, Fisher exact
+  p = 0.00016 — and on 08-07, 08-08 and 08-19 both routines ran and only the
+  research one was refused. Two consequences, both already paid for. **(1) A
+  wrong number was on the roadmap.** Phase 15 recorded six never-re-verified
+  entries as a floor "only Jerry can lift"; three of them
+  (`asdlc-governed-change-rules`, `twin-sovereignty-constraint`,
+  `workspace-improvement-phases`) are grounded in sibling repos the execution
+  tier clones weekly — a session was inside `digital-twin` on 08-18 with that
+  entry's own source file in the checkout. **The floor is 3, and it is not all
+  yours.** **(2) The tier with the access is the tier that writes no entries.**
+  Every entry created since 2026-08-07 is a research-tier write-up bar one, and
+  the last five rotations (`digital-twin`, `action-rsi`, `just-in-time`,
+  `garmin-vivoactive`, `centauri-control`) left zero entries about the repos
+  they fixed bugs in. That knowledge went into `AUTONOMY.md` instead, which
+  crossed `memory/` in size on 2026-08-01 and is now 1.67× it — 21,290 tokens
+  against a 2,000-token context budget, reachable by no retrieval. Ask the
+  store about `action-rsi` today and it answers with `kb-ranked-retrieval`.
+  **No code shipped, deliberately:** deriving each entry's grounding from the
+  `source` field it already carries scores 0.898 against an 0.816
+  always-answer-`here` baseline but only **5 of 9** on the class that matters,
+  because `source` names the act rather than the artifact ("re-checked against
+  the repo") and one entry has two valid grounds. What shipped is process —
+  `AUTONOMY.md` step 1 now tells each tier which answer to expect instead of
+  asking for a probe "until one succeeds", and a new step 2a asks a rotation to
+  re-verify the entries grounded in the repo it is already standing in.
+  609 tests green, `lint --strict` and `triage` clean, 12 pairs judged and 5
+  passage proposals dismissed (the refill Phase 22 predicted). Two entries
+  re-verified with notes, which trips the pace warning at 2 against 0.544/day —
+  both are corrections I actually made, so the record is true; noting it so the
+  next session does not add to today. **One thing for you:** the remaining
+  three-entry floor (`routines-ui-not-api-for-prompts`,
+  `purge-context-after-each-change`, `workspace-audit-2026-07-27`) rests on the
+  Routines UI, `~/.claude/settings.json` and your machine — genuinely yours,
+  and they all come due 2026-10-25. Write-up:
+  `kb-access-tracks-the-routine-not-the-day`; ROADMAP Phase 23.

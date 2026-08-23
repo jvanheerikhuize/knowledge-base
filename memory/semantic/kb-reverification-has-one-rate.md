@@ -5,8 +5,8 @@ description: re-verification has one sustainable rate — live entries over the 
 confidence: high
 source: simulation over this store's real last_verified dates (scripts/kb.py review_forecast, STALE_DAYS=90), 2026-08-15; ROADMAP Phase 15
 created: 2026-08-15
-last_verified: 2026-08-15
-links: [kb-review-load-is-one-cohort, kb-verification-rides-along-with-authoring, kb-entry-status-model, stranded-branches-need-a-second-channel, kb-forgetting-model, kb-nothing-predicts-the-next-correction, kb-a-verdict-expires-faster-than-it-is-written]
+last_verified: 2026-08-23
+links: [kb-review-load-is-one-cohort, kb-verification-rides-along-with-authoring, kb-entry-status-model, stranded-branches-need-a-second-channel, kb-forgetting-model, kb-nothing-predicts-the-next-correction, kb-a-verdict-expires-faster-than-it-is-written, kb-access-tracks-the-routine-not-the-day]
 ---
 
 A review date is `last_verified + STALE_DAYS`, so re-verifying an entry does
@@ -30,8 +30,10 @@ both flattens the queue and holds it flat, and it is now reported by
 ## Faster is worse, measured
 
 Simulated against this store's real `last_verified` dates over two cycles
-(180d), oldest-due first, with the six routine-unreachable entries excluded and
-a session declining to re-check anything younger than half a cycle:
+(180d), oldest-due first, with the six then-thought-unreachable entries excluded
+(three of them are reachable after all — see the correction below; the pace
+result does not turn on which six are held out) and a session declining to
+re-check anything younger than half a cycle:
 
 | pace | verifications | effective spread | distinct due dates |
 |---|---|---|---|
@@ -105,5 +107,24 @@ This revises [[kb-verification-rides-along-with-authoring]]'s conclusion in one
 direction. That entry found that spreading a queue does not make a third of it
 checkable; the converse also holds — the unreachable part **stays a cohort
 permanently**, so part of the busiest-day number is not a thing to fix, and
-reporting it as one invites a session to sweep harder against a floor. Only
-Jerry can clear those six.
+reporting it as one invites a session to sweep harder against a floor.
+
+**Corrected 2026-08-23: the floor is three, and "only Jerry" was wrong for half
+of it.** The count of six is right and the shared 2026-10-25 due date is right.
+What this section got wrong is *whose* they are. It says "a scheduled sandbox
+cannot see" them, generalising from the sandbox this measurement ran in — but
+there are two routines, and only one of them is refused sibling access
+(0 of 7 research-tier probes against 8 of 8 execution-tier,
+p = 0.00016; [[kb-access-tracks-the-routine-not-the-day]]). Three of the six —
+`asdlc-governed-change-rules`, `twin-sovereignty-constraint` and
+`workspace-improvement-phases` — are grounded in sibling repos the execution
+tier clones routinely, and one of those repos (`digital-twin`) had a rotation
+session working inside it on 2026-08-18. Only `routines-ui-not-api-for-prompts`,
+`purge-context-after-each-change` and `workspace-audit-2026-07-27` rest on the
+Routines UI or Jerry's own machine.
+
+So `already_due` and `busiest` floor at **3**, not 6, and the remedy for the
+other three is not Jerry but the rotation that is already going there — which
+`AUTONOMY.md` now asks for. The error was writing a claim about *who can check
+things* as though it were a property of the entries, and then not recomputing it
+when the access model moved underneath.
