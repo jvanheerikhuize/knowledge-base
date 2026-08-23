@@ -5,7 +5,7 @@ description: the P0–P6 improvement plan for ~/Repos, with each phase's status 
 confidence: high
 source: plan authored 2026-07-24; completion status verified by direct inspection 2026-07-27
 created: 2026-07-27
-last_verified: 2026-07-27
+last_verified: 2026-08-23
 links: [workspace-audit-2026-07-27, workspace-repo-inventory-drift, kb-roadmap]
 ---
 
@@ -53,3 +53,26 @@ Autoinstall-YAML → dotfiles stage-1/stage-2 pipeline doc.
 `.gitignore`; the knowledge repos are integrated rather than duplicated; game
 repos have structured feature specs; system tools are at v0.1.0+; every repo
 documents a clear next step.
+
+**Re-verified 2026-08-23, against a fresh clone of `jvanheerikhuize/repos`.**
+This plan predates the 2026-08-06/07 workspace rebuild into a git-submodule
+meta-repo ([[workspace-repo-inventory-drift]]) and is now superseded, not
+current: that repo carries its own `ROADMAP.md`, rewritten with a different
+phase scheme (P1 "Documentation & Agent-Agnostic Foundation" — folding this
+plan's P0+P1 — marked **✓ COMPLETED**, including "PURPOSE.md across all 24
+workspace repositories" and "AGENTS.md or agent specs across all
+repositories"; P2 knowledge consolidation still "in progress", matching this
+entry). Submodules are not checked out in a non-recursive clone, so the P1.3
+`.claude/CLAUDE.md`-count claim above could not be re-checked at the
+filesystem level and is left as an open question rather than confirmed either
+way. What *could* be checked: the two P2.3-adjacent naming fixes are still
+unlanded — `jvanheerikhuize/repos` PRs
+[#1](https://github.com/jvanheerikhuize/repos/pull/1) (2026-08-06),
+[#2](https://github.com/jvanheerikhuize/repos/pull/2) (2026-08-07), and
+[#3](https://github.com/jvanheerikhuize/repos/pull/3) (2026-08-08) are all
+still open and unreconciled 15–17 days later, and `.gitmodules` on `main`
+still reads `[submodule "eidolon"]` (not `undervault`) and
+`[submodule "ubunutu-cast"]` (not `ubuntu-cast`) — so "P1 done" overstates
+completion at these two known points. Landing those PRs is Jerry's call, not
+a routine's (per the standing mandate's cross-repo rule); this entry just
+records that "done" and "actually merged" have diverged here.

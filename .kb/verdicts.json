@@ -1892,6 +1892,16 @@
       "agreement": "agree"
     },
     {
+      "a": "kb-verification-rides-along-with-authoring",
+      "b": "workspace-improvement-phases",
+      "verdict": "distinct",
+      "judged": "2026-08-23",
+      "a_digest": "a20e186f09d6",
+      "b_digest": "2deeb77f779e",
+      "note": "Share 'verification against a primary source' vocabulary but make different claims: one is a store-wide finding about how last_verified moves (authoring vs standalone review), the other is a ~/Repos-specific backlog with per-phase status. Not a restatement of each other; both can be true together.",
+      "agreement": "agree"
+    },
+    {
       "a": "memory-overview-site",
       "b": "persist-insight-to-knowledge-base",
       "verdict": "distinct",
@@ -2105,10 +2115,10 @@
       "a": "workspace-audit-2026-07-27",
       "b": "workspace-improvement-phases",
       "verdict": "overlap",
-      "judged": "2026-07-30",
+      "judged": "2026-08-23",
       "a_digest": "cb63a8a06f2d",
-      "b_digest": "706b96ed2b57",
-      "note": "the phase statuses are read off that audit",
+      "b_digest": "2deeb77f779e",
+      "note": "Re-confirmed 2026-08-23: phase statuses still read off that audit; ruling unchanged despite the 2026-08-23 addendum noting the plan itself is now superseded by jvanheerikhuize/repos's own rewritten ROADMAP.md.",
       "agreement": "agree"
     },
     {
@@ -2125,10 +2135,10 @@
       "a": "workspace-improvement-phases",
       "b": "workspace-repo-inventory-drift",
       "verdict": "overlap",
-      "judged": "2026-08-22",
-      "a_digest": "706b96ed2b57",
+      "judged": "2026-08-23",
+      "a_digest": "2deeb77f779e",
       "b_digest": "d55fd9871c64",
-      "note": "the phase plan carries the drift as an open item [re-confirmed 2026-08-22, ruling unchanged]",
+      "note": "Re-confirmed 2026-08-23: both now also note PRs #1/#2/#3 still open 15-17+ days on; ruling unchanged.",
       "agreement": "agree"
     }
   ]
