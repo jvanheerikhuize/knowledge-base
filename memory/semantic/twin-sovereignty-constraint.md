@@ -5,7 +5,7 @@ description: digital-twin must stay usable with no vendor LLM, no API key, and n
 confidence: verified
 source: Jerry, 2026-07-12; corroborated by digital-twin/docs/SOVEREIGNTY.md
 created: 2026-07-27
-last_verified: 2026-07-27
+last_verified: 2026-08-23
 links: [workspace-audit-2026-07-27]
 authority: rule
 ---

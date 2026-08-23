@@ -1212,3 +1212,39 @@ Set up 2026-07-27 before you left.
   Routines UI, `~/.claude/settings.json` and your machine — genuinely yours,
   and they all come due 2026-10-25. Write-up:
   `kb-access-tracks-the-routine-not-the-day`; ROADMAP Phase 23.
+
+- [ ] 2026-08-23 **Step 2a done — the floor of 3, actually re-verified.**
+  Execution-tier session (had `add_repo`/`list_repos`, confirming today's own
+  Phase 23 split). Confirmed this repo's backlog stays closed first: no new
+  stranded branch beyond the four acknowledged, `lint --strict`/`triage`
+  clean, standing re-verification action not firing. Cloned `asdlc`,
+  `digital-twin`, and `jvanheerikhuize/repos` and re-checked the three entries
+  Phase 15 named as unreachable from a routine and Phase 23 flagged as sitting
+  unverified with the sources open in a checkout nobody read:
+  `asdlc-governed-change-rules` (main still protected — tip is a PR merge
+  commit; `spec-check`/`g4-gate` workflows present; every generated doc still
+  carries the "do not edit directly" header; `asdlc.yaml` pins `spec_version:
+  0.5.0`, so the D14 CR-id format is current; `.asdlc/changes/` still ends at
+  `CR-20260716-005`, matching the entry's own "stale detail" note, because the
+  repo has had no push since 2026-07-25) and `twin-sovereignty-constraint`
+  (`docs/SOVEREIGNTY.md` confirms every claim verbatim; `pyproject.toml` pins
+  `dependencies = []` with `anthropic` as the only optional extra) both came
+  back exactly as recorded — verified with notes, no changes needed.
+  `workspace-improvement-phases` did not: its P0–P6 plan predates the
+  2026-08-06/07 submodule-meta-repo rebuild, and `jvanheerikhuize/repos` now
+  carries its own rewritten `ROADMAP.md` with a different phase scheme
+  claiming P1 "✓ COMPLETED" — including the CLAUDE.md/AGENTS.md coverage this
+  entry left as an open gap. Submodules aren't checked out in a non-recursive
+  clone, so that specific count couldn't be re-verified either way and is
+  left open rather than guessed at. What could be checked: PRs #1/#2/#3 (the
+  naming-drift fixes from 2026-08-06/07/08) are all still open 15–17 days on,
+  and `.gitmodules` on `main` still reads `eidolon` and `ubunutu-cast` — so
+  "P1 done" overstates completion at those two known points. Corrected the
+  entry in place with this finding rather than just bumping the date. All
+  three verified with notes; re-judged the three candidate pairs my edit
+  reopened (2 overlap/agree re-confirmed, 1 never-judged pair against
+  `kb-verification-rides-along-with-authoring` ruled `distinct`/`agree` —
+  related vocabulary, different claims). 609 tests green, `lint --strict` and
+  `candidates` both clean. No cross-repo bug-hunt rotation this session —
+  step 2a was the whole, focused item, per Phase 23's own instruction that it
+  is "the cheapest real work available ... and only you can do it."

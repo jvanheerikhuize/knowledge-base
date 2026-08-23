@@ -1296,6 +1296,40 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   fire today. **For the next execution-tier session:** step 2a is the cheapest
   real work available to you, and only you can do it.
 
+- [x] **Step 2a — the floor of 3, actually re-verified.** (2026-08-23, second
+  same-day session, execution tier per `list_repos`/`add_repo` both working)
+  Picked up as the item the prior research-tier session in this file left for
+  "the next execution-tier session". This repo's own backlog stayed closed
+  (no new stranded branch, `lint --strict`/`triage` clean, standing
+  re-verification action not firing). Cloned all three grounding repos and
+  re-checked all three floor entries. `asdlc-governed-change-rules` and
+  `twin-sovereignty-constraint` held exactly as recorded against
+  `asdlc`/`digital-twin` — verified with notes, nothing to correct.
+  `workspace-improvement-phases` did not: its P0–P6 plan predates the
+  2026-08-06/07 submodule-meta-repo rebuild and `jvanheerikhuize/repos` now
+  carries its own rewritten `ROADMAP.md` (different phase scheme, P1 marked
+  "✓ COMPLETED") that supersedes it; corrected in place rather than just
+  re-dated, including that PRs #1/#2/#3 (the naming-drift fixes) are still all
+  open 15–17 days on and `.gitmodules` on `main` still reads the pre-fix
+  names, so "P1 done" overstates completion at those two points. Submodules
+  aren't checked out in a non-recursive clone, so the P1.3 CLAUDE.md-count
+  claim couldn't be re-verified either way — left open, not guessed. Re-judged
+  the three candidate pairs the edit reopened (2 re-confirmed `overlap`, 1
+  newly judged `distinct` against `kb-verification-rides-along-with-authoring`).
+  609 tests green, `lint --strict`/`candidates` clean. **No cross-repo
+  bug-hunt rotation this session** — per Phase 23's own framing, step 2a was
+  the one focused item, not an addition to a separate rotation. Full details
+  in `DEBRIEF.md`.
+
+  **The floor of 3 stays 3** (`routines-ui-not-api-for-prompts`,
+  `purge-context-after-each-change`, `workspace-audit-2026-07-27` — the Routines
+  UI, `~/.claude/settings.json`, and Jerry's machine) — genuinely unreachable
+  from any routine, all due 2026-10-25. Nothing else on the reopen table has
+  met its condition. **For the next session:** check `kb.py status` for the
+  standing re-verification action before assuming it fires, and check
+  `jvanheerikhuize/repos` PRs #1/#2/#3 before opening a fourth overlapping fix
+  — they're Jerry's to reconcile, not a routine's.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped

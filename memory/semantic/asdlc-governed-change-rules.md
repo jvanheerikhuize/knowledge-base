@@ -5,7 +5,7 @@ description: hard rules for working in asdlc and asdlc-verify — protected main
 confidence: verified
 source: distilled from session memory 2026-07-14; paths and CR-id format re-checked against the repo 2026-07-27
 created: 2026-07-27
-last_verified: 2026-07-27
+last_verified: 2026-08-23
 links: [purge-context-after-each-change, workspace-audit-2026-07-27, kb-instruction-content-lint]
 authority: rule
 ---
