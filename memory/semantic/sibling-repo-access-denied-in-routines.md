@@ -5,8 +5,8 @@ description: was true 2026-07-28 through 2026-08-06 — cloud routine sessions c
 confidence: verified
 source: reprobed in the 2026-08-07 routine session — add_repo attached jvanheerikhuize/repos with push access, clone/push/PR all succeeded
 created: 2026-07-28
-last_verified: 2026-08-08
-links: [holiday-autonomy-mandate, workspace-repo-inventory-drift, routines-ui-not-api-for-prompts, stranded-branches-track-the-charter-text]
+last_verified: 2026-08-23
+links: [holiday-autonomy-mandate, workspace-repo-inventory-drift, routines-ui-not-api-for-prompts, stranded-branches-track-the-charter-text, kb-access-tracks-the-routine-not-the-day]
 ---
 
 **This entry's original claim no longer holds — corrected in place rather
@@ -50,3 +50,27 @@ property cuts both ways.
   window, not renewed across the workspace.
 
 2026-08-08, same-day evidence that the cause is per-session tooling, not only Jerry's grant timing: an earlier routine firing today had no add_repo call and an unauthenticated git clone of a sibling failed, so it fell back to in-repo work (recorded in DEBRIEF.md). A later routine firing the same day had add_repo and register_repo_root, used them to attach jvanheerikhuize/repos and jvanheerikhuize/ubuntu-cast, cloned, pushed a branch, and opened jvanheerikhuize/repos#3. Two sessions, same day, same account, different tool availability — access is not a single on/off switch that flips only when Jerry changes a grant; which session container you land in also matters.
+
+**Corrected 2026-08-23 — "which container you land in" is not luck, it is the
+routine.** The paragraph above got the direction right and the shape wrong: it
+read the same-day flip as evidence that access varies per session, i.e. that a
+denied probe is a bad draw and the next one might succeed. All fifteen probes
+now on the record say otherwise. Split by which of the two routines was running,
+the outcome is perfectly separated — **research tier 0 granted / 7 denied,
+execution tier 8 granted / 0 denied**, Fisher exact two-sided **p = 0.00016**,
+2026-08-07 through 2026-08-23 — and all three days carrying both outcomes
+(08-07, 08-08, 08-19) are days both routines fired, with the research-tier one
+refused each time. The 2026-08-08 pair above is two of those three.
+
+Two things follow for a session reading this:
+
+- **A denied probe in the research tier is the expected result, not a bad
+  draw.** Probe once cheaply and fall back; do not re-probe hoping for a
+  different container, and do not record the denial as though it were news.
+- **Sibling-grounded entries are the execution tier's to re-verify**, because
+  that tier is the one that can open their sources — see
+  [[kb-access-tracks-the-routine-not-the-day]] for what that cost while the
+  store believed otherwise.
+
+Unchanged: the grant itself is still Jerry's and still non-retryable from inside
+a session. What this corrects is only the model of the variation on top of it.

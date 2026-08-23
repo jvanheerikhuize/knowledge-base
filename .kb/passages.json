@@ -2,6 +2,14 @@
   "version": 1,
   "dismissed": [
     {
+      "id": "006a32f4b26c",
+      "host": "kb-reverification-has-one-rate",
+      "target": "kb-access-tracks-the-routine-not-the-day",
+      "dismissed": "2026-08-23",
+      "note": "correction notice, and it has to live where the wrong claim is \u2014 a reader of the floor section must see that the floor is 3; cutting it to the new entry leaves the error standing where it is read",
+      "excerpt": "**Corrected 2026-08-23: the floor is three, and \"only Jerry\" was wrong for half of it.** The count of six is right and t"
+    },
+    {
       "id": "077b36dc5bd7",
       "host": "kb-context-budget-is-not-a-pack-size",
       "target": "kb-ranked-retrieval",
@@ -64,6 +72,14 @@
       "dismissed": "2026-08-22",
       "note": "this entry's own tier-confound measurement (p=0.13), not the backstop entry's claim; surfaced only because the two were linked today",
       "excerpt": "**The obvious confound is not it.** The 09:xx execution routine stranded 4 of 11 and the 07:xx research routine 1 of 12 "
+    },
+    {
+      "id": "1b4385d9554e",
+      "host": "kb-access-tracks-the-routine-not-the-day",
+      "target": "sibling-repo-access-denied-in-routines",
+      "dismissed": "2026-08-23",
+      "note": "the measurement itself (p-value, the three same-day pairs) \u2014 this is the new entry's own finding and exists nowhere else",
+      "excerpt": "Perfect separation, Fisher exact two-sided **p = 0.00016**. And the split is not confounded by the calendar: on **three*"
     },
     {
       "id": "1cf625e001da",
@@ -314,6 +330,14 @@
       "excerpt": "**How many entries that buys is not fixed, and falls as entries get longer** \u2014 5.14 per pack on 2026-07-27, 2.75 on 2026"
     },
     {
+      "id": "a30ddec30c6c",
+      "host": "kb-access-tracks-the-routine-not-the-day",
+      "target": "sibling-repo-access-denied-in-routines",
+      "dismissed": "2026-08-23",
+      "note": "opening paragraph of the new entry; it states what the older entry claims in order to refute it, which is argument, not restatement",
+      "excerpt": "Every routine session runs the standing mandate's step 1 \u2014 probe sibling-repo access \u2014 and records the result. Fifteen p"
+    },
+    {
       "id": "a30e6a6b685b",
       "host": "kb-golden-set-lives-in-the-wording",
       "target": "kb-ranked-retrieval",
@@ -442,6 +466,14 @@
       "excerpt": "This is not inferred from the rate. Both 2026-08-06 sessions wrote the reason down. `claude/wizardly-dijkstra-0sq8ef` he"
     },
     {
+      "id": "ca8cd19ee89f",
+      "host": "sibling-repo-access-denied-in-routines",
+      "target": "kb-access-tracks-the-routine-not-the-day",
+      "dismissed": "2026-08-23",
+      "note": "same: the correction belongs against the paragraph it corrects, per kb-corrections-happen-in-place",
+      "excerpt": "**Corrected 2026-08-23 \u2014 \"which container you land in\" is not luck, it is the routine.** The paragraph above got the dir"
+    },
+    {
       "id": "cc035e14cee5",
       "host": "kb-reverification-has-one-rate",
       "target": "kb-review-load-is-one-cohort",
@@ -472,6 +504,14 @@
       "dismissed": "2026-08-21",
       "note": "the correction added today to this entry's own 'rebuilt on every push' claim; a correction belongs where the wrong claim was",
       "excerpt": "**\"Rebuilt on every push\" is what the trigger says, not what the site is.** A push starting a run is not a run finishing"
+    },
+    {
+      "id": "d05bd603fc40",
+      "host": "sibling-repo-access-denied-in-routines",
+      "target": "kb-access-tracks-the-routine-not-the-day",
+      "dismissed": "2026-08-23",
+      "note": "a pointer with one clause of context, the convention here for linking what you discuss",
+      "excerpt": "- **Sibling-grounded entries are the execution tier's to re-verify**, because that tier is the one that can open their s"
     },
     {
       "id": "d5c83d58ff0f",
