@@ -152,7 +152,7 @@ Run `scripts/kb.py status` for the board, `--legend` for this table, or open
 | `stale` | Not re-checked in over 90 days; may still be true, nobody has looked | re-check against the source, then `kb.py verify <name>` |
 | `unverified` | Recorded but never confirmed against a primary source — a claim, not a fact | confirm it, then `kb.py verify <name> --confidence verified` |
 | `provisional` | Confidence is `low` or `medium` — believed, but the evidence was indirect | check it directly, then `kb.py verify <name> --confidence verified` |
-| `isolated` | Nothing links to it, or it links to nothing; unreachable by following the graph | `kb.py link <other-entry> <name>` |
+| `isolated` | Nothing links to it, or it links to nothing. Retrieval is unaffected — no ranker follows the graph — but the site cannot navigate to it and `consolidate` cannot reason about it | `kb.py link <other-entry> <name>` |
 | `ageing` | Still fresh, but past two-thirds of the way to the staleness cutoff | nothing now; re-verify before the review date |
 | `current` | Verified recently, trusted, and connected. Nothing to do | nothing; re-verify by the review date to stay here |
 | `archived` | Retired from retrieval on purpose; still readable and still in the graph | nothing; `kb.py archive <name> --undo` puts it back |

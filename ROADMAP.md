@@ -1111,6 +1111,7 @@ before its condition holds.
 | ~~Archived entries in the ranker's corpus statistics~~ | **Closed 2026-08-18, not deferred** — see "Phase 18" below. The condition this row was waiting on ("more as the archive grows") is measured never to arrive: the effect saturates by the tenth archived entry at ~10% of top hits and a third of a rank position, and has no direction at any size. Its premise was also backwards — archiving is score-neutral under the shipped corpus (0 of 42 orderings move); the *alternative* is what would reweight the store. The corpus is unchanged; what shipped is the declaration it never had | [[kb-a-registry-asks-only-what-it-has-words-for]] |
 | A publish-path staleness check | a **second** Pages deploy stalls. One occurrence in 43 runs is a bug, not a class, and this store's own rule is to wait for the third; the predicate is already known and needs no design work — the newest `pages.yml` run concluding `success` older than the newest commit touching `memory/`, two requests, would have fired on day one of the twelve-day stall | [[kb-a-hung-deploy-reports-as-cancelled]] |
 | A narrower verdict-expiry rule | a re-judged pair comes back with a **different ruling** — 0 of 34 so far. That is the only evidence that could distinguish "the expiry is churn" from "the expiry is an unfalsified guard", and no amount of further replay produces it. Three candidate keys are already measured and all three expire within two verdicts of the shipped rule, so the design work is done and only the ground truth is missing | [[kb-a-verdict-expires-faster-than-it-is-written]] |
+| Link expansion in `context_pack` (follow one hop from the top hit) | the mean 1-hop neighbourhood falls back under **2x** the pack — `kb.py eval` prints both numbers and the ratio. At today's store that means `DEFAULT_CONTEXT_BUDGET` at 6,000+, which is the row above and Jerry's call, not a routine's; a store of shorter entries would do it too. Do **not** reopen it by pruning edges to make the ratio look better — the edges are what the site navigates and what `consolidate` reasons over, and the 4.2x answer-lift they carry is real. The design work is done and the numbers are recorded: one hop from the top hit, boost 2x, Δ recall@pack −0.024 at 2,000 and +0.048 at 9,000 | Phase 24, [[kb-the-link-graph-is-not-retrieval]] |
 | Clearing the ~~six~~ **three**-entry floor under the review queue | **Corrected 2026-08-23 — half of it was never Jerry's.** All six were stamped on opening day and come due together on 2026-10-25, but only `routines-ui-not-api-for-prompts`, `purge-context-after-each-change` and `workspace-audit-2026-07-27` rest on the Routines UI or his machine. The other three — `asdlc-governed-change-rules`, `twin-sovereignty-constraint`, `workspace-improvement-phases` — are grounded in sibling repos the execution tier already clones, and `AUTONOMY.md` now asks the rotation to re-verify them in passing. So `already_due` and `busiest` floor at **3**, not 6 | Phase 15, corrected by [[kb-access-tracks-the-routine-not-the-day]] |
 
 **The stranded-branch detector, measured and deliberately not built
@@ -1959,6 +1960,86 @@ sitting, and the measured alternative is a coin flip. Write-up:
 
 **One reopen row added below**, for the half this deliberately did not act on:
 the store holding no entry about any repo a routine works in.
+
+### Phase 24 — the link graph is not a retrieval structure (2026-08-24)
+
+Backlog closed, no stranded branch beyond the four acknowledged,
+`lint --strict` and `triage` clean, `candidates` empty (0 of 106 unjudged),
+`consolidate` holding two passage proposals, standing re-verification action
+not firing (nothing due until 2026-10-25), and nothing on the reopen table
+above had met its condition. So the starting point was the one structure this
+store has spent effort on since day one and never measured: **the `links:`
+graph**. 190 edges, 125 logged `link` events, `judge` recommending an edge on
+every `overlap`, `consolidate` running a queue for the missing ones, `lint`
+warning on orphans, and an `isolated` status telling you to fix it.
+
+**Nothing follows it.** `rank` is BM25 plus type, confidence and recency;
+`context_pack` fills a budget from that ranking; neither reads `links`, and no
+MCP tool does either. The live defect is what the store *said* about that:
+`kb.py status --legend` and `memory/AGENT.md` both defined `isolated` as
+"unreachable by following the graph" — a retrieval consequence, asserted in a
+status model whose neighbouring rows are defined in exactly those terms
+(`archived` is "retired from retrieval"). It had read that way for four weeks
+and no surface could catch it: `lint` checks that an edge resolves, never what
+an edge is worth.
+
+**The graph is not noise, which is the reason this needed measuring rather
+than asserting.** 114 of 190 edges (60%) are not among either endpoint's three
+nearest neighbours by the token-set similarity `candidates` blocks on — median
+edge at rank 5, worst at 41 of 48 — so a nearest-neighbour pass would never
+propose them. And the edge predicts: over the 19 golden queries whose top hit
+is wrong, `P(right answer | linked to the top hit)` is 10/144 = 0.069 against
+12/723 = 0.017 for everything else, a **4.2x lift, Fisher exact one-sided
+p = 0.0013**.
+
+**It is still the wrong grain, and the arithmetic is the finding.** One hop
+names **7.76 entries**; the pack holds **2.43**. A promoted neighbour is right
+6.9% of the time and displaces the rank-2 hit, which is right **26.3%** of the
+time. Measured end to end — one hop from the top hit, boost 1.25x through
+unbounded, `recall@pack` over 42 golden queries:
+
+| budget | mean pack | baseline | boost 2x | Δ | 95% CI |
+|---|---|---|---|---|---|
+| 2,000 (shipped) | 2.43 | 0.714 | 0.690 | **−0.024** | [−0.119, +0.071] |
+| 6,000 | 5.86 | 0.762 | 0.786 | +0.024 | [−0.048, +0.095] |
+| 9,000 | 8.14 | 0.786 | 0.833 | +0.048 | [+0.000, +0.119] |
+| 12,000 | 10.81 | 0.833 | 0.833 | 0.000 | — |
+
+Positive only where the pack can hold the whole neighbourhood; gone again
+above that, where the budget alone returns the answer. Two hops never helps at
+any budget (31.1 entries, 62% of the store). The ceiling is not what binds: of
+the 12 golden queries the pack misses, 7 are one hop from something in the
+pack. Precision is.
+
+**It used to pay, and the date is exact.** Replaying all 53 commits that have
+touched `memory/` with the ranker, golden set and clock frozen, the
+neighbourhood/pack ratio runs 0.51 (2026-07-27) → 1.05 (2026-07-28) → 2.08
+(2026-08-03) → 3.19 (today), and the gain tracks it inversely (r = −0.36):
+below 2.0, 12 of 25 replay points gained, mean **+0.032**; at or above, 2 of
+28, mean **−0.015**; Fisher exact one-sided **p = 0.00088**. The last commit at
+which a 2x link boost improved the pack is **2026-08-03** — the day the ratio
+first reached 2.0. Size and ratio move together across that replay and it
+cannot separate them; the budget sweep can, holding the store fixed and moving
+only the pack, and the sign follows the pack. **The variable is the ratio.**
+
+Both curves were already known apart. Phase 13 measured the pack falling 5.14
+→ 2.75 as write-ups got longer; `kb.py stats` has always printed
+links-per-entry, rising. Nothing had ever put them in the same fraction.
+
+**Shipped: the correction, the number, and a test that makes the correction
+falsifiable.** The `isolated` wording is fixed in both places it publishes.
+`kb.py eval` reports `link_neighbourhood` and `neighbourhood_over_pack` beside
+`mean_pack_entries` and says what past 2.0 means — reported, never gated, the
+call Phase 13's `budget_bound` and Phase 22's `judgement_load` already make.
+`tests/test_link_graph_is_not_retrieval.py` strips every `links:` value from
+the real store and asserts ranking and packing come back bit-identical, so a
+ranker that ever does follow the graph fails here and its author has to
+rewrite the legend in the same commit (verified to fail against a 1% link
+boost in `rank`). **No ranker change shipped** — every measured Δ at the
+shipped budget is ≤ 0 and every CI spans zero. 11 new tests (620 total).
+Write-up: [[kb-the-link-graph-is-not-retrieval]].
+
+**One reopen row added below.**
 
 ---
 

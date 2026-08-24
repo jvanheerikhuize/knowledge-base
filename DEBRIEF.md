@@ -1248,3 +1248,50 @@ Set up 2026-07-27 before you left.
   `candidates` both clean. No cross-repo bug-hunt rotation this session —
   step 2a was the whole, focused item, per Phase 23's own instruction that it
   is "the cheapest real work available ... and only you can do it."
+
+- [ ] 2026-08-24 **The link graph is not a retrieval structure — ROADMAP Phase
+  24.** Research-tier session. Backlog closed, no stranded branch beyond the
+  four acknowledged, `lint --strict`/`triage` clean, `candidates` empty,
+  standing re-verification action not firing, nothing on the reopen table met.
+  So: the one structure this store has spent effort on since day one and never
+  measured — the `links:` graph (190 edges, 125 logged `link` events, `judge`
+  recommending an edge on every `overlap`, a `consolidate` queue for the
+  missing ones, a `lint` warning, and an `isolated` status telling you to fix
+  it). **Nothing follows it.** `rank` is BM25 plus type/confidence/recency,
+  `context_pack` fills a budget from that ranking, neither reads `links`, and
+  no MCP tool does. The live defect was what the store *said* about that:
+  `kb.py status --legend` and `memory/AGENT.md` both defined `isolated` as
+  "unreachable by following the graph" — a retrieval consequence, in a table
+  whose next row defines `archived` as "retired from retrieval". Wrong for
+  four weeks, and invisible: `lint` checks that an edge *resolves*, never what
+  an edge is worth. **The graph is not noise, which is why this needed
+  measuring**: 114 of 190 edges (60%) are not among either endpoint's three
+  nearest neighbours, and an edge to the top hit lifts the odds an entry is
+  the right answer 4.2x (10/144 vs 12/723, Fisher p = 0.0013). **It is the
+  wrong grain**: one hop names 7.76 entries against a 2.43-entry pack, so a
+  promoted neighbour is right 6.9% of the time and displaces the rank-2 hit,
+  right 26.3%. Every one-hop expansion measured scores at or below baseline at
+  the shipped budget (Δ −0.024 at 2,000; +0.024 at 6,000; +0.048 at 9,000; all
+  CIs span zero). Replaying all 53 commits that touch `memory/`: the
+  neighbourhood/pack ratio ran 0.51 → 3.19 and the gain tracks it inversely —
+  below 2.0, 12 of 25 points gained (mean +0.032); at or above, 2 of 28 (mean
+  −0.015), Fisher p = 0.00088 — and the last commit at which a 2x link boost
+  helped is **2026-08-03**, the day the ratio first hit 2.0. Both curves were
+  already known apart (Phase 13's shrinking pack, `stats`' rising
+  links-per-entry); nothing had put them in the same fraction. **Shipped: the
+  correction, the number, and a test that makes the correction falsifiable** —
+  `isolated` reworded in both places it publishes; `kb.py eval` now reports
+  `link_neighbourhood` / `neighbourhood_over_pack` beside `mean_pack_entries`
+  and says what past 2.0 means (reported, never gated);
+  `tests/test_link_graph_is_not_retrieval.py` strips every `links:` value from
+  the real store and asserts ranking and packing come back bit-identical, so a
+  ranker that ever follows the graph fails here and its author has to rewrite
+  the legend in the same commit (verified to fail against a 1% link boost).
+  **No ranker change shipped**, and the reopen condition is in `ROADMAP.md`
+  with an explicit warning not to meet it by pruning edges. Also cleared both
+  consolidation queues (5 passages dismissed with reasons, one paragraph
+  actually trimmed rather than dismissed — the queue caught real overlap this
+  session's own write-up created) and judged all 7 candidate pairs (4 new, 3
+  reopened; 0 changed ruling, taking the all-time count to 0 of 41). 11 new
+  tests (620 total). Write-up: `kb-the-link-graph-is-not-retrieval`;
+  `kb-entry-status-model` corrected in place and re-verified with a note.
