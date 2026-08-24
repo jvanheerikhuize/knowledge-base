@@ -26,6 +26,14 @@
       "excerpt": "- **The vocabulary guard cannot.** Rewording *away* from an entry's own words while steering *toward* its ranking satisf"
     },
     {
+      "id": "0ac0e1415bef",
+      "host": "kb-archived-is-a-filter-commands-forget",
+      "target": "kb-forgetting-model",
+      "dismissed": "2026-08-24",
+      "note": "A code excerpt showing lint's archived guards, in the entry about commands forgetting that filter. kb-forgetting-model states why archiving retires an entry; this shows the three lines that implement it.",
+      "excerpt": "``` # Freshness warnings are noise on an entry that was retired on # purpose - archiving already answered \"what about th"
+    },
+    {
       "id": "0d9b31a0ac8f",
       "host": "kb-a-fitted-golden-set-starts-perfect",
       "target": "kb-golden-set-lives-in-the-wording",
@@ -232,6 +240,22 @@
       "dismissed": "2026-08-21",
       "note": "the host discussing its neighbour and citing it \u2014 the passage makes this entry's own argument about that one, it is not the neighbour's text sitting in the wrong file",
       "excerpt": "[[stranded-branches-need-a-second-channel]] built the stranded-branch detector on a sound argument: every earlier repair"
+    },
+    {
+      "id": "67f44aa9293f",
+      "host": "workspace-audit-2026-07-27",
+      "target": "workspace-improvement-phases",
+      "dismissed": "2026-08-24",
+      "note": "An episodic audit's observed submodule states on 2026-07-27. The target is a plan; an episodic record of what was seen that day is not a restatement of it.",
+      "excerpt": "**Behind origin/main** (none ahead): ubunutu-cast 9, asdlc 3, action-rsi 2, asdlc-verify 1, openSCAD 1. asdlc's locally-"
+    },
+    {
+      "id": "6e431c0245cd",
+      "host": "kb-the-link-graph-is-not-retrieval",
+      "target": "kb-entry-status-model",
+      "dismissed": "2026-08-24",
+      "note": "The link-graph entry's closing paragraph on what an edge is for. kb-entry-status-model documents the ten statuses, not the graph's purpose; scoring high because both name isolated/consolidate.",
+      "excerpt": "Not retrieval. It is navigation for a reader on the site, and it is the substrate `judge` and `consolidate` reason over "
     },
     {
       "id": "7455d8067852",
@@ -442,6 +466,14 @@
       "excerpt": "- **Still true, and one of them was load-bearing.** [[kb-agent-entrypoint-is-agent-md]] had said since 2026-07-27 that `"
     },
     {
+      "id": "c25a72a7d335",
+      "host": "workspace-improvement-phases",
+      "target": "workspace-repo-inventory-drift",
+      "dismissed": "2026-08-24",
+      "note": "A re-verification note explaining why this plan is superseded; it cites the drift entry rather than restating its claim.",
+      "excerpt": "**Re-verified 2026-08-23, against a fresh clone of `jvanheerikhuize/repos`.** This plan predates the 2026-08-06/07 works"
+    },
+    {
       "id": "c2dc74b4ca3d",
       "host": "kb-reverification-has-one-rate",
       "target": "kb-review-load-is-one-cohort",
@@ -560,6 +592,14 @@
       "dismissed": "2026-08-21",
       "note": "the deliberate pointer left behind when the 2026-07-31 pass cut the restating steps; a reference to the procedure is not a copy of it",
       "excerpt": "2. **Write the claim yourself, in a sentence or two.** Nothing extracts it for you: the claim an entry makes is not pres"
+    },
+    {
+      "id": "f941a339533e",
+      "host": "kb-entry-status-model",
+      "target": "kb-the-link-graph-is-not-retrieval",
+      "dismissed": "2026-08-24",
+      "note": "Two sentences recording that this entry's own isolated row was wrong, pointing at the entry that holds the measurement. The correction belongs to the table this entry documents; it was already trimmed once for this reason.",
+      "excerpt": "**The `isolated` row's meaning was wrong for four weeks, corrected 2026-08-24** \u2014 it promised a retrieval consequence th"
     },
     {
       "id": "fd4677073298",

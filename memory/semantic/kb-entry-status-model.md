@@ -5,8 +5,8 @@ description: every KB entry sits in exactly one of ten statuses, worst-first, ea
 confidence: verified
 source: scripts/kb.py STATUS_MODEL and status_report(); implemented and tested 2026-07-27, extended 2026-07-28 (archived) and 2026-07-30 (contradicted)
 created: 2026-07-27
-last_verified: 2026-07-30
-links: [kb-is-file-based, memory-overview-site, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-contradiction-is-a-second-axis, kb-prospective-memory-that-fires, kb-review-load-is-one-cohort, kb-the-bundle-was-already-shipped]
+last_verified: 2026-08-24
+links: [kb-is-file-based, memory-overview-site, kb-agent-entrypoint-is-agent-md, kb-forgetting-model, kb-contradiction-is-a-second-axis, kb-prospective-memory-that-fires, kb-review-load-is-one-cohort, kb-the-bundle-was-already-shipped, kb-the-link-graph-is-not-retrieval]
 ---
 
 `kb.py triage` reports only what is already wrong, so a store where nothing
@@ -29,6 +29,13 @@ competing complaints. Each state carries the literal command that leaves it.
 | `ageing` | past 2/3 of the staleness cutoff | nothing yet; verify before `review_by` |
 | `current` | recent, trusted, connected | nothing |
 | `archived` | retired from retrieval on purpose | nothing; `kb.py archive <name> --undo` puts it back |
+
+**The `isolated` row's meaning was wrong for four weeks, corrected
+2026-08-24** — it promised a retrieval consequence the graph does not have,
+and what an edge is actually worth is measured in
+[[kb-the-link-graph-is-not-retrieval]]. The row still earns its place: it is
+worth clearing for the site's navigation and for `consolidate`, not for
+search.
 
 Two of those are not properties of the entry's own frontmatter, and that is
 deliberate. `isolated` is read off the link graph, and `contradicted` off

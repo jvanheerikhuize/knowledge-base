@@ -125,8 +125,10 @@ STATUS_MODEL = [
     {
         "key": "isolated",
         "label": "Isolated",
-        "meaning": "Nothing links to it, or it links to nothing. It will not "
-                   "be found by following the graph.",
+        "meaning": "Nothing links to it, or it links to nothing. Retrieval is "
+                   "unaffected — no ranker follows the graph — but the site "
+                   "cannot be navigated to it and consolidation cannot reason "
+                   "about it.",
         "action": "kb.py link <other-entry> <name>",
     },
     {
@@ -1345,6 +1347,38 @@ def _rank1_margin(hits, acceptable):
     return round((top - hits[1].get("score", 0.0)) / top, 4)
 
 
+# Above this, a one-hop link expansion of the pack stops paying. Measured
+# 2026-08-24 (ROADMAP Phase 24) by replaying all 53 commits that have touched
+# `memory/` with the ranker, the golden set and the clock held fixed: below
+# 2.0, 12 of 25 replay points gained recall@pack and the mean change was
+# +0.032; at or above it, 2 of 28 gained and the mean was -0.015 (Fisher exact
+# one-sided p = 0.00088). The store crossed it on 2026-08-03 and reads 3.19
+# today. It is a reported number, never a gate — see `link_neighbourhood`.
+NEIGHBOURHOOD_PACK_RATIO_LIMIT = 2.0
+
+
+def mean_link_neighbourhood(docs):
+    """Mean number of entries one hop away, over live entries.
+
+    Links are written in one direction and read in both — `lint`'s orphan
+    check, `consolidate`'s `linked` flag and the site's "Linked from" all treat
+    an edge as undirected — so the neighbourhood is counted that way too.
+    Dangling names are dropped: `lint` already reports them, and an edge to
+    nothing is not a hop anyone can take.
+    """
+    live = {fm.get("name", path.stem): fm for _, path, fm, _, _ in docs
+            if not is_archived(fm)}
+    adjacent = collections.defaultdict(set)
+    for name, fm in live.items():
+        for target in fm.get("links") or []:
+            if target in live and target != name:
+                adjacent[name].add(target)
+                adjacent[target].add(name)
+    if not live:
+        return 0.0
+    return round(sum(len(adjacent[n]) for n in live) / len(live), 2)
+
+
 def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
                 budget=DEFAULT_CONTEXT_BUDGET):
     """Score retrieval against the golden query set.
@@ -1428,6 +1462,8 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
     margins = sorted(r["rank1_margin"] for r in rows
                      if r["rank1_margin"] is not None)
     thin = sum(1 for m in margins if m < THIN_RANK1_MARGIN)
+    neighbourhood = mean_link_neighbourhood(docs)
+    packed = sum(r["pack_size"] for r in rows)
 
     return {
         "summary": {
@@ -1442,9 +1478,18 @@ def eval_report(golden=None, docs=None, rank_fn=None, pack_fn=None,
             # What the product returns, as opposed to where the ranker put it.
             "recall_at_pack": share(lambda r: r["in_pack"] is not None),
             "pack_budget": budget,
-            "mean_pack_entries": (round(sum(r["pack_size"] for r in rows) / n, 2)
-                                  if n else 0.0),
+            "mean_pack_entries": round(packed / n, 2) if n else 0.0,
             "budget_bound": share(lambda r: r["budget_bound"]),
+            # The two curves of ROADMAP Phase 24. Neither is a quality score;
+            # together they say whether the link graph is still a grain the
+            # pack could use. `mean_pack_entries` has been falling since
+            # 2026-07-27 (Phase 13) while the neighbourhood has been rising,
+            # and they crossed 2:1 on 2026-08-03 — after which a one-hop
+            # expansion stops paying, because promoting one of ~8 neighbours
+            # into ~1.4 free slots displaces a better bet than it adds.
+            "link_neighbourhood": neighbourhood,
+            "neighbourhood_over_pack": (round(neighbourhood / (packed / n), 2)
+                                        if n and packed else 0.0),
             # How safe the wins are, which no score can say. `success@1` counts
             # a hit that beat the runner-up by 1% the same as one that beat it
             # by 80%, so a set whose queries were reworded until they scored
@@ -2939,6 +2984,15 @@ def cmd_eval(args):
     if s["budget_bound"] and s["recall_at_pack"] < s["recall_at_5"]:
         print("  The pack delivers less than recall@5 suggests: it stops on the "
               "token budget, which no rank metric can see.")
+    print(f"link graph against the pack: {s['link_neighbourhood']} entries one "
+          f"hop away vs {s['mean_pack_entries']} in the pack "
+          f"({s['neighbourhood_over_pack']}x)")
+    if s["neighbourhood_over_pack"] > NEIGHBOURHOOD_PACK_RATIO_LIMIT:
+        print(f"  Past {NEIGHBOURHOOD_PACK_RATIO_LIMIT:.0f}x the graph is too "
+              f"coarse to help the pack: one hop names more entries than the "
+              f"pack holds, so following an edge displaces a better-scoring "
+              f"one. Nothing follows the graph today — this is the number that "
+              f"would have to fall before anything should.")
     print(f"how safe the wins are: median rank-1 margin "
           f"{s['median_rank1_margin']:.3f}  "
           f"thin (<{THIN_RANK1_MARGIN:.0%}) {s['thin_at_1']:.3f} of "

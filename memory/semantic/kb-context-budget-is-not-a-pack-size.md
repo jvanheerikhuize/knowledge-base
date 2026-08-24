@@ -6,7 +6,7 @@ confidence: verified
 source: measured 2026-08-10 by replaying all 34 commits that touch memory/ against today's ranker and golden set; scripts/kb.py context_pack()/eval_report(); ROADMAP Phase 13
 created: 2026-08-10
 last_verified: 2026-08-19
-links: [kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort, kb-a-constant-query-has-a-ceiling]
+links: [kb-ranked-retrieval, kb-golden-set-lives-in-the-wording, kb-review-load-is-one-cohort, kb-a-constant-query-has-a-ceiling, kb-the-link-graph-is-not-retrieval]
 ---
 
 `kb.py context` is the command [[kb-ranked-retrieval]] calls "the one an agent

@@ -1330,6 +1330,59 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   `jvanheerikhuize/repos` PRs #1/#2/#3 before opening a fourth overlapping fix
   — they're Jerry's to reconcile, not a routine's.
 
+- [x] **The link graph is not a retrieval structure (ROADMAP Phase 24).**
+  (2026-08-24) Picked up as the research-tier item. Backlog closed, no stranded
+  branch beyond the four acknowledged, `lint --strict`/`triage` clean,
+  `candidates` empty (0 of 106 unjudged), standing re-verification action not
+  firing (nothing due until 2026-10-25), nothing on ROADMAP's reopen table met.
+  So the item was the one structure this store has spent effort on since day
+  one and never measured: the `links:` graph — 190 edges, 125 logged `link`
+  events, `judge` recommending an edge on every `overlap`, a `consolidate`
+  queue for the missing ones, a `lint` warning, and an `isolated` status
+  telling you to fix it. **Nothing follows it.** `rank` is BM25 plus
+  type/confidence/recency; `context_pack` fills a budget from that ranking;
+  neither reads `links`, and no MCP tool does. The live defect was what the
+  store *said*: `kb.py status --legend` and `memory/AGENT.md` both defined
+  `isolated` as "unreachable by following the graph" — a retrieval
+  consequence, asserted in a table whose next row defines `archived` as
+  "retired from retrieval" — wrong for four weeks and catchable by nothing,
+  because `lint` checks that an edge *resolves*, never what an edge is worth.
+  **The graph is not noise, which is why this needed measuring rather than
+  asserting**: 114 of 190 edges (60%) are not among either endpoint's three
+  nearest neighbours, and an edge to the top hit lifts the odds an entry is the
+  right answer **4.2x** (10/144 against 12/723, Fisher exact one-sided
+  p = 0.0013). **It is still the wrong grain, and the arithmetic is the
+  finding**: one hop names **7.76** entries where the pack holds **2.43**, so a
+  promoted neighbour is right 6.9% of the time against 26.3% for the rank-2
+  entry it displaces. Every one-hop expansion measured scores at or below
+  baseline at the shipped budget (Δ recall@pack −0.024 at 2,000, +0.024 at
+  6,000, +0.048 at 9,000, every CI spanning zero; two hops never helps at any
+  budget). **It used to pay, and the date is exact**: replaying all 53 commits
+  that touch `memory/`, the neighbourhood/pack ratio ran 0.51 → 3.19 and the
+  gain tracks it inversely — below 2.0, 12 of 25 replay points gained (mean
+  +0.032); at or above, 2 of 28 (mean −0.015), Fisher p = 0.00088 — and the
+  last commit at which a 2x boost helped is **2026-08-03**, the day the ratio
+  first reached 2.0. Both curves were already known apart (Phase 13's shrinking
+  pack; `stats`' rising links-per-entry); nothing had put them in the same
+  fraction. **No ranker change shipped.** What shipped is the correction in
+  both places it publishes, `link_neighbourhood` / `neighbourhood_over_pack` in
+  `kb.py eval` (reported, never gated), and
+  `tests/test_link_graph_is_not_retrieval.py`, which strips every `links:`
+  value from the real store and asserts ranking and packing come back
+  bit-identical — so a ranker that ever does follow the graph fails there and
+  its author has to rewrite the legend in the same commit. 11 new tests (620
+  total). Write-up: `kb-the-link-graph-is-not-retrieval`;
+  `kb-entry-status-model` corrected in place and re-verified with a note.
+
+  **The backlog is closed again.** The standing re-verification action is
+  unchanged — one entry, oldest due, *only when behind pace* — and it does not
+  fire today. **For the next session:** both consolidation queues were cleared
+  here and every pair is judged, so `candidates`/`consolidate` are cheap and
+  worth running; expect the passage queue to hold whatever this session's own
+  write-up generated. Phase 24's reopen row is the one place a routine could
+  be tempted to act on its own — read it before touching the graph, because
+  meeting its condition by *pruning edges* would be exactly backwards.
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
