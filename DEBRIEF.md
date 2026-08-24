@@ -1295,3 +1295,36 @@ Set up 2026-07-27 before you left.
   reopened; 0 changed ruling, taking the all-time count to 0 of 41). 11 new
   tests (620 total). Write-up: `kb-the-link-graph-is-not-retrieval`;
   `kb-entry-status-model` corrected in place and re-verified with a note.
+
+- [ ] 2026-08-24 **Cross-repo rotation into Runbook-Gallery.** (execution
+  tier, second same-day firing) This repo's own backlog was closed already
+  (Phase 24 landed on `main`, no stranded branch beyond the four
+  acknowledged, `lint --strict`/`triage` clean, both consolidation queues
+  empty, judgement queue 0/108, standing re-verification action not firing).
+  `list_repos` worked (execution tier, per `kb-access-tracks-the-routine-not-
+  the-day`). Checked open PRs on four untouched candidates
+  (`Runbook-Gallery`, `Autoinstall-YAML`, `Agent-Roles`, `dotfiles`) — none
+  had any, so no Jerry-in-progress work to avoid. `Runbook-Gallery`'s root
+  listing showed a real defect: a directory tree named after HTTP methods,
+  routes, and header lines (`GET /health`, `POST /runbooks`, `PUT
+  /runbooks/{name}`, `DELETE /runbooks/{name}`, `https:/api.runbook-
+  gallery.local/v1`, and a file literally named `Authorization: Bearer
+  <token>`) sitting at repo root since 2026-08-06, while `docs/API.md` held
+  only three lines. `git show --stat` on the commit that created
+  `docs/API.md` confirmed all of it was written in that single commit — the
+  doc content got shredded into path-like fragments instead of the file.
+  Reassembled the real `docs/API.md` from the fragments plus
+  `app/routers/runbooks.py` and `README.md` for the two endpoint
+  descriptions the fragments didn't carry, then deleted the bogus paths.
+  While validating with `pytest`, found the test suite couldn't even be
+  collected — `httpx` (required by `fastapi.testclient.TestClient`) was
+  missing from `requirements.txt` — added it. A second, separate defect
+  found but **not** fixed: `app/config.py` hardcodes a PostgreSQL
+  `DATABASE_URL` and needs a live Postgres server for tests to actually run,
+  while `README.md`/`.env.example` both describe the database as SQLite;
+  confirmed all 3 tests pass with `DATABASE_URL=sqlite:///:memory:`, so
+  flagged in the PR rather than fixed — picking the "correct" backend is a
+  judgment call, not a mechanical cleanup. No CI configured in that repo;
+  subscribed for review comments only. PR opened, not merged, per the
+  standing mandate:
+  [jvanheerikhuize/Runbook-Gallery#2](https://github.com/jvanheerikhuize/Runbook-Gallery/pull/2).

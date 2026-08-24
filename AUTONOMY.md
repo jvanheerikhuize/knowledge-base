@@ -1383,6 +1383,37 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   be tempted to act on its own — read it before touching the graph, because
   meeting its condition by *pruning edges* would be exactly backwards.
 
+- [x] **Cross-repo rotation, taken up as the freed-up backlog item (eighth
+  time).** (2026-08-24, second same-day session) Confirmed this repo's own
+  backlog was genuinely closed first: Phase 24 landed on `main`, no stranded
+  branch beyond the four acknowledged, `lint --strict`/`triage` clean, both
+  consolidation queues empty and every pair judged (0/108), standing
+  re-verification action not firing. `list_repos` worked — execution tier.
+  Checked open PRs on four untouched candidates before picking one
+  (`Runbook-Gallery`, `Autoinstall-YAML`, `Agent-Roles`, `dotfiles` — none had
+  any open PRs). Rotated into **`jvanheerikhuize/Runbook-Gallery`** (first
+  routine session to touch it): its root held a directory tree named after
+  HTTP methods, routes, and header lines (`GET /health`, `POST /runbooks`,
+  `PUT /runbooks/{name}`, `DELETE /runbooks/{name}`,
+  `https:/api.runbook-gallery.local/v1`, and a file literally named
+  `Authorization: Bearer <token>`), while `docs/API.md` held only three
+  lines — `git show --stat` on the commit that created `docs/API.md`
+  confirmed both were written together: the real doc content had been
+  shredded into path-like fragments instead of the file. Reassembled
+  `docs/API.md` from the fragments plus `app/routers/runbooks.py` and
+  `README.md` (for the two endpoint descriptions the fragments didn't
+  carry), deleted the bogus paths. Found and fixed a second, smaller defect
+  while validating: `httpx` was missing from `requirements.txt`, so
+  `pytest` couldn't even collect `tests/test_runbooks.py`. A third defect
+  found but **not** fixed: `app/config.py` hardcodes a PostgreSQL
+  `DATABASE_URL` and needs a live Postgres server for tests to run at all,
+  while `README.md`/`.env.example` both describe the database as SQLite —
+  confirmed all 3 tests pass with `DATABASE_URL=sqlite:///:memory:`, so
+  flagged in the PR rather than fixed, since picking the "correct" backend
+  is a judgment call, not a mechanical cleanup. No CI in that repo; PR
+  opened, not merged, per the standing mandate:
+  [jvanheerikhuize/Runbook-Gallery#2](https://github.com/jvanheerikhuize/Runbook-Gallery/pull/2).
+
 ## Debrief contract
 
 `DEBRIEF.md` is the single triage document Jerry reads on return. Every shipped
