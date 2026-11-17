@@ -1328,3 +1328,7 @@ Set up 2026-07-27 before you left.
   subscribed for review comments only. PR opened, not merged, per the
   standing mandate:
   [jvanheerikhuize/Runbook-Gallery#2](https://github.com/jvanheerikhuize/Runbook-Gallery/pull/2).
+
+  **Closed without merging, 2026-11-17** (no comment or review left — Jerry's
+  call, not re-opened or re-attempted elsewhere per the PR-closed
+  convention).

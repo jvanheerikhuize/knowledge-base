@@ -1413,6 +1413,8 @@ grant happens, step 1 keeps failing and this mandate is latent, not broken.
   is a judgment call, not a mechanical cleanup. No CI in that repo; PR
   opened, not merged, per the standing mandate:
   [jvanheerikhuize/Runbook-Gallery#2](https://github.com/jvanheerikhuize/Runbook-Gallery/pull/2).
+  **Closed without merging, 2026-11-17** (no comment or review left; not
+  re-opened or re-attempted elsewhere, per the PR-closed convention).
 
 ## Debrief contract
 
