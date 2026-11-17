@@ -1172,6 +1172,18 @@ Set up 2026-07-27 before you left.
   No CI existed in that repo before this PR (the new workflow watches its own
   PR); subscribed for review comments and CI.
 
+- [ ] 2026-11-17 **Follow-up on the line above: `centauri-control#6` was
+  closed without merging.** A standing check-in this session had scheduled
+  for it fired after a long gap (its last run before this one was
+  2026-08-26; nothing in this repo landed on `main` between
+  `8d96ecf`/2026-08-24 and today either, so the gap looks workspace-wide, not
+  specific to this PR) and found the PR had just been closed, `closed_at`
+  2026-11-17T22:41:39Z, no comment left explaining why. Per the subscription
+  rules, not reopening it and not opening a replacement PR for the same
+  change — that's Jerry's call. The fix itself (findings 1–2 from `#5`'s
+  audit, plus the test suite from finding 3) is only on the
+  `claude/audit-findings-1-2-3` branch now, not on that repo's `main`.
+
 - [ ] 2026-08-23 **The two routines do not have the same access, and that
   explains why the store knows nothing about your other repos.** Every session
   runs the mandate's step-1 access probe and writes down the result; the store
